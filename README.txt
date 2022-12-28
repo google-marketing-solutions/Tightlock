@@ -1,1 +1,1 @@
-Hey Team Rightlock! Here is my readme file!
+Hey Team Tightlock! Here is my readme file!
