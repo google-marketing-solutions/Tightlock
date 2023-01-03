@@ -1,1 +1,0 @@
-Hey Team Tightlock! Here is my readme file!

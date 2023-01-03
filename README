@@ -1,0 +1,11 @@
+# Tightlock - First-Party Data Tool
+
+## Useful commands
+
+`docker-compose up` - Initializes application
+
+`docker-compose build tightlock-api && docker-compose up -d && docker-compose logs tightlock-api` - Rebuilds Python API App (necessary if changes are made to files inside app folder), brings the application up and shows only Python API App logs
+
+`docker volume rm tightlock_postgres_db_volume_1` - Removes docker physical DB volume (necessary if changes are made to `postgres_init.sh` script) 
+
+

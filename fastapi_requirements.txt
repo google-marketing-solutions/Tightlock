@@ -1,2 +1,6 @@
 # add relevant webserver dependencies
+databases
 pydrill
+sqlalchemy-utils
+psycopg2
+asyncpg
