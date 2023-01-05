@@ -3,14 +3,14 @@ import os
 import sys
 from logging.config import fileConfig
 
-from sqlmodel import SQLModel, create_engine
+from sqlmodel import SQLModel
+from sqlmodel import create_engine
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 # All models that needs to be migrated should be added
-from models import Activation
-from models import Config
+from app.models import Config
 
 from alembic import context
 

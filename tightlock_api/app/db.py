@@ -9,7 +9,7 @@ engine = AsyncEngine(create_engine(os.environ.get('CONFIG_DB_CONN'), echo=True, 
 # TODO(caiotomazelli): delete once migrations are set-up
 async def init_db():
     async with engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.drop_all)
+        # await conn.run_sync(SQLModel.metadata.drop_all)
         await conn.run_sync(SQLModel.metadata.create_all)
 
 
