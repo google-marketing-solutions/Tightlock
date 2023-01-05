@@ -1,6 +1,8 @@
 # add relevant webserver dependencies
+alembic
 databases
 pydrill
 sqlalchemy-utils
 psycopg2
 asyncpg
+sqlmodel
