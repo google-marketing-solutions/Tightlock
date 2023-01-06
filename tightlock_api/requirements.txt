@@ -1,0 +1,7 @@
+# add relevant webserver dependencies
+alembic
+pydrill
+psycopg2
+asyncpg
+sqlmodel
+sqlalchemy-json
