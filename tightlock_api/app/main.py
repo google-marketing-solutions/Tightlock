@@ -25,7 +25,7 @@ if not drill.is_active():
 
 
 @app.on_event("startup")
-async def startup():
+async def create_initial_config():
   f = open("base_config.json")
   data = json.load(f)
   get_session_wrapper = contextlib.asynccontextmanager(get_session)
