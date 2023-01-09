@@ -1,5 +1,6 @@
 """Entrypoint for FastAPI application."""
-
+import contextlib
+import json
 import os
 
 from db import get_session
@@ -8,8 +9,10 @@ from fastapi import FastAPI
 from models import Activation
 from models import Config
 from pydrill.client import PyDrill
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
+
 
 app = FastAPI()
 v1 = FastAPI()
@@ -21,9 +24,21 @@ if not drill.is_active():
   raise Exception("Please run Drill first")
 
 
+async def apply_latest_config(session: AsyncSession = Depends(get_session)):
+  statement = select
+
+
 @app.on_event("startup")
 async def startup():
-  pass
+  f = open("base_config.json")
+  data = json.load(f)
+  get_session_wrapper = contextlib.asynccontextmanager(get_session)
+  async with get_session_wrapper() as session:
+    try:
+      await create_config(Config(label="Initial Config", value=data), session=session)
+    except IntegrityError:
+      pass  # ignore if the initial config was already created by another worker
+
 
 
 @app.on_event("shutdown")
@@ -68,9 +83,11 @@ async def get_config(config_id: int, session: AsyncSession = Depends(get_session
 
 
 # TODO(b/264569989)
-@v1.patch("/configs/{config_id}", response_model=Config)
-async def update_config(config_id: int, config: Config, session: AsyncSession = Depends(get_session)):
-  # description: update the config with the provided id
+@v1.post("/configs", response_model=Config)
+async def create_config(config: Config, session: AsyncSession = Depends(get_session)):
+  # description: create a config with the provided config object
+  session.add(config)
+  await session.commit()
   return config
 
 

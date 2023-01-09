@@ -1,0 +1,29 @@
+{
+  "external_connections": [
+    {
+      "name": "gcs_connection", 
+      "config": {} 
+    }
+  ],
+  "sources": [
+    {
+      "name": "sample_customer_match_source",
+      "query": "Apache Drill SQL query that retrieves external data"
+    }
+  ],
+  "destinations": [
+    {
+      "name": "sample_customer_match_destination",
+      "config": {}
+    } 
+  ],
+  "activations": [
+    {
+      "name": "sample_customer_match_audience",
+      "source_name": "sample_customer_match_source",
+      "destination_name": "sample_customer_match_destination",
+      "schedule": ""
+    }
+  ],
+  "secrets": {}
+}

@@ -3,6 +3,7 @@
 from datetime import datetime
 from typing import Dict, Optional
 
+from sqlalchemy import UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy_json import mutable_json_type
 from sqlmodel import Column
@@ -20,6 +21,9 @@ class Activation(SQLModel):
 
 
 class Config(SQLModel, table=True):
+
+  __table_args__ = (UniqueConstraint("label"),)
+
   id: Optional[int] = Field(default=None, primary_key=True)
   created_at: datetime = Field(sa_column=Column(DateTime(timezone=True)), default_factory=datetime.now, nullable=False)
   label: str
