@@ -39,7 +39,7 @@ def connect():
 
 # TODO(b/264570105)
 @v1.post("/activations/{activation_id}:trigger")
-def trigger_activation(activation_id: int):
+async def trigger_activation(activation_id: int):
   return activation_id
 
 
