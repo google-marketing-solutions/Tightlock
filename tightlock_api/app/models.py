@@ -21,7 +21,7 @@ class Activation(SQLModel):
 
 class Config(SQLModel, table=True):
   id: Optional[int] = Field(default=None, primary_key=True)
-  timestamp: datetime = Field(sa_column=Column(DateTime(timezone=True)), default_factory=datetime.now().timestamp, nullable=False)
+  created_at: datetime = Field(sa_column=Column(DateTime(timezone=True)), default_factory=datetime.now, nullable=False)
   label: str
   # defined as below to avoid this: https://amercader.net/blog/beware-of-json-fields-in-sqlalchemy/
   value: Dict = Field(default={}, sa_column=Column(mutable_json_type(dbtype=JSONB, nested=True)))
