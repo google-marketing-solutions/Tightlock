@@ -24,10 +24,6 @@ if not drill.is_active():
   raise Exception("Please run Drill first")
 
 
-async def apply_latest_config(session: AsyncSession = Depends(get_session)):
-  statement = select
-
-
 @app.on_event("startup")
 async def startup():
   f = open("base_config.json")
@@ -82,10 +78,9 @@ async def get_config(config_id: int, session: AsyncSession = Depends(get_session
   return Config(id=config_id)
 
 
-# TODO(b/264569989)
 @v1.post("/configs", response_model=Config)
-async def create_config(config: Config, session: AsyncSession = Depends(get_session)):
-  # description: create a config with the provided config object
+async def create_config(config: Config,
+                        session: AsyncSession = Depends(get_session)):
   session.add(config)
   await session.commit()
   return config
