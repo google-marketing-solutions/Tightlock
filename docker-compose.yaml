@@ -86,8 +86,8 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
-      POSTGRES_USERS: tightlock:tightlock
-      POSTGRES_DATABASES: airflow:tightlock|tightlock:tightlock
+      POSTGRES_USERS: airflow:airflow|tightlock:tightlock
+      POSTGRES_DATABASES: airflow:airflow|tightlock:tightlock,airflow
     volumes:
       - postgres-db-volume:/var/lib/postgresql/data
     healthcheck:
