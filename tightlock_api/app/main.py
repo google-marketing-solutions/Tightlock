@@ -6,6 +6,7 @@ import os
 from db import get_session
 from fastapi import Depends
 from fastapi import FastAPI
+from fastapi import HTTPException
 from models import Activation
 from models import Config
 from pydrill.client import PyDrill
@@ -32,9 +33,8 @@ async def create_initial_config():
   async with get_session_wrapper() as session:
     try:
       await create_config(Config(label="Initial Config", value=data), session=session)
-    except IntegrityError:
-      pass  # ignore if the initial config was already created by another worker
-
+    except HTTPException:
+      pass  # Ignore workers trying to recreate initial config
 
 
 @app.on_event("shutdown")
@@ -58,7 +58,7 @@ async def trigger_activation(activation_id: int):
 async def get_configs(session: AsyncSession = Depends(get_session)):
   result = await session.execute(select(Config))
   configs = result.scalars().all()
-  return [Config(timestamp=config.timestamp, label=config.label,
+  return [Config(create_date=config.create_date, label=config.label,
                  value=config.value, id=config.id
                 ) for config in configs]
 
@@ -82,7 +82,12 @@ async def get_config(config_id: int, session: AsyncSession = Depends(get_session
 async def create_config(config: Config,
                         session: AsyncSession = Depends(get_session)):
   session.add(config)
-  await session.commit()
+  try:
+    await session.commit()
+  except IntegrityError as exc:  # Raised when label uniqueness is violated.
+    raise HTTPException(status_code=409,
+                        detail=f"Config label {config.label} already exists."
+                       ) from exc
   return config
 
 

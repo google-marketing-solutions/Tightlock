@@ -4,7 +4,7 @@
 
 `docker-compose up -d --build` - Initializes application detached and rebuilds containers
 
-`docker-compose logs tightlock-api` - Shows API logs only
+`docker logs tightlock-api` - Shows API logs only
 
 `docker-compose down -v` - Cleans up containers and remove all volumes
 
