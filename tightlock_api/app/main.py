@@ -70,10 +70,10 @@ async def get_configs(session: AsyncSession = Depends(get_session)):
 
 @v1.get("/configs:getLatest", response_model=Config)
 async def get_latest_config(session: AsyncSession = Depends(get_session)):
-  statement = select(Config).order_by(Config.timestamp.desc()).limit(1)
+  statement = select(Config).order_by(Config.create_date.desc()).limit(1)
   result = await session.execute(statement)
-  latest_config = result.one()
-  return latest_config
+  row = result.one()
+  return row[0]
   
 
 # TODO(b/264569609)
@@ -102,7 +102,7 @@ async def create_config(config: Config,
 @v1.get("/activations", response_model=list[Activation])
 async def get_activations(session: AsyncSession = Depends(get_session)):
   # description: query latest config and query activations field from config json
-  return []
-
+  latest_config = await get_latest_config(session=session)
+  return latest_config.value["activations"]
 
 app.mount("/api/v1", v1)
