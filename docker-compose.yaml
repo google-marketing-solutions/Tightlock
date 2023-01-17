@@ -78,15 +78,15 @@ x-airflow-common:
     postgres:
       condition: service_healthy
 
-x-postgres:
-  &postgres
+x-fastapi:
+  &fastapi
   build:
     context: .
-    dockerfile: postgres.Dockerfile
+    dockerfile: fastapi.Dockerfile
 
 services:
   postgres:
-    <<: *postgres
+    image: postgres:13
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -96,7 +96,7 @@ services:
     volumes:
       - postgres-db-volume:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres"]
+      test: ["CMD", "pg_isready", "-U", "airflow"]
       interval: 5s
       retries: 5
     restart: always
@@ -127,19 +127,14 @@ services:
       - drill-db-volume:/data
 
   tightlock-api:
-    build: ./tightlock_api
+    <<: *fastapi
     ports:
       - 8081:80
-      - 8082:8000 # documentation
     environment:
-      MAX_WORKERS: 5 # needed to limit the number of DB connections
       DRILL_HOSTNAME: drill
       DRILL_PORT: 8047
-      CONFIG_DB_CONN: postgresql+asyncpg://tightlock:tightlock@postgres/tightlock 
     depends_on:
       drill:
-        condition: service_healthy
-      postgres:
         condition: service_healthy
 
   airflow-webserver:
@@ -192,8 +187,6 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
-      drill:
-        condition: service_healthy
 
   airflow-triggerer:
     <<: *airflow-common
