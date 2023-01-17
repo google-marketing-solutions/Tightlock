@@ -24,7 +24,7 @@ drill = PyDrill(host=os.environ.get("DRILL_HOSTNAME"),
 if not drill.is_active():
   raise Exception("Please run Drill first")
 
-# TODO(b/): Update drill connections each time a new Config is created
+# TODO(b/265713009): Update drill connections each time a new Config is created
 async def update_drill_connections(conns):
   pass 
 
