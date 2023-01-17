@@ -1,0 +1,36 @@
+{
+  "external_connections": [
+    {
+      "name": "gcs", 
+      "connection": "gs://tightlock-dev-storage",
+      "config": {} 
+    }
+  ],
+  "sources": [
+    {
+      "name": "sample_ga4mp_source",
+      "location": "gcs.`root`.`ga4mp_sample.csv`"
+    }
+  ],
+  "destinations": [
+    {
+      "name": "sample_ga4mp_destination",
+      "config": {
+        "type": "GA4MP",
+        "firebase_app_id": "",
+        "measurement_id": "",
+        "non_personalized_ads": true,
+        "api_secret": ""
+      }
+    } 
+  ],
+  "activations": [
+    {
+      "name": "sample_ga4mp_hit",
+      "source_name": "sample_ga4mp_source",
+      "destination_name": "sample_ga4mp_destination",
+      "schedule": ""
+    }
+  ],
+  "secrets": {}
+}

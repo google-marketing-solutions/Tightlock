@@ -3,6 +3,7 @@
 from datetime import datetime
 from typing import Dict, Optional
 
+from sqlalchemy import UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy_json import mutable_json_type
 from sqlmodel import Column
@@ -20,8 +21,11 @@ class Activation(SQLModel):
 
 
 class Config(SQLModel, table=True):
+
+  __table_args__ = (UniqueConstraint("label"),)
+
   id: Optional[int] = Field(default=None, primary_key=True)
-  timestamp: datetime = Field(sa_column=Column(DateTime(timezone=True)), default_factory=datetime.now().timestamp(), nullable=False)
+  create_date: datetime = Field(sa_column=Column(DateTime(timezone=True)), default_factory=datetime.now, nullable=False)
   label: str
   # defined as below to avoid this: https://amercader.net/blog/beware-of-json-fields-in-sqlalchemy/
   value: Dict = Field(default={}, sa_column=Column(mutable_json_type(dbtype=JSONB, nested=True)))

@@ -1,15 +1,19 @@
 """Entrypoint for FastAPI application."""
-
+import contextlib
+import json
 import os
 
 from db import get_session
 from fastapi import Depends
 from fastapi import FastAPI
+from fastapi import HTTPException
 from models import Activation
 from models import Config
 from pydrill.client import PyDrill
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
+
 
 app = FastAPI()
 v1 = FastAPI()
@@ -20,10 +24,22 @@ drill = PyDrill(host=os.environ.get("DRILL_HOSTNAME"),
 if not drill.is_active():
   raise Exception("Please run Drill first")
 
+# TODO(b/265713009): Update drill connections each time a new Config is created
+async def update_drill_connections(conns):
+  pass 
 
 @app.on_event("startup")
-async def startup():
-  pass
+async def create_initial_config():
+  f = open("base_config.json")
+  data = json.load(f)
+  get_session_wrapper = contextlib.asynccontextmanager(get_session)
+  async with get_session_wrapper() as session:
+    try:
+      await create_config(Config(label="Initial Config",
+                                 value=data),
+                          session=session)
+    except HTTPException:
+      pass  # Ignore workers trying to recreate initial config
 
 
 @app.on_event("shutdown")
@@ -47,7 +63,7 @@ async def trigger_activation(activation_id: int):
 async def get_configs(session: AsyncSession = Depends(get_session)):
   result = await session.execute(select(Config))
   configs = result.scalars().all()
-  return [Config(timestamp=config.timestamp, label=config.label,
+  return [Config(create_date=config.create_date, label=config.label,
                  value=config.value, id=config.id
                 ) for config in configs]
 
@@ -67,10 +83,18 @@ async def get_config(config_id: int, session: AsyncSession = Depends(get_session
   return Config(id=config_id)
 
 
-# TODO(b/264569989)
-@v1.patch("/configs/{config_id}", response_model=Config)
-async def update_config(config_id: int, config: Config, session: AsyncSession = Depends(get_session)):
-  # description: update the config with the provided id
+@v1.post("/configs", response_model=Config)
+async def create_config(config: Config,
+                        session: AsyncSession = Depends(get_session)):
+  session.add(config)
+  try:
+    await session.commit()
+  except IntegrityError as exc:  # Raised when label uniqueness is violated.
+    raise HTTPException(status_code=409,
+                        detail=f"Config label {config.label} already exists."
+                       ) from exc
+  
+  update_drill_connections(config.value["external_connections"])
   return config
 
 

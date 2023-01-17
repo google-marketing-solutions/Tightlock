@@ -60,6 +60,11 @@ x-airflow-common:
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
     AIRFLOW__CORE__LOAD_EXAMPLES: 'true'
     AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth'
+    # TODO(b/265692556): Add enabling XCOM Pickling discussion to privacy review / design doc risks
+    # also, understand if this is really needed for real queries made by Drill
+    AIRFLOW__CORE__ENABLE_XCOM_PICKLING: 'true'
+    AIRFLOW_CONN_DRILL_DEFAULT: 'drill+sadrill://drill:8047'
+    AIRFLOW_CONN_TIGHTLOCK_CONFIG: 'postgresql+psycopg2://airflow:airflow@postgres/tightlock'
     _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
   volumes:
     - ./dags:/opt/airflow/dags
@@ -87,7 +92,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
       POSTGRES_USERS: airflow:airflow|tightlock:tightlock
-      POSTGRES_DATABASES: airflow:airflow|tightlock:tightlock
+      POSTGRES_DATABASES: airflow:airflow|tightlock:tightlock,airflow
     volumes:
       - postgres-db-volume:/var/lib/postgresql/data
     healthcheck:
@@ -110,8 +115,6 @@ services:
 
   drill:
     image: apache/drill:latest
-    expose:
-      - 31010 # JDBC
     ports:
       - 8047:8047 # web and REST
     healthcheck:
@@ -120,7 +123,6 @@ services:
       timeout: 30s
       retries: 5
     stdin_open: true
-    tty: true
     volumes:
       - drill-db-volume:/data
 

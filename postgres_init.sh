@@ -30,19 +30,19 @@ if [ "$POSTGRES_DATABASES" ]; then
 	for DATABASE in $DATABASES_ARR
 	do
 		DATABASE_NAME=`echo $DATABASE | cut -d: -f1`
-		DATABASE_OWNER=`echo $DATABASE | cut -d: -f2`
+  	DATABASE_OWNERS=`echo $DATABASE | cut -d: -f2`
+  	DATABASE_OWNERS_ARR=$(echo $DATABASE_OWNERS | tr "," "\n")
 		if [ "$DATABASE_NAME" != 'postgres' ]; then
-			if [ "$DATABASE_OWNER" ]; then
-				"${psql[@]}" --username postgres <<-EOSQL
-				CREATE DATABASE "$DATABASE_NAME" owner "$DATABASE_OWNER" ;
-				EOSQL
-				echo
-			else
-				"${psql[@]}" --username postgres <<-EOSQL
-					CREATE DATABASE "$DATABASE_NAME" ;
-				EOSQL
-				echo
-			fi
+			"${psql[@]}" --username postgres <<-EOSQL
+				CREATE DATABASE "$DATABASE_NAME" ;
+			EOSQL
+			echo
 		fi
+		for USER in $DATABASE_OWNERS_ARR
+		do
+			"${psql[@]}" --username postgres <<-EOSQL
+				GRANT ALL PRIVILEGES ON DATABASE "$DATABASE_NAME" TO "$USER" ;
+			EOSQL
+		done
 	done
 fi
