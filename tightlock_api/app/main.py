@@ -24,6 +24,9 @@ drill = PyDrill(host=os.environ.get("DRILL_HOSTNAME"),
 if not drill.is_active():
   raise Exception("Please run Drill first")
 
+# TODO(b/): Update drill connections each time a new Config is created
+async def update_drill_connections(conns):
+  pass 
 
 @app.on_event("startup")
 async def create_initial_config():
@@ -32,7 +35,9 @@ async def create_initial_config():
   get_session_wrapper = contextlib.asynccontextmanager(get_session)
   async with get_session_wrapper() as session:
     try:
-      await create_config(Config(label="Initial Config", value=data), session=session)
+      await create_config(Config(label="Initial Config",
+                                 value=data),
+                          session=session)
     except HTTPException:
       pass  # Ignore workers trying to recreate initial config
 
@@ -88,6 +93,8 @@ async def create_config(config: Config,
     raise HTTPException(status_code=409,
                         detail=f"Config label {config.label} already exists."
                        ) from exc
+  
+  update_drill_connections(config.value["external_connections"])
   return config
 
 

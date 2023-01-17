@@ -1,27 +1,34 @@
 {
   "external_connections": [
     {
-      "name": "gcs_connection", 
+      "name": "gcs", 
+      "connection": "gs://tightlock-dev-storage",
       "config": {} 
     }
   ],
   "sources": [
     {
-      "name": "sample_customer_match_source",
-      "query": "Apache Drill SQL query that retrieves external data"
+      "name": "sample_ga4mp_source",
+      "location": "gcs.`root`.`ga4mp_sample.csv`"
     }
   ],
   "destinations": [
     {
-      "name": "sample_customer_match_destination",
-      "config": {}
+      "name": "sample_ga4mp_destination",
+      "config": {
+        "type": "GA4MP",
+        "firebase_app_id": "",
+        "measurement_id": "",
+        "non_personalized_ads": true,
+        "api_secret": ""
+      }
     } 
   ],
   "activations": [
     {
-      "name": "sample_customer_match_audience",
-      "source_name": "sample_customer_match_source",
-      "destination_name": "sample_customer_match_destination",
+      "name": "sample_ga4mp_hit",
+      "source_name": "sample_ga4mp_source",
+      "destination_name": "sample_ga4mp_destination",
       "schedule": ""
     }
   ],

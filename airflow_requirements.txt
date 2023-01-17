@@ -1,1 +1,1 @@
-# add relevant airflow dependencies
+apache-airflow-providers-apache-drill
