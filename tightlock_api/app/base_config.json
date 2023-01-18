@@ -26,6 +26,7 @@
   ],
   "activations": [
     {
+      "id": 1234,
       "name": "sample_ga4mp_hit",
       "source_name": "sample_ga4mp_source",
       "destination_name": "sample_ga4mp_destination",
