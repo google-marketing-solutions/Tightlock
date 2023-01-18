@@ -108,7 +108,6 @@ async def create_config(config: Config,
 async def get_activations(session: AsyncSession = Depends(get_session)):
     # description: query latest config and query activations field from config json
     latest_config = await get_latest_config(session=session)
-    # return latest_config.value["activations"]
     return [Activation(name=activation["name"],
                        source_name=activation["source_name"],
                        destination_name=activation["destination_name"])
