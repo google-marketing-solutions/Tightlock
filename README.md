@@ -14,4 +14,3 @@
 - `alembic upgrade head` - Applies migrations to DB
 
 `docker exec -ti tightlock_postgres_1 psql -U tightlock -W tightlock` - Runs Postgres REPL inside DB container (useful for inspecting tables)
-
