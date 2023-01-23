@@ -8,6 +8,8 @@
 
 set -e
 
+psql=( psql -v ON_ERROR_STOP=1 )
+
 if [ "$POSTGRES_USERS" ]; then
 	USERS_ARR=$(echo $POSTGRES_USERS | tr "|" "\n")
 	for USER in $USERS_ARR
