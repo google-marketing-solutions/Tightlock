@@ -1,7 +1,9 @@
 """Entrypoint for FastAPI application."""
 import contextlib
 import json
+from typing import List
 import os
+
 
 from db import get_session
 from fastapi import Depends
@@ -9,11 +11,17 @@ from fastapi import FastAPI
 from fastapi import HTTPException
 from models import Activation
 from models import Config
+from models import DrillConnection
 from pydrill.client import PyDrill
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+
+
+class DrillConnectionException(Exception):
+  "Raised when there is a problem with Drill Connection creation"
+  pass
 
 app = FastAPI()
 v1 = FastAPI()
@@ -25,8 +33,22 @@ if not drill.is_active():
   raise Exception("Please run Drill first")
 
 # TODO(b/265713009): Update drill connections each time a new Config is created
-async def update_drill_connections(conns):
-  pass 
+async def update_drill_connections(conns: List[DrillConnection]):
+  base_config_names = ['cp', 'dfs', 'http', 's3', 'cassandra', 'mongo', 'hbase', 'hive', 'rdbms']
+
+  for conn in conns:
+    if conn.name in base_config_names:
+      raise DrillConnectionException(f"Connection name {conn.name} not allowed. Please provide another name.")
+    storage = None
+    match conn.type:
+      case "bigquery":
+        storage_result = drill.storage_detail('http')
+        storage = storage_result.data
+      case _:
+        raise DrillConnectionException(f"Connection type {conn.type} unknown.")
+    storage["config"] = conn.config
+    drill.storage_update(conn.name, conn.config)
+  
 
 @app.on_event("startup")
 async def create_initial_config():
@@ -88,13 +110,19 @@ async def create_config(config: Config,
                         session: AsyncSession = Depends(get_session)):
   session.add(config)
   try:
+    connections = [DrillConnection(name=conn["name"],
+                                   type=conn["type"],
+                                   config=conn["config"]) for conn in config.value["external_connections"]]
+    await update_drill_connections(connections)
+    # commiting session should be the last operation of the creation sequence
     await session.commit()
+  except DrillConnectionException as exc:  # Raised when Drill Connection is invalid.
+    raise HTTPException(status_code=422,
+                         detail=str(exc)) from exc
   except IntegrityError as exc:  # Raised when label uniqueness is violated.
     raise HTTPException(status_code=409,
                         detail=f"Config label {config.label} already exists."
                        ) from exc
-  
-  update_drill_connections(config.value["external_connections"])
   return config
 
 

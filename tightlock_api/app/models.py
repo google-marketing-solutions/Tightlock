@@ -1,7 +1,7 @@
 """Definition of data models used by Tightlock application."""
 
-from datetime import datetime
-from typing import Dict, Optional
+import datetime
+from typing import Any, Dict, Optional
 
 from sqlalchemy import UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
@@ -10,6 +10,13 @@ from sqlmodel import Column
 from sqlmodel import DateTime
 from sqlmodel import Field
 from sqlmodel import SQLModel
+
+
+# Represents a Drill Connection (does not define a table)
+class DrillConnection(SQLModel):
+  name: str  # Connection name, an alias for this particular connection
+  type: str  # Define the type of connection from the pool of available types
+  config: Dict[str, Any]  #  The actual connection config 
 
 # Represents a configured activation. This model is part of the config and does not define a table for now.
 class Activation(SQLModel):
@@ -25,7 +32,7 @@ class Config(SQLModel, table=True):
   __table_args__ = (UniqueConstraint("label"),)
 
   id: Optional[int] = Field(default=None, primary_key=True)
-  create_date: datetime = Field(sa_column=Column(DateTime(timezone=True)), default_factory=datetime.now, nullable=False)
+  create_date: datetime.datetime = Field(sa_column=Column(DateTime(timezone=True)), default_factory=datetime.datetime.now, nullable=False)
   label: str
   # defined as below to avoid this: https://amercader.net/blog/beware-of-json-fields-in-sqlalchemy/
   value: Dict = Field(default={}, sa_column=Column(mutable_json_type(dbtype=JSONB, nested=True)))

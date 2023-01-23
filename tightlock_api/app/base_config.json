@@ -1,9 +1,11 @@
 {
   "external_connections": [
     {
-      "name": "gcs", 
-      "connection": "gs://tightlock-dev-storage",
-      "config": {} 
+      "name": "bq", 
+      "type": "bigquery",
+      "config": {
+        "url": ""
+      } 
     }
   ],
   "sources": [
