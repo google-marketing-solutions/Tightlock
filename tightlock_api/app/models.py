@@ -13,7 +13,6 @@ from sqlmodel import SQLModel
 
 # Represents a configured activation. This model is part of the config and does not define a table for now.
 class Activation(SQLModel):
-  id: Optional[int] = Field(default=None, primary_key=True)
   name: str  # Activation name
   source_name: str  # Source name
   destination_name: str  # Destination name
