@@ -5,7 +5,8 @@ WORKDIR /app
 COPY . .
 RUN npm ci && npm run build
 
-# Stage 2: 
+# Stage 2: Copy the output from Stage 1, specifically what is in the dist folder to nginx.
+# Exposing port 80.
 
 FROM nginx:alpine
 COPY --from=my-app-build /app/dist/app /usr/share/nginx/html
