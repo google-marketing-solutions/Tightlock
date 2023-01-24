@@ -2,5 +2,5 @@
 import pytest
 
 def test_sample():
-    sum = 1 + 1
-    assert sum == 2
+    sum = 1 + 2
+    assert sum == 3
