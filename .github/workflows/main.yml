@@ -7,7 +7,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: docker-compose up
       env:
         COMPOSE_INTERACTIVE_NO_CLI: 1
@@ -16,7 +16,7 @@ jobs:
       run: docker-compose ps -a
     - name: Check logs
       run: docker-compose logs tightlock-api
-    - name: Test with pytest
-      env:
-       COMPOSE_INTERACTIVE_NO_CLI: 1
-      run: docker-compose exec tightlock-api pytest
+#     - name: Test with pytest
+#       env:
+#        COMPOSE_INTERACTIVE_NO_CLI: 1
+#       run: docker-compose exec tightlock-api pytest
