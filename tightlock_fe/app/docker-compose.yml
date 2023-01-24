@@ -1,0 +1,7 @@
+version: '3.3'
+services:
+  tightlock-fe-docker:
+    container_name: tightlock-fe-container
+    build: .
+    ports:
+      - '9000:80'
