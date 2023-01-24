@@ -19,4 +19,4 @@ jobs:
     - name: Test with pytest
       env:
         COMPOSE_INTERACTIVE_NO_CLI: 1
-      run: docker-compose exec tightlock-api pytest
+      run: docker exec tightlock-api pytest
