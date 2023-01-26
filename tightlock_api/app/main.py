@@ -25,8 +25,11 @@ if not drill.is_active():
   raise Exception("Please run Drill first")
 
 # TODO(b/265713009): Update drill connections each time a new Config is created
+
+
 async def update_drill_connections(conns):
-  pass 
+  pass
+
 
 @app.on_event("startup")
 async def create_initial_config():
@@ -65,16 +68,18 @@ async def get_configs(session: AsyncSession = Depends(get_session)):
   configs = result.scalars().all()
   return [Config(create_date=config.create_date, label=config.label,
                  value=config.value, id=config.id
-                ) for config in configs]
+                 ) for config in configs]
 
 
 @v1.get("/configs:getLatest", response_model=Config)
 async def get_latest_config(session: AsyncSession = Depends(get_session)):
-  statement = select(Config).order_by(Config.timestamp.desc()).limit(1)
+  statement = select(Config).order_by(Config.create_date.desc()).limit(1)
   result = await session.execute(statement)
-  latest_config = result.one()
-  return latest_config
-  
+  row = result.one()
+  return Config(create_date=row[0].create_date, label=row[0].label,
+                value=row[0].value, id=row[0].id
+                )
+
 
 # TODO(b/264569609)
 @v1.get("/configs/{config_id}", response_model=Config)
@@ -92,8 +97,8 @@ async def create_config(config: Config,
   except IntegrityError as exc:  # Raised when label uniqueness is violated.
     raise HTTPException(status_code=409,
                         detail=f"Config label {config.label} already exists."
-                       ) from exc
-  
+                        ) from exc
+
   update_drill_connections(config.value["external_connections"])
   return config
 
@@ -102,7 +107,11 @@ async def create_config(config: Config,
 @v1.get("/activations", response_model=list[Activation])
 async def get_activations(session: AsyncSession = Depends(get_session)):
   # description: query latest config and query activations field from config json
-  return []
-
+  latest_config = await get_latest_config(session=session)
+  return [Activation(name=activation["name"],
+                     source_name=activation["source_name"],
+                     destination_name=activation["destination_name"],
+                     schedule=activation["schedule"])
+          for activation in latest_config.value["activations"]]
 
 app.mount("/api/v1", v1)
