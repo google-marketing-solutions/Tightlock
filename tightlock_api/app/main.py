@@ -77,7 +77,10 @@ async def get_config(config_id: int, session: AsyncSession = Depends(get_session
   # description: get a config with the provided id
   statement = select(Config).where(Config.id == config_id)
   config = await session.execute(statement)
-  return config
+  return Config(id=config.id,
+                create_date=config.create_date,
+                label=config.label,
+                value=config.value)
 
 @v1.post("/configs", response_model=Config)
 async def create_config(config: Config,
