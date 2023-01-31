@@ -4,16 +4,12 @@ import json
 import os
 
 from db import get_session
-from fastapi import Depends
-from fastapi import FastAPI
-from fastapi import HTTPException
-from models import Activation
-from models import Config
+from fastapi import Depends, FastAPI, HTTPException
+from models import Activation, Config
 from pydrill.client import PyDrill
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-
 
 app = FastAPI()
 v1 = FastAPI()
@@ -81,12 +77,15 @@ async def get_latest_config(session: AsyncSession = Depends(get_session)):
                 )
 
 
-# TODO(b/264569609)
 @v1.get("/configs/{config_id}", response_model=Config)
 async def get_config(config_id: int, session: AsyncSession = Depends(get_session)):
   # description: get a config with the provided id
-  return Config(id=config_id)
-
+  statement = select(Config).where(Config.id == config_id)
+  config = await session.execute(statement)
+  return Config(id=config.id,
+                create_date=config.create_date,
+                label=config.label,
+                value=config.value)
 
 @v1.post("/configs", response_model=Config)
 async def create_config(config: Config,
