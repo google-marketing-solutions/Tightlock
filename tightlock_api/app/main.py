@@ -10,6 +10,9 @@ from pydrill.client import PyDrill
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
+import httpx
+from datetime import datetime
+import requests
 
 app = FastAPI()
 v1 = FastAPI()
@@ -53,9 +56,23 @@ def connect():
 
 
 # TODO(b/264570105)
-@v1.post("/activations/{activation_id}:trigger")
-async def trigger_activation(activation_id: int):
-  return activation_id
+@v1.post("/activations/{activation_name}:trigger")
+async def trigger_activation(activation_name: str):
+  url = f"http://airflow:8080/dags/{activation_name}/dagRuns"
+  print(url)
+  body = {
+      "dag_run_id": None,
+      "logical_date": datetime.utcnow().isoformat(),
+      "state": "queued",
+      "conf": {},
+      "note": "string"
+  }
+  async with httpx.AsyncClient() as client:
+    try:
+      response = await client.post(url, json=body)
+    except requests.exceptions.HTTPError as err:
+      raise SystemExit(err) from err
+  return response
 
 
 @v1.get("/configs", response_model=list[Config])
@@ -86,6 +103,7 @@ async def get_config(config_id: int, session: AsyncSession = Depends(get_session
                 create_date=config.create_date,
                 label=config.label,
                 value=config.value)
+
 
 @v1.post("/configs", response_model=Config)
 async def create_config(config: Config,
