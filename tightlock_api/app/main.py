@@ -58,7 +58,7 @@ def connect():
 # TODO(b/264570105)
 @v1.post("/activations/{activation_name}:trigger")
 async def trigger_activation(activation_name: str):
-  url = f"http://airflow:8080/dags/{activation_name}/dagRuns"
+  url = f"http://airflow-webserver:8080/dags/{activation_name}/dagRuns"
   print(url)
   body = {
       "dag_run_id": None,
