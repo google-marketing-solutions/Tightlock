@@ -1,15 +1,19 @@
 """Entrypoint for FastAPI application."""
 import contextlib
+from datetime import datetime
 import json
 import os
 
 from db import get_session
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import Response
+import httpx
 from models import Activation, Config
 from pydrill.client import PyDrill
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
+import requests
 
 app = FastAPI()
 v1 = FastAPI()
@@ -52,10 +56,21 @@ def connect():
   pass
 
 
-# TODO(b/264570105)
-@v1.post("/activations/{activation_id}:trigger")
-async def trigger_activation(activation_id: int):
-  return activation_id
+@v1.post("/activations/{activation_name}:trigger")
+async def trigger_activation(activation_name: str):
+  url = f"http://airflow-webserver:8080/api/v1/dags/{activation_name}_dag/dagRuns"
+  body = {
+      "logical_date": str(datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')),
+      "conf": {},
+  }
+  async with httpx.AsyncClient() as client:
+    try:
+      # TODO(b/267772197): Add functionality to store usn:password.
+      await client.post(url, json=body, auth=("airflow", "airflow"))
+    except requests.exceptions.HTTPError as err:
+      raise HTTPException(
+          status_code=404, detail=err) from err
+  return Response(status_code=200)
 
 
 @v1.get("/configs", response_model=list[Config])
@@ -86,6 +101,7 @@ async def get_config(config_id: int, session: AsyncSession = Depends(get_session
                 create_date=config.create_date,
                 label=config.label,
                 value=config.value)
+
 
 @v1.post("/configs", response_model=Config)
 async def create_config(config: Config,
