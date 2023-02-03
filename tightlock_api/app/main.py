@@ -6,7 +6,7 @@ import os
 
 from db import get_session
 from fastapi import Depends, FastAPI, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import Response
 import httpx
 from models import Activation, Config
 from pydrill.client import PyDrill
@@ -70,7 +70,7 @@ async def trigger_activation(activation_name: str):
     except requests.exceptions.HTTPError as err:
       raise HTTPException(
           status_code=404, detail=err) from err
-  return JSONResponse(content={"status_code": 200})
+  return Response(status_code=200)
 
 
 @v1.get("/configs", response_model=list[Config])
