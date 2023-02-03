@@ -56,7 +56,6 @@ def connect():
   pass
 
 
-# TODO(b/264570105)
 @v1.post("/activations/{activation_name}:trigger")
 async def trigger_activation(activation_name: str):
   url = f"http://airflow-webserver:8080/api/v1/dags/{activation_name}_dag/dagRuns"
@@ -66,13 +65,12 @@ async def trigger_activation(activation_name: str):
   }
   async with httpx.AsyncClient() as client:
     try:
-      response = await client.post(url, json=body, auth=("airflow", "airflow"))
+      # TODO(b/267772197): Add functionality to store usn:password.
+      await client.post(url, json=body, auth=("airflow", "airflow"))
     except requests.exceptions.HTTPError as err:
-      raise SystemExit(err) from err
-  return JSONResponse(content={
-      "status_code": response.status_code,
-      "content": response.content.decode("UTF-8")
-  })
+      raise HTTPException(
+          status_code=404, detail=err) from err
+  return JSONResponse(content={"status_code": 200})
 
 
 @v1.get("/configs", response_model=list[Config])
