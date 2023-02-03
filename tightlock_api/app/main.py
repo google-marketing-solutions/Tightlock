@@ -1,17 +1,18 @@
 """Entrypoint for FastAPI application."""
 import contextlib
+from datetime import datetime
 import json
 import os
 
 from db import get_session
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import JSONResponse
+import httpx
 from models import Activation, Config
 from pydrill.client import PyDrill
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-import httpx
-from datetime import datetime
 import requests
 
 app = FastAPI()
@@ -58,21 +59,24 @@ def connect():
 # TODO(b/264570105)
 @v1.post("/activations/{activation_name}:trigger")
 async def trigger_activation(activation_name: str):
-  url = f"http://airflow-webserver:8080/dags/{activation_name}/dagRuns"
-  print(url)
+  # The curl command
+  # http://localhost:8081/api/v1/activations/sample_ga4mp_hit:trigger
+
+  url = f"http://airflow-webserver:8080/api/v1/dags/{activation_name}_dag/dagRuns"
   body = {
-      "dag_run_id": None,
-      "logical_date": datetime.utcnow().isoformat(),
-      "state": "queued",
+      "logical_date": str(datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')),
       "conf": {},
-      "note": "string"
   }
   async with httpx.AsyncClient() as client:
     try:
-      response = await client.post(url, json=body)
+      response = await client.post(url, json=body, auth=("airflow", "airflow"))
     except requests.exceptions.HTTPError as err:
       raise SystemExit(err) from err
-  return response
+  print(f"RESP = {response}")
+  return JSONResponse(content={
+      "status_code": response.status_code,
+      "content": response.content.decode("UTF-8")
+  })
 
 
 @v1.get("/configs", response_model=list[Config])
