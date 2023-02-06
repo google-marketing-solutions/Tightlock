@@ -4,12 +4,13 @@ import datetime
 import functools
 import importlib.util
 import pathlib
+from typing import Any, Mapping, Sequence
 
 from airflow.decorators import dag
 from airflow.decorators import task
 from airflow.hooks.postgres_hook import PostgresHook
-from destinations.destination_proto import DestinationProto
-from sources.source_proto import SourceProto
+from protocols.destination_proto import DestinationProto
+from protocols.source_proto import SourceProto
 
 
 class DAGBuilder:
@@ -44,43 +45,40 @@ class DAGBuilder:
     cursor.execute(sql_stmt)
     return cursor.fetchone()[0]
 
-  def _build_dynamic_dag(self, activation, external_connections):
+  def _load_activation_modules(self, activation):
+    pass
+
+  def _build_dynamic_dag(self, 
+                         activation: Mapping[str, Any],
+                         external_connections: Sequence[Any],
+                         target_source: SourceProto,
+                         target_destination: DestinationProto):
     """Dynamically creates a DAG based on a given activation."""
     dag_id = f"{activation['name']}_dag"
     
-    # config objects defining source, activation and connection
-    activation_source = activation["source"]
-    activation_destination = activation["destination"]
-
     schedule = activation["schedule"]
     schedule_interval = schedule if schedule else None
 
-    # actual implementations of each source and destination
-    target_source = self._import_source(activation_source["type"]).Source()
-    
-    target_destination = self._import_destination(activation_destination["type"]).Destination()
-
     @dag(dag_id=dag_id, start_date=datetime.datetime.now(), schedule_interval=schedule_interval)
     def dynamic_generated_dag():
-      def get_data(fields):
-        source_connection = activation_source["external_connection"]
-        connection = external_connections[source_connection] if source_connection else None
-        location = activation_source["location"]
-        return target_source.get_data(connection, location, fields)
-
       @task
       def process():
         fields = target_destination.fields()
-        target_destination.send_data(get_data(fields))
+        data = target_source.get_data(activation["source"], external_connections, fields)
+        target_destination.send_data(data)
 
       process()
     return dynamic_generated_dag
 
   def register_dags(self):
+    """Loops over all configured activations and create an Airflow DAG for each one of them."""
     external_connections = self.latest_config["external_connections"]
 
     for activation in self.latest_config["activations"]:
-      dynamic_dag = self._build_dynamic_dag(activation, external_connections)
+    # actual implementations of each source and destination
+      target_source = self._import_source(activation["source"]["type"]).Source()
+      target_destination = self._import_destination(activation["destination"]["type"]).Destination()
+      dynamic_dag = self._build_dynamic_dag(activation, external_connections, target_source, target_destination)
 
       # register dag by calling the dag object
       dynamic_dag()

@@ -1,10 +1,9 @@
 """GA4 MP destination implementation."""
 
 from typing import Any, Iterable
-from destinations.destination_proto import DestinationProto
 
 
-class Destination(DestinationProto):
+class Destination:
   """Implements DestinationProto protocol for GA4 Measurement Protocol."""
 
   # TODO(b/265715341): Implement GA4 MP activation function
