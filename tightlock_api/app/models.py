@@ -1,6 +1,6 @@
 """Definition of data models used by Tightlock application."""
 
-from datetime import datetime
+import datetime
 from typing import Dict, Optional
 
 from sqlalchemy import UniqueConstraint
@@ -11,8 +11,9 @@ from sqlmodel import DateTime
 from sqlmodel import Field
 from sqlmodel import SQLModel
 
-# Represents a configured activation. This model is part of the config and does not define a table for now.
+
 class Activation(SQLModel):
+  """Represents a configured activation. This model is part of the config and does not define a table for now."""
   name: str  # Activation name
   source_name: str  # Source name
   destination_name: str  # Destination name
@@ -20,11 +21,11 @@ class Activation(SQLModel):
 
 
 class Config(SQLModel, table=True):
-
+  """A Config that defines all connections, sources and destinations. For now, all lives in a JSON 'value' field."""
   __table_args__ = (UniqueConstraint("label"),)
 
   id: Optional[int] = Field(default=None, primary_key=True)
-  create_date: datetime = Field(sa_column=Column(DateTime(timezone=True)), default_factory=datetime.now, nullable=False)
+  create_date: datetime.datetime = Field(sa_column=Column(DateTime(timezone=True)), default_factory=datetime.datetime.now, nullable=False)
   label: str
   # defined as below to avoid this: https://amercader.net/blog/beware-of-json-fields-in-sqlalchemy/
   value: Dict = Field(default={}, sa_column=Column(mutable_json_type(dbtype=JSONB, nested=True)))

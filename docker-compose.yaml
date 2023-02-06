@@ -58,7 +58,7 @@ x-airflow-common:
     AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
     AIRFLOW__CORE__FERNET_KEY: ''
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
-    AIRFLOW__CORE__LOAD_EXAMPLES: 'true'
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
     AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth'
     # TODO(b/265692556): Add enabling XCOM Pickling discussion to privacy review / design doc risks
     # also, understand if this is really needed for real queries made by Drill
@@ -124,7 +124,7 @@ services:
       retries: 5
     stdin_open: true
     volumes:
-      - drill-db-volume:/data
+      - ./sample_data:/data
 
   tightlock-api:
     build: ./tightlock_api
@@ -323,4 +323,3 @@ services:
 
 volumes:
   postgres-db-volume:
-  drill-db-volume:
