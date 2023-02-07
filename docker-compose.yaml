@@ -133,12 +133,8 @@ services:
       - 8082:8000 # documentation
     environment:
       MAX_WORKERS: 5 # needed to limit the number of DB connections
-      DRILL_HOSTNAME: drill
-      DRILL_PORT: 8047
       CONFIG_DB_CONN: postgresql+asyncpg://tightlock:tightlock@postgres/tightlock 
     depends_on:
-      drill:
-        condition: service_healthy
       postgres:
         condition: service_healthy
 
