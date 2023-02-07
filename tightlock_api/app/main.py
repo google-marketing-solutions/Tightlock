@@ -46,7 +46,7 @@ async def connect():
 
 @v1.post("/activations/{activation_name}:trigger")
 async def trigger_activation(activation_name: str):
-  """Trigger an activation identified by name."""
+  """Triggers an activation identified by name."""
   url = f"{_AIRFLOW_BASE_URL}/api/v1/dags/{activation_name}_dag/dagRuns"
   now_date = str(datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")) 
   body = {
@@ -111,7 +111,7 @@ async def create_config(config: Config,
 
 @v1.get("/activations", response_model=list[Activation])
 async def get_activations(session: AsyncSession = Depends(get_session)):
-  """Query latest config and query activations field from config json."""
+  """Queries latest config and query activations field from config json."""
   latest_config = await get_latest_config(session=session)
   return [
       Activation(name=a["name"], source_name=a["source_name"],
