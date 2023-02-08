@@ -11,6 +11,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+bin/
 build/
 develop-eggs/
 dist/
@@ -133,3 +134,6 @@ dmypy.json
 
 # Visual Studio Code
 .vscode/settings.json
+
+# Virtualenv
+pyvenv.cfg
