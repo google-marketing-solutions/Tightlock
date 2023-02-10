@@ -16,7 +16,10 @@ jobs:
       run: docker-compose ps -a
     - name: Check logs
       run: docker-compose logs tightlock-api
-    - name: Integration tests
-      env:
-       COMPOSE_INTERACTIVE_NO_CLI: 1
-      run: ./run_integrations_tests.sh
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Integration tests
+        run: ./run_integrations_tests.sh
+        shell: bash
