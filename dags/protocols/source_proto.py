@@ -1,8 +1,9 @@
 """Defines protocol for source classes."""
 
-from typing import Any, Mapping, Protocol, Iterable, Sequence
+from typing import Any, Mapping, Protocol, Iterable, Sequence, runtime_checkable
 
 
+@runtime_checkable
 class SourceProto(Protocol):
   def get_data(self,
                source: Mapping[str, Any],

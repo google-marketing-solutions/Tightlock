@@ -16,6 +16,8 @@ jobs:
       run: docker-compose ps -a
     - name: Check logs
       run: docker-compose logs tightlock-api
+    - name: dags unit tests  
+      run: docker-compose exec airflow-worker pytest -v --mypy --cov
 
   integration-tests:
     runs-on: ubuntu-latest
