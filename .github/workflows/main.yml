@@ -21,4 +21,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Integration tests
-        run: bash run_integration_tests.sh
+        run: bash ${GITHUB_WORKSPACE}/run_integration_tests.sh
