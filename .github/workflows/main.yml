@@ -17,7 +17,7 @@ jobs:
     - name: Check logs
       run: docker-compose logs tightlock-api
     - name: dags unit tests  
-      run: docker-compose exec airflow-worker pytest -v --mypy --cov
+      run: docker-compose exec -T airflow-worker pytest -v --mypy --cov
       env:
         COMPOSE_INTERACTIVE_NO_CLI: 1
 
