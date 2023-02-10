@@ -21,5 +21,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Integration tests
-        run: ./run_integrations_tests.sh
+        run: ./run_integration_tests.sh
         shell: bash
