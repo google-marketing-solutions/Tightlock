@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Runs tests
+      - name: Integration Tests
         run: | 
           chmod +x ./run_integration_tests.sh
           bash ./run_integration_tests.sh
