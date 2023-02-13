@@ -20,7 +20,7 @@ class Activation(SQLModel):
   name: str  # Activation name
   source_name: str  # Source name
   destination_name: str  # Destination name
-  schedule: Optional[str] = None  # A cron expression or preset"
+  schedule: Optional[str] = None  # A cron expression or preset
 
 
 class Config(SQLModel, table=True):
@@ -44,7 +44,7 @@ class Config(SQLModel, table=True):
 
   # Needed for Column(JSON)
   class Config:
-    """Inner `Config`` class is needed by sqlmodel.
+    """Inner `Config` class is needed by sqlmodel.
 
     Same name as the parant class is a coincidence.
     """
