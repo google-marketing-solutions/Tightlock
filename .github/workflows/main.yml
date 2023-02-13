@@ -17,6 +17,7 @@ jobs:
     - name: Check logs
       run: docker-compose logs tightlock-api
     - name: Activation unit tests  
+      # TODO(b/265930300): Bump --cov-fail-under=90 once more tests are added
       run: docker-compose exec -T airflow-worker pytest -v --cov --cov-fail-under=60
       env:
         COMPOSE_INTERACTIVE_NO_CLI: 1
