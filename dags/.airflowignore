@@ -1,2 +1,5 @@
 destinations/.*
 sources/.*
+tests/.*
+mixins.py
+utils.py

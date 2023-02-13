@@ -1,7 +1,7 @@
 """Local file source implementation."""
 
 from typing import Any, Mapping, Sequence, Iterable
-from sources.mixins import DrillMixin
+from dags.utils import DrillMixin
 
 
 class Source(DrillMixin):
