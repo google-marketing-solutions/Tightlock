@@ -1,14 +1,13 @@
 """Entrypoint for FastAPI application."""
 import contextlib
-import datetime
 import json
 
+from clients import AirflowClient
 from db import get_session
 from fastapi import Depends
 from fastapi import FastAPI
 from fastapi import HTTPException
 from fastapi.responses import Response
-import httpx
 from models import Activation
 from models import Config
 from sqlalchemy.exc import IntegrityError
@@ -18,26 +17,6 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 # Creates base app and v1 API objects
 app = FastAPI()
 v1 = FastAPI()
-_AIRFLOW_BASE_URL = "http://airflow-webserver:8080"
-
-
-class AirflowClient:
-  """Defines a base airflow client."""
-
-  def __init__(self):
-    self.base_url = f"{_AIRFLOW_BASE_URL}/api/v1"
-    # TODO(b/267772197): Add functionality to store usn:password.
-    self.auth = ("airflow", "airflow")
-
-  async def trigger(self, dag_prefix: str):
-    now_date = str(datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"))
-    body = {
-        "logical_date": now_date,
-        "conf": {},
-    }
-    url = f"{self.base_url}/dags/{dag_prefix}_dag/dagRuns"
-    async with httpx.AsyncClient() as client:
-      return await client.post(url, json=body, auth=self.auth)
 
 
 @app.on_event("startup")
