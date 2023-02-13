@@ -8,10 +8,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - name: docker-compose up
+    - name: Run Tightlock Containers
       env:
         COMPOSE_INTERACTIVE_NO_CLI: 1
-      run: docker-compose up -d
+      run: bash ./run_tightlock.sh
     - name: Check running containers
       run: docker-compose ps -a
     - name: Check logs
