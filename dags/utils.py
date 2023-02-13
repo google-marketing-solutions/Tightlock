@@ -14,8 +14,10 @@ class DagUtils:
   """A set of utility functions for DAGs."""
 
   def import_modules_from_folder(self, folder_name: str):
+    """Import all modules from a given folder."""
     modules = []
-    folder_path = pathlib.Path().resolve().parent / f"airflow/dags/{folder_name}"
+    dags_path = f"airflow/dags/{folder_name}"
+    folder_path = pathlib.Path().resolve().parent / dags_path
     for filename in os.listdir(folder_path):
       if os.path.isfile(filename):
         module_name, _ = filename.split(".py")
@@ -31,7 +33,9 @@ class DagUtils:
 class DrillMixin:
   """A Drill mixin that provides a get_drill_data wrapper for other classes that use drill."""
 
-  def get_drill_data(self, from_target: Sequence[str], fields: str) -> Iterable[Any]:
+  def get_drill_data(self,
+                     from_target: Sequence[str],
+                     fields: str) -> Iterable[Any]:
     drill_conn = DrillHook().get_conn()
     cursor = drill_conn.cursor()
     fields_str = ",".join(fields)

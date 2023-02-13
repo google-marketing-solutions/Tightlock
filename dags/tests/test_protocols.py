@@ -12,6 +12,7 @@ def test_destinations_protocol():
   for destination in destinations:
     assert issubclass(destination.Destination, DestinationProto)
 
+
 def test_sources_protocol():
   sources = dag_utils.import_modules_from_folder("sources")
   for source in sources:
