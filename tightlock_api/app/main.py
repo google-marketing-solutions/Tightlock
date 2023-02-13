@@ -1,17 +1,15 @@
 """Entrypoint for FastAPI application."""
 import contextlib
-import datetime
 import json
 
+from clients import AirflowClient
 from db import get_session
 from fastapi import Depends
 from fastapi import FastAPI
 from fastapi import HTTPException
 from fastapi.responses import Response
-import httpx
 from models import Activation
 from models import Config
-import requests
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -19,7 +17,6 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 # Creates base app and v1 API objects
 app = FastAPI()
 v1 = FastAPI()
-_AIRFLOW_BASE_URL = "http://airflow-webserver:8080"
 
 
 @app.on_event("startup")
@@ -45,22 +42,11 @@ async def connect():
 
 
 @v1.post("/activations/{activation_name}:trigger")
-async def trigger_activation(activation_name: str):
+async def trigger_activation(activation_name: str,
+                             airflow_client=Depends(AirflowClient)):
   """Triggers an activation identified by name."""
-  url = f"{_AIRFLOW_BASE_URL}/api/v1/dags/{activation_name}_dag/dagRuns"
-  now_date = str(datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")) 
-  body = {
-      "logical_date": now_date,
-      "conf": {},
-  }
-  async with httpx.AsyncClient() as client:
-    try:
-      # TODO(b/267772197): Add functionality to store usn:password.
-      await client.post(url, json=body, auth=("airflow", "airflow"))
-    except requests.exceptions.HTTPError as err:
-      raise HTTPException(
-          status_code=404, detail=err) from err
-  return Response(status_code=200)
+  response = await airflow_client.trigger(activation_name)
+  return Response(status_code=response.status_code)
 
 
 @v1.get("/configs", response_model=list[Config])
