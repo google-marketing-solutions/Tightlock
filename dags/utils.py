@@ -35,7 +35,7 @@ class DrillMixin:
 
   def get_drill_data(self,
                      from_target: Sequence[str],
-                     fields: str) -> Iterable[Any]:
+                     fields: Sequence[str]) -> Iterable[Any]:
     drill_conn = DrillHook().get_conn()
     cursor = drill_conn.cursor()
     fields_str = ",".join(fields)
