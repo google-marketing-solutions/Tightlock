@@ -2,3 +2,4 @@ apache-airflow-providers-apache-drill
 pytest
 pytest-cov
 pytest-mypy
+requests
