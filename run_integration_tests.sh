@@ -1,5 +1,3 @@
-echo -e "AIRFLOW_UID=$(id -u)\nAIRFLOW_GID=0" > .env
-
 # update pip version
 python3 -m pip install --user --upgrade pip
 
@@ -12,4 +10,4 @@ PY3=$ENV_NAME/bin/python
 
 $PY3 -m pip install -r integration_tests/test_requirements.txt
 
-$PY3 -m pytest -v --docker-compose=docker-compose.yaml --docker-compose-remove-volumes integration_tests/
+$PY3 -m pytest -v --docker-compose-no-build --use-running-containers integration_tests/

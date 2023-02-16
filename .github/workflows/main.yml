@@ -4,23 +4,23 @@ on:
   push: { branches: [main]}
 
 jobs:
-  build:
+  unit-tests:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - name: Run Tightlock Containers
-      env:
-        COMPOSE_INTERACTIVE_NO_CLI: 1
-      run: bash ./run_tightlock.sh
-    - name: Check running containers
-      run: docker-compose ps -a
-    - name: Check logs
-      run: docker-compose logs tightlock-api
-    - name: Activation unit tests  
-      # TODO(b/265930300): Bump --cov-fail-under=90 once more tests are added
-      run: docker-compose exec -T airflow-worker pytest -v --cov --cov-fail-under=60
-      env:
-        COMPOSE_INTERACTIVE_NO_CLI: 1
+      - uses: actions/checkout@v3
+      - name: Run Tightlock Containers
+        env:
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+        run: bash ./run_tightlock.sh
+      - name: Check running containers
+        run: docker-compose ps -a
+      - name: Check logs
+        run: docker-compose logs tightlock-api
+      - name: Activation unit tests  
+        # TODO(b/265930300): Bump --cov-fail-under=90 once more tests are added
+        run: docker-compose exec -T airflow-worker pytest -v --cov --cov-fail-under=60
+        env:
+          COMPOSE_INTERACTIVE_NO_CLI: 1
   # TODO(b/268734647): Add mypy static tests once all typing errors are gone
   #   run: docker-compose exec -T airflow-worker pytest -v --mypy --cov
 
@@ -28,7 +28,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Run Tightlock Containers
+        env:
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+        run: bash ./run_tightlock.sh
+      - name: Check running containers
+        run: docker-compose ps -a
+      - name: Check logs
+        run: docker-compose logs tightlock-api
       - name: Integration Tests
-        run: | 
-          chmod +x ./run_integration_tests.sh
-          bash ./run_integration_tests.sh
+        run: bash ./run_integration_tests.sh
