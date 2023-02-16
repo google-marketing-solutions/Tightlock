@@ -17,7 +17,7 @@ jobs:
       - name: Check API logs
         run: docker-compose logs tightlock-api
       - name: Check Airflow logs
-        run: docker-compose logs airflow-webserver
+        run: docker-compose logs airflow-init
       - name: Activation unit tests  
         # TODO(b/265930300): Bump --cov-fail-under=90 once more tests are added
         run: docker-compose exec -T airflow-worker pytest -v --cov --cov-fail-under=60
@@ -39,6 +39,6 @@ jobs:
       - name: Check API logs
         run: docker-compose logs tightlock-api
       - name: Check Airflow logs
-        run: docker-compose logs airflow-webserver
+        run: docker-compose logs airflow-init
       - name: Integration Tests
         run: bash ./run_integration_tests.sh
