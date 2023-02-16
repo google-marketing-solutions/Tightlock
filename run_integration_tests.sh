@@ -1,3 +1,5 @@
+echo -e "AIRFLOW_UID=$(id -u)\nAIRFLOW_GID=0" > .env
+
 # update pip version
 python3 -m pip install --user --upgrade pip
 
