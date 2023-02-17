@@ -12,3 +12,6 @@ class SourceProto(Protocol):
                offset: int,
                limit: int) -> Iterable[Any]:
     ...
+
+  def config_schema(self) -> str:
+    ...
