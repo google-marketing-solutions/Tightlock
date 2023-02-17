@@ -18,7 +18,7 @@ class Helpers:
   def get_container_client(self,
                            container_name,
                            auth=None):
-    """Returns a Request sesion and the API url that can be used to communicate with the target container."""
+    """Returns a Request session and the API url that can be used to communicate with the target container."""
     request_session = requests.Session()
     if auth:
       request_session.auth = auth
