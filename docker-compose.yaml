@@ -60,9 +60,6 @@ x-airflow-common:
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
     AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth'
-    # TODO(b/265692556): Add enabling XCOM Pickling discussion to privacy review / design doc risks
-    # also, understand if this is really needed for real queries made by Drill
-    AIRFLOW__CORE__ENABLE_XCOM_PICKLING: 'true'
     AIRFLOW_CONN_DRILL_DEFAULT: 'drill+sadrill://drill:8047'
     AIRFLOW_CONN_TIGHTLOCK_CONFIG: 'postgresql+psycopg2://airflow:airflow@postgres/tightlock'
     _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
