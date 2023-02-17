@@ -1,9 +1,9 @@
 {
   "external_connections": [
     {
-      "name": "gcs", 
+      "name": "gcs",
       "connection": "gs://tightlock-dev-storage",
-      "config": {} 
+      "config": {}
     }
   ],
   "activations": [
@@ -16,10 +16,35 @@
       },
       "destination": {
         "type": "GA4MP",
-        "firebase_app_id": "",
-        "measurement_id": "",
+        "event_type": "APP",
+        "api_secret": "Ro2qgDj_SN6K--uUr0pEHA",
+        "firebase_app_id": "123456789",
+        "measurement_id": "G-JGCYGC2MS7",
         "non_personalized_ads": true,
-        "api_secret": ""
+        "debug": true
+      },
+    "schedule": ""
+    },
+    {
+      "name": "sample_ga4mp_hit",
+      "source": {
+        "type": "local_file",
+        "external_connection": "",
+        "location": "ga4_sample_data.csvh"
+      },
+      "destination": {
+        "type": "GA4MP",
+        "event_type": "WEB",
+        "api_secret": "Ro2qgDj_SN6K--uUr0pEHA",
+        "firebase_app_id": "123456789",
+        "measurement_id": "G-JGCYGC2MS7",
+        "non_personalized_ads": false,
+        "user_properties": {
+          "customer_tier": {
+            "value": "enterprise"
+          }
+        },
+        "debug": true
       },
     "schedule": ""
     }
