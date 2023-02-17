@@ -4,8 +4,10 @@ from typing import Any, Mapping, Sequence, Iterable
 from pydantic import BaseModel
 from google.cloud import bigquery
 
+
 class BigQueryConnection(BaseModel):
   credentials: str
+
 
 class Source():
   """Implements SourceProto protocol for BigQuery."""
