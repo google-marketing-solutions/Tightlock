@@ -7,6 +7,8 @@ from typing import Any, Mapping, Protocol, Iterable, Sequence, runtime_checkable
 class SourceProto(Protocol):
   def get_data(self,
                source: Mapping[str, Any],
-               connections: Sequence[Mapping[str, Any]],
-               fields: Sequence[str]) -> Iterable[Any]:
+               connections: Mapping[str, Any],
+               fields: Sequence[str],
+               offset: int,
+               limit: int) -> Iterable[Any]:
     ...

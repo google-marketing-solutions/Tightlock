@@ -1,5 +1,8 @@
-apache-airflow-providers-apache-drill
 pytest
 pytest-cov
 pytest-mypy
 requests
+
+# Data sources requirements
+apache-airflow-providers-apache-drill
+google-cloud-bigquery

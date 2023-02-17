@@ -1,11 +1,9 @@
 {
-  "external_connections": [
-    {
-      "name": "gcs",
-      "connection": "gs://tightlock-dev-storage",
-      "config": {}
+  "external_connections": {
+    "bigquery": {
+      "credentials": ""
     }
-  ],
+  },
   "activations": [
     {
       "name": "sample_ga4mp_hit",
