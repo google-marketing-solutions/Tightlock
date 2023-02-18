@@ -8,11 +8,11 @@
   ],
   "activations": [
     {
-      "name": "sample_ga4mp_hit",
+      "name": "sample_ga4mp_app_hit",
       "source": {
         "type": "local_file",
         "external_connection": "",
-        "location": "ga4_sample_data.csvh"
+        "location": "ga4_app_sample_data.csvh"
       },
       "destination": {
         "type": "GA4MP",
@@ -26,11 +26,11 @@
     "schedule": ""
     },
     {
-      "name": "sample_ga4mp_hit",
+      "name": "sample_ga4mp_web_hit",
       "source": {
         "type": "local_file",
         "external_connection": "",
-        "location": "ga4_sample_data.csvh"
+        "location": "ga4_web_sample_data.csvh"
       },
       "destination": {
         "type": "GA4MP",
