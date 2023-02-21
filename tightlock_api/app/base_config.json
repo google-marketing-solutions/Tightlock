@@ -23,7 +23,7 @@
         "non_personalized_ads": true,
         "debug": true
       },
-    "schedule": ""
+      "schedule": ""
     },
     {
       "name": "sample_ga4mp_web_hit",
@@ -46,7 +46,7 @@
         },
         "debug": true
       },
-    "schedule": ""
+      "schedule": ""
     }
   ],
   "secrets": {}
