@@ -141,5 +141,6 @@ pyvenv.cfg
 lib64
 
 # Misc
+.DS_Store
 generated/
 include/
