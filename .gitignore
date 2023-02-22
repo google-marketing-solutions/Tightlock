@@ -138,3 +138,4 @@ dmypy.json
 
 # Virtualenv
 pyvenv.cfg
+lib64
