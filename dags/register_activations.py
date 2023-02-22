@@ -70,7 +70,7 @@ class DAGBuilder:
         fields = target_destination.fields()
         data = target_source.get_data(activation["source"],
                                       external_connections, fields)
-        target_destination.send_data(data)
+        target_destination.send_data(activation["destination"], data)
 
       process()
     return dynamic_generated_dag
