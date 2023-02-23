@@ -68,7 +68,7 @@ class DAGBuilder:
     def dynamic_generated_dag():
       @task
       def process():
-        fields = target_destination.fields()
+        fields = target_destination.fields(activation["destination"])
         data = target_source.get_data(activation["source"],
                                       external_connections, fields)
         target_destination.send_data(activation["destination"], data)
