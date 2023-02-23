@@ -62,6 +62,7 @@ class DAGBuilder:
     schedule_interval = schedule if schedule else None
 
     @dag(dag_id=dag_id,
+         is_paused_upon_creation=False,
          start_date=datetime.datetime.now(),
          schedule_interval=schedule_interval)
     def dynamic_generated_dag():
