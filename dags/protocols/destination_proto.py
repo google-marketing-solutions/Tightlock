@@ -9,5 +9,5 @@ class DestinationProto(Protocol):
       self, config: Dict[str, Any], input_data: Iterable[Any]) -> None:
     ...
 
-  def fields(self) -> Sequence[str]:
+  def fields(self, config: Dict[str, Any]) -> Sequence[str]:
     ...
