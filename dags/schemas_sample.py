@@ -4,7 +4,6 @@ from typing import Literal, Union, Annotated, Dict, Optional, Sequence
 
 from pydantic import BaseModel
 from pydantic import Field
-from pydantic import schema_json
 
 
 class GA4Base(BaseModel):
@@ -53,4 +52,4 @@ class Schemas(BaseModel):
   sources: Sources
   destinations: Destinations
 
-schema_json(Schemas, title='Available Schemas', indent=2)
+print(Schemas.schema_json(indent=2))
