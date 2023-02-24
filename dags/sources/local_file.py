@@ -1,11 +1,9 @@
 """Local file source implementation."""
 
 from typing import Any, Mapping, Sequence, Iterable, Literal
-from utils import DrillMixin
-
 from pydantic import BaseModel
-from pydantic import Field
-from pydantic import schema_json
+
+from utils import DrillMixin
 
 
 class LocalFile(BaseModel):
@@ -26,4 +24,4 @@ class Source(DrillMixin):
     return self.get_drill_data(from_target, fields)
 
   def schema(self):
-    return schema_json(LocalFile, title='LocalFile Source Type', indent=2)
+    return LocalFile.schema_json()

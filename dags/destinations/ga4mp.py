@@ -4,7 +4,6 @@ from typing import Any, Dict, Iterable, Optional, Literal, Annotated, Union
 
 from pydantic import BaseModel
 from pydantic import Field
-from pydantic import schema_json
 
 
 class GA4Base(BaseModel):
@@ -222,4 +221,4 @@ class Destination:
   def schema(self):
     GA4MP = Annotated[Union[GA4Web, GA4App], Field(discriminator='event_type')]
 
-    return schema_json(GA4MP, title='GA4MP Destination Type', indent=2)
+    return GA4MP.schema_json()
