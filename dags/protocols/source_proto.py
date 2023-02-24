@@ -1,6 +1,6 @@
 """Defines protocol for source classes."""
 
-from typing import Any, Mapping, Protocol, Iterable, Sequence, runtime_checkable
+from typing import Any, Mapping, Protocol, Iterable, Sequence, Dict, runtime_checkable
 
 
 @runtime_checkable
@@ -14,4 +14,7 @@ class SourceProto(Protocol):
     ...
 
   def config_schema(self) -> str:
+    ...
+
+  def schema(self) -> Dict[str, Any]:
     ...

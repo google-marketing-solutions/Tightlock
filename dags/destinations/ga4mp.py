@@ -1,15 +1,10 @@
 """GA4 MP destination implementation."""
 
-import enum
-import json
-import logging
-from typing import Annotated, Any, Dict, Iterable, List, Literal, Optional, Tuple, Union
-import errors
+from typing import Any, Dict, Iterable, Optional, Literal, Annotated, Union
 
-import immutabledict
 from pydantic import BaseModel
 from pydantic import Field
-import requests
+from pydantic import schema_json
 
 
 class GA4Base(BaseModel):
@@ -28,38 +23,6 @@ class GA4Web(GA4Base):
 class GA4App(GA4Base):
   event_type: Literal['firebase']
   firebase_app_id: str
-
-_GA_EVENT_POST_URL = "https://www.google-analytics.com/mp/collect"
-_GA_EVENT_VALIDATION_URL = "https://www.google-analytics.com/debug/mp/collect"
-
-_FIREBASE_ID_COLUMN = "app_instance_id"
-_GTAG_ID_COLUMN = "client_id"
-
-_ERROR_TYPES = immutabledict.immutabledict({
-    "client_id":
-        errors.ErrorNameIDMap.GA4_HOOK_ERROR_VALUE_REQUIRED_CLIENT_ID,
-    "user_id":
-        errors.ErrorNameIDMap.GA4_HOOK_ERROR_VALUE_INVALID_USER_ID,
-    "timestamp_micros":
-        errors.ErrorNameIDMap.GA4_HOOK_ERROR_VALUE_INVALID_TIMESTAMP_MICROS,
-    "user_properties":
-        errors.ErrorNameIDMap.GA4_HOOK_ERROR_VALUE_INVALID_USER_PROPERTIES,
-    "non_personalized_ads":
-        errors.ErrorNameIDMap.GA4_HOOK_ERROR_VALUE_INVALID_NON_PERSONALIZED_ADS,
-    "events":
-        errors.ErrorNameIDMap.GA4_HOOK_ERROR_VALUE_INVALID_EVENTS,
-    "events.params":
-        errors.ErrorNameIDMap.GA4_HOOK_ERROR_VALUE_INVALID_EVENTS_PARAMS,
-    "events.params.items":
-        errors.ErrorNameIDMap.GA4_HOOK_ERROR_VALUE_INVALID_EVENTS_PARAMS_ITEMS,
-})
-
-
-class PayloadTypes(enum.Enum):
-  """GA4 Measurememt Protocol supported payload types."""
-
-  FIREBASE = "firebase"
-  GTAG = "gtag"
 
 
 class Destination:
@@ -249,63 +212,14 @@ class Destination:
     print(f"Rows: {rows}")
     return rows
 
+  # TODO(b/265715582): Implement GA4 MP input data query
+  def fields(self, config: Dict[str, Any]):
+    print(f"Config: {config}")
+    # TODO(stocco): Include either 'app_instance_id' or 'client_id' depending on
+    # the type (app or web).
+    return ["user_id", "event_name", "engagement_time_msec", "session_id"]
+
   def schema(self):
     GA4MP = Annotated[Union[GA4Web, GA4App], Field(discriminator='event_type')]
 
-    return GA4MP.schema_json()
-
-  def fields(self):
-    if self.payload_type == PayloadTypes.FIREBASE.value:
-      id_column_name = _FIREBASE_ID_COLUMN
-    else:
-      id_column_name = _GTAG_ID_COLUMN
-    return [id_column_name] + [
-        "user_id", "event_name", "engagement_time_msec", "session_id"
-        ]
-
-  def _validate_credentials(self) -> None:
-    """Validate credentials.
-
-    Raises:
-      Exception: If credential combination does not meet criteria.
-    """
-    if not self.api_secret:
-      raise errors.DataOutConnectorValueError("Missing api secret.")
-
-    valid_payload_types = (PayloadTypes.FIREBASE.value, PayloadTypes.GTAG.value)
-    if self.payload_type not in valid_payload_types:
-      raise errors.DataOutConnectorValueError(
-          f"Unsupport payload_type: {self.payload_type}. Supported "
-          "payload_type is gtag or firebase.")
-
-    if (self.payload_type == PayloadTypes.FIREBASE.value and
-        not self.firebase_app_id):
-      raise errors.DataOutConnectorValueError(
-          "Wrong payload_type or missing firebase_app_id. Please make sure "
-          "firebase_app_id is set when payload_type is firebase.")
-
-    if (self.payload_type == PayloadTypes.GTAG.value and
-        not self.measurement_id):
-      raise errors.DataOutConnectorValueError(
-          "Wrong payload_type or missing measurement_id. Please make sure "
-          "measurement_id is set when payload_type is gtag.")
-
-  def _build_api_url(self, is_post: bool) -> str:
-    """Builds the url for sending the payload.
-
-    Args:
-      is_post: true for building post url, false for building validation url.
-    Returns:
-      url: Full url that can be used for sending the payload
-    """
-    if self.payload_type == PayloadTypes.GTAG.value:
-      query_url = "api_secret={}&measurement_id={}".format(
-          self.api_secret, self.measurement_id)
-    else:
-      query_url = "api_secret={}&firebase_app_id={}".format(
-          self.api_secret, self.firebase_app_id)
-    if is_post:
-      built_url = f"{_GA_EVENT_POST_URL}?{query_url}"
-    else:
-      built_url = f"{_GA_EVENT_VALIDATION_URL}?{query_url}"
-    return built_url
+    return schema_json(GA4MP, title='GA4MP Destination Type', indent=2)

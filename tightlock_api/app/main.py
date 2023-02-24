@@ -14,6 +14,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from typing import Any
+
 # Creates base app and v1 API objects
 app = FastAPI()
 v1 = FastAPI()
@@ -103,5 +105,14 @@ async def get_activations(session: AsyncSession = Depends(get_session)):
       Activation(name=a["name"], source_name=a["source_name"],
                  destination_name=a["destination_name"], schedule=a["schedule"])
       for a in latest_config.value["activations"]]
+
+
+@v1.get("/schemas", response_model=dict[str, Any])
+async def get_schemas():
+  """Retrieves available schemas for Activations."""
+  # TODO(b/270748315): Implement actual call to schemas DAG once available.
+  f = open("schemas_sample.json")
+  data = json.load(f)
+  return data
 
 app.mount("/api/v1", v1)
