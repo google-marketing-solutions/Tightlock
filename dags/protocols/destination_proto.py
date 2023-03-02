@@ -5,11 +5,14 @@ from typing import Any, Dict, Protocol, Sequence, Iterable, runtime_checkable
 
 @runtime_checkable
 class DestinationProto(Protocol):
-  def send_data(
-      self, config: Dict[str, Any], input_data: Iterable[Any]) -> None:
+  def __init__(self, config: Dict[str, Any]):
     ...
 
-  def fields(self, config: Dict[str, Any]) -> Sequence[str]:
+  def send_data(
+      self, input_data: Iterable[Any]) -> None:
+    ...
+
+  def fields(self) -> Sequence[str]:
     ...
 
   def schema(self) -> Dict[str, Any]:
