@@ -16,7 +16,7 @@
       },
       "destination": {
         "type": "GA4MP",
-        "event_type": "APP",
+        "event_type": "firebase",
         "api_secret": "fjOZ9EwoTb26IllLLjvQZw",
         "firebase_app_id": "1:155612940587:android:52015e8b7cfde606ee5d6e",
         "non_personalized_ads": true,
@@ -33,7 +33,7 @@
       },
       "destination": {
         "type": "GA4MP",
-        "event_type": "WEB",
+        "payload_type": "gtag",
         "api_secret": "Ro2qgDj_SN6K--uUr0pEHA",
         "measurement_id": "G-JGCYGC2MS7",
         "non_personalized_ads": false,
