@@ -14,11 +14,11 @@
       },
       "destination": {
         "type": "GA4MP",
-        "payload_type": "firebase",
-        "api_secret": "Ro2qgDj_SN6K--uUr0pEHA",
-        "firebase_app_id": "123456789",
+        "event_type": "APP",
+        "api_secret": "fjOZ9EwoTb26IllLLjvQZw",
+        "firebase_app_id": "1:155612940587:android:52015e8b7cfde606ee5d6e",
         "non_personalized_ads": true,
-        "debug": true
+        "debug": false
       },
       "schedule": ""
     },
