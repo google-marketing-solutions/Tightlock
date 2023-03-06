@@ -3,11 +3,31 @@
 import enum
 import json
 import logging
-from typing import Any, Dict, Iterable, List, Tuple
+from typing import Annotated, Any, Dict, Iterable, List, Literal, Optional, Tuple, Union
 import errors
 
 import immutabledict
+from pydantic import BaseModel
+from pydantic import Field
 import requests
+
+
+class GA4Base(BaseModel):
+  type: Literal['GA4MP'] = 'GA4MP'
+  api_secret: str
+  non_personalized_ads: Optional[bool] = False
+  debug: Optional[bool] = False
+  user_properties: Optional[Dict[str, Dict[str, str]]]
+
+
+class GA4Web(GA4Base):
+  event_type: Literal['gtag']
+  measurement_id: str
+
+
+class GA4App(GA4Base):
+  event_type: Literal['firebase']
+  firebase_app_id: str
 
 _GA_EVENT_POST_URL = "https://www.google-analytics.com/mp/collect"
 _GA_EVENT_VALIDATION_URL = "https://www.google-analytics.com/debug/mp/collect"
@@ -68,7 +88,7 @@ class Destination:
     """Prepares index-event tuples to keep order while sending.
 
        Validation of the payload is done by posting it to the validation API
-       provided by the product of Google Analytics 4
+       provided by the product of Google Analytics 4.
 
        A valid payload format in event should comply with rules described below.
        https://developers.google.com/analytics/devguides/collection/protocol/ga4/reference/events
@@ -228,6 +248,11 @@ class Destination:
     print(f"Invalid events: {invalid_indices_and_errors}")
     print(f"Rows: {rows}")
     return rows
+
+  def schema(self):
+    GA4MP = Annotated[Union[GA4Web, GA4App], Field(discriminator='event_type')]
+
+    return GA4MP.schema_json()
 
   def fields(self):
     if self.payload_type == PayloadTypes.FIREBASE.value:
