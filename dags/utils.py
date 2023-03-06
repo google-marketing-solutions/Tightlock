@@ -9,6 +9,8 @@ from typing import Any, Iterable, Sequence
 
 from airflow.providers.apache.drill.hooks.drill import DrillHook
 
+_TABLE_ALIAS = "t"
+
 
 class DagUtils:
   """A set of utility functions for DAGs."""
@@ -38,7 +40,8 @@ class DrillMixin:
                      fields: Sequence[str]) -> Iterable[Any]:
     drill_conn = DrillHook().get_conn()
     cursor = drill_conn.cursor()
-    fields_str = ",".join(fields)
-    query = f"SELECT {fields_str} FROM {from_target}"
+    table_alias = _TABLE_ALIAS
+    fields_str = ",".join([f"{table_alias}.{field}" for field in fields])
+    query = f"SELECT {fields_str} FROM {from_target} as {table_alias}"
     cursor.execute(query)
     return cursor
