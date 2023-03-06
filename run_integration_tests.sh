@@ -10,4 +10,4 @@ PY3=$ENV_NAME/bin/python
 
 $PY3 -m pip install -r integration_tests/test_requirements.txt
 
-$PY3 -m pytest -v --mypy --docker-compose=docker-compose.yaml --docker-compose-no-build --use-running-containers  integration_tests/
+$PY3 -m pytest --no-header -vv --docker-compose=docker-compose.yaml --docker-compose-no-build --use-running-containers  integration_tests/

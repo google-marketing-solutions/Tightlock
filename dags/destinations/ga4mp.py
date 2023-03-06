@@ -14,6 +14,9 @@ class GA4Base(BaseModel):
   user_properties: Optional[Dict[str, Dict[str, str]]]
 
 
+class PayloadTypes(enum.Enum):
+  """GA4 Measurememt Protocol supported payload types."""
+
 class GA4Web(GA4Base):
   event_type: Literal['gtag']
   measurement_id: str
@@ -211,14 +214,64 @@ class Destination:
     print(f"Rows: {rows}")
     return rows
 
-  # TODO(b/265715582): Implement GA4 MP input data query
-  def fields(self, config: Dict[str, Any]):
-    print(f"Config: {config}")
-    # TODO(stocco): Include either 'app_instance_id' or 'client_id' depending on
-    # the type (app or web).
-    return ["user_id", "event_name", "engagement_time_msec", "session_id"]
+  def fields(self):
+    if self.payload_type == PayloadTypes.FIREBASE.value:
+      id_column_name = _FIREBASE_ID_COLUMN
+    else:
+      id_column_name = _GTAG_ID_COLUMN
+    return [id_column_name] + [
+        "user_id",
+        "event_name",
+        "engagement_time_msec",
+        "session_id",
+    ]
 
   def schema(self):
     GA4MP = Annotated[Union[GA4Web, GA4App], Field(discriminator='event_type')]
 
-    return GA4MP.schema_json()
+    Raises:
+      Exception: If credential combination does not meet criteria.
+    """
+    if not self.api_secret:
+      raise Exception(f"Missing api secret >>>>>> {self.config}")
+
+    valid_payload_types = (PayloadTypes.FIREBASE.value, PayloadTypes.GTAG.value)
+    if self.payload_type not in valid_payload_types:
+      raise Exception(
+          f"Unsupport payload_type: {self.payload_type}. Supported "
+          "payload_type is gtag or firebase."
+      )
+
+    if self.payload_type == PayloadTypes.FIREBASE.value and not self.firebase_app_id:
+      raise Exception(
+          "Wrong payload_type or missing firebase_app_id. Please make sure "
+          "firebase_app_id is set when payload_type is firebase."
+      )
+
+    if self.payload_type == PayloadTypes.GTAG.value and not self.measurement_id:
+      raise Exception(
+          "Wrong payload_type or missing measurement_id. Please make sure "
+          "measurement_id is set when payload_type is gtag."
+      )
+
+  def _build_api_url(self, is_post: bool) -> str:
+    """Builds the url for sending the payload.
+
+    Args:
+      is_post: true for building post url, false for building validation url.
+    Returns:
+      url: Full url that can be used for sending the payload
+    """
+    if self.payload_type == PayloadTypes.GTAG.value:
+      query_url = "api_secret={}&measurement_id={}".format(
+          self.api_secret, self.measurement_id
+      )
+    else:
+      query_url = "api_secret={}&firebase_app_id={}".format(
+          self.api_secret, self.firebase_app_id
+      )
+    if is_post:
+      built_url = f"{_GA_EVENT_POST_URL}?{query_url}"
+    else:
+      built_url = f"{_GA_EVENT_VALIDATION_URL}?{query_url}"
+    return built_url
