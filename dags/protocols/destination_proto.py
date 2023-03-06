@@ -14,3 +14,6 @@ class DestinationProto(Protocol):
 
   def fields(self) -> Sequence[str]:
     ...
+
+  def schema(self) -> Dict[str, Any]:
+    ...

@@ -1,5 +1,7 @@
 """GA4 MP destination implementation."""
 
+from typing import Any, Dict, Iterable, Optional, Literal, Annotated, Union
+
 import enum
 import json
 import logging
@@ -28,6 +30,7 @@ class GA4Web(GA4Base):
 class GA4App(GA4Base):
   event_type: Literal['firebase']
   firebase_app_id: str
+
 
 _GA_EVENT_POST_URL = "https://www.google-analytics.com/mp/collect"
 _GA_EVENT_VALIDATION_URL = "https://www.google-analytics.com/debug/mp/collect"
@@ -260,8 +263,11 @@ class Destination:
     else:
       id_column_name = _GTAG_ID_COLUMN
     return [id_column_name] + [
-        "user_id", "event_name", "engagement_time_msec", "session_id"
-        ]
+        "user_id",
+        "event_name",
+        "engagement_time_msec",
+        "session_id",
+    ]
 
   def _validate_credentials(self) -> None:
     """Validate credentials.
@@ -270,25 +276,26 @@ class Destination:
       Exception: If credential combination does not meet criteria.
     """
     if not self.api_secret:
-      raise errors.DataOutConnectorValueError("Missing api secret.")
+      raise Exception(f"Missing api secret >>>>>> {self.config}")
 
     valid_payload_types = (PayloadTypes.FIREBASE.value, PayloadTypes.GTAG.value)
     if self.payload_type not in valid_payload_types:
       raise errors.DataOutConnectorValueError(
           f"Unsupport payload_type: {self.payload_type}. Supported "
-          "payload_type is gtag or firebase.")
+          "payload_type is gtag or firebase."
+      )
 
-    if (self.payload_type == PayloadTypes.FIREBASE.value and
-        not self.firebase_app_id):
-      raise errors.DataOutConnectorValueError(
+    if self.payload_type == PayloadTypes.FIREBASE.value and not self.firebase_app_id:
+      raise Exception(
           "Wrong payload_type or missing firebase_app_id. Please make sure "
-          "firebase_app_id is set when payload_type is firebase.")
+          "firebase_app_id is set when payload_type is firebase."
+      )
 
-    if (self.payload_type == PayloadTypes.GTAG.value and
-        not self.measurement_id):
-      raise errors.DataOutConnectorValueError(
+    if self.payload_type == PayloadTypes.GTAG.value and not self.measurement_id:
+      raise Exception(
           "Wrong payload_type or missing measurement_id. Please make sure "
-          "measurement_id is set when payload_type is gtag.")
+          "measurement_id is set when payload_type is gtag."
+      )
 
   def _build_api_url(self, is_post: bool) -> str:
     """Builds the url for sending the payload.
@@ -300,10 +307,12 @@ class Destination:
     """
     if self.payload_type == PayloadTypes.GTAG.value:
       query_url = "api_secret={}&measurement_id={}".format(
-          self.api_secret, self.measurement_id)
+          self.api_secret, self.measurement_id
+      )
     else:
       query_url = "api_secret={}&firebase_app_id={}".format(
-          self.api_secret, self.firebase_app_id)
+          self.api_secret, self.firebase_app_id
+      )
     if is_post:
       built_url = f"{_GA_EVENT_POST_URL}?{query_url}"
     else:
