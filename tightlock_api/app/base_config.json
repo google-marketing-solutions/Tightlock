@@ -16,7 +16,7 @@
       },
       "destination": {
         "type": "GA4MP",
-        "event_type": "firebase",
+        "payload_type": "firebase",
         "api_secret": "fjOZ9EwoTb26IllLLjvQZw",
         "firebase_app_id": "1:155612940587:android:52015e8b7cfde606ee5d6e",
         "non_personalized_ads": true,
