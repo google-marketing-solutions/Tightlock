@@ -17,7 +17,6 @@
         "payload_type": "firebase",
         "api_secret": "Ro2qgDj_SN6K--uUr0pEHA",
         "firebase_app_id": "123456789",
-        "measurement_id": "G-JGCYGC2MS7",
         "non_personalized_ads": true,
         "debug": true
       },
@@ -34,7 +33,6 @@
         "type": "GA4MP",
         "payload_type": "gtag",
         "api_secret": "Ro2qgDj_SN6K--uUr0pEHA",
-        "firebase_app_id": "123456789",
         "measurement_id": "G-JGCYGC2MS7",
         "non_personalized_ads": false,
         "user_properties": {

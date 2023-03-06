@@ -1,3 +1,5 @@
+apache-airflow-providers-apache-drill
+immutabledict
 pytest
 pytest-cov
 pytest-mypy
