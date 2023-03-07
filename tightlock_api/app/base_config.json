@@ -20,6 +20,11 @@
         "api_secret": "fjOZ9EwoTb26IllLLjvQZw",
         "firebase_app_id": "1:155612940587:android:52015e8b7cfde606ee5d6e",
         "non_personalized_ads": true,
+        "user_properties": {
+          "customer_tier": {
+            "value": "enterprise"
+          }
+        },
         "debug": false
       },
       "schedule": ""
