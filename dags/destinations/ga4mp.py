@@ -1,13 +1,13 @@
 """GA4 MP destination implementation."""
 
-from typing import Any, Dict, Iterable, Optional, Literal, Annotated, Union
+# pylint: disable=raise-missing-from
 
 from pydantic import BaseModel
 from pydantic import Field
 
 
 class GA4Base(BaseModel):
-  type: Literal['GA4MP'] = 'GA4MP'
+  type: Literal["GA4MP"] = "GA4MP"
   api_secret: str
   non_personalized_ads: Optional[bool] = False
   debug: Optional[bool] = False
@@ -18,12 +18,12 @@ class PayloadTypes(enum.Enum):
   """GA4 Measurememt Protocol supported payload types."""
 
 class GA4Web(GA4Base):
-  event_type: Literal['gtag']
+  event_type: Literal["gtag"]
   measurement_id: str
 
 
 class GA4App(GA4Base):
-  event_type: Literal['firebase']
+  event_type: Literal["firebase"]
   firebase_app_id: str
 
 
@@ -92,14 +92,16 @@ class Destination:
       try:
         response = self._send_validate_request(payload)
         self._parse_validate_result(event, response)
-        valid_events.append((i, event))
+        valid_events.append((i, payload))
       except errors.DataOutConnectorValueError as error:
         invalid_indices_and_errors.append((i, error.error_num))
 
     return valid_events, invalid_indices_and_errors
 
-  def _parse_validate_result(self, event: Dict[str, Any],
-                             response: requests.Response):
+  def _parse_validate_result(
+      self,
+      event: Dict[str, Any],  # pylint: disable=unused-argument
+      response: requests.Response):
     """Parses the response returned from the debug API.
 
        The response body contains a JSON to indicate the validated result.
@@ -121,11 +123,6 @@ class Destination:
       event: The event that contains the index and the payload.
       response: The HTTP response from the debug API.
     """
-
-    # Keep if we include an "id" columnt in the event, for tracking like in
-    # Megalista and TCRM; remove otherwise.
-    print(f"Validated event: {event}")
-
     if response.status_code >= 500:
       raise errors.DataOutConnectorValueError(
           error_num=errors.ErrorNameIDMap.RETRIABLE_GA4_HOOK_ERROR_HTTP_ERROR)
@@ -202,6 +199,37 @@ class Destination:
       events.append(event_dict)
     return events
 
+  def _send_payload(self, payload: Dict[str, Any]) -> None:
+    """Sends payload to GA via Measurement Protocol REST API.
+
+    Args:
+      payload: Parameters containing required data for app conversion tracking.
+
+    Returns:
+      results: Includes request body, status_code, error_msg, response body and
+      debugg flag.
+      The response refers to the definition of conversion tracking response in
+      https://developers.google.com/analytics/devguides/collection/protocol/ga4/reference?client_type=firebase
+    """
+
+    if self.debug:
+      self.log.info(
+          """Debug mode: Simulating sending event to GA4 (data will not
+          actually be sent). URL:{}. payload data:{}.""".format(
+              self.post_url, payload))
+      return
+
+    try:
+      response = requests.post(self.post_url, json=payload)
+      if response.status_code < 200 or response.status_code >= 300:
+        raise errors.DataOutConnectorSendUnsuccessfulError(
+            msg="Sending payload to GA did not complete successfully.",
+            error_num=errors.ErrorNameIDMap.RETRIABLE_GA_HOOK_ERROR_HTTP_ERROR)
+    except requests.ConnectionError:
+      raise errors.DataOutConnectorSendUnsuccessfulError(
+          msg="Sending payload to GA did not complete successfully.",
+          error_num=errors.ErrorNameIDMap.RETRIABLE_GA_HOOK_ERROR_HTTP_ERROR)
+
   def send_data(self, input_data: Iterable[Any]):
     """Builds payload ans sends data to GA4MP API."""
     rows = input_data.fetchall()
@@ -209,10 +237,30 @@ class Destination:
     valid_events, invalid_indices_and_errors = (
         self._get_valid_and_invalid_events(input_data_dict))
 
+    for valid_event in valid_events:
+      try:
+        event = valid_event[1]
+        self._send_payload(event)
+      except (errors.DataOutConnectorSendUnsuccessfulError,
+              errors.DataOutConnectorValueError) as error:
+        index = valid_event[0]
+        invalid_indices_and_errors.append((index, error.error_num))
+
     print(f"Valid events: {valid_events}")
     print(f"Invalid events: {invalid_indices_and_errors}")
-    print(f"Rows: {rows}")
+
+    for invalid_event in invalid_indices_and_errors:
+      event_index = invalid_event[0]
+      error_num = invalid_event[1]
+      # TBD: what to do with invalid events data.
+      print(f"event_index: {event_index}; error_num: {error_num}")
+
     return rows
+
+  def schema(self):
+    GA4MP = Annotated[Union[GA4Web, GA4App], Field(discriminator="event_type")]
+
+    return GA4MP.schema_json()
 
   def fields(self):
     if self.payload_type == PayloadTypes.FIREBASE.value:
@@ -233,7 +281,8 @@ class Destination:
       Exception: If credential combination does not meet criteria.
     """
     if not self.api_secret:
-      raise Exception(f"Missing api secret >>>>>> {self.config}")
+      raise errors.DataOutConnectorValueError(
+          f"Missing API secret in config: {self.config}")
 
     valid_payload_types = (PayloadTypes.FIREBASE.value, PayloadTypes.GTAG.value)
     if self.payload_type not in valid_payload_types:
@@ -242,14 +291,15 @@ class Destination:
           "payload_type is gtag or firebase."
       )
 
-    if self.payload_type == PayloadTypes.FIREBASE.value and not self.firebase_app_id:
-      raise Exception(
+    if (self.payload_type == PayloadTypes.FIREBASE.value and
+        not self.firebase_app_id):
+      raise errors.DataOutConnectorValueError(
           "Wrong payload_type or missing firebase_app_id. Please make sure "
           "firebase_app_id is set when payload_type is firebase."
       )
 
     if self.payload_type == PayloadTypes.GTAG.value and not self.measurement_id:
-      raise Exception(
+      raise errors.DataOutConnectorValueError(
           "Wrong payload_type or missing measurement_id. Please make sure "
           "measurement_id is set when payload_type is gtag."
       )
