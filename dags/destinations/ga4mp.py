@@ -221,6 +221,8 @@ class Destination:
 
     try:
       response = requests.post(self.post_url, json=payload)
+      # Success is to be considered between 200 and 299:
+      # https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
       if response.status_code < 200 or response.status_code >= 300:
         raise errors.DataOutConnectorSendUnsuccessfulError(
             msg="Sending payload to GA did not complete successfully.",
@@ -252,7 +254,7 @@ class Destination:
     for invalid_event in invalid_indices_and_errors:
       event_index = invalid_event[0]
       error_num = invalid_event[1]
-      # TBD: what to do with invalid events data.
+      # TODO(b/272258038): TBD What to do with invalid events data.
       print(f"event_index: {event_index}; error_num: {error_num}")
 
     return rows
