@@ -50,6 +50,18 @@
         "debug": true
       },
       "schedule": ""
+    },
+    {
+      "name": "intended_failure",
+      "source": {
+        "type": "local_file",
+        "external_connection": "",
+        "location": "ga4_app_sample_data.csvh"
+      },
+      "destination": {
+        "type": "FAIL"
+      },
+      "schedule": ""
     }
   ],
   "secrets": {}
