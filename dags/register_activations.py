@@ -22,7 +22,8 @@ class DAGBuilder:
   def _import_entity(
       self, source_name: str, folder_name: str
   ) -> SourceProto | DestinationProto:
-    module_name = "".join(x.title() for x in source_name.split("_") if not x.isspace())
+    module_name = "".join(x.title() for x in source_name.split("_")
+                          if not x.isspace())
 
     lower_source_name = source_name.lower()
     filepath = pathlib.Path(f"dags/{folder_name}") / f"{lower_source_name}.py"
@@ -31,7 +32,8 @@ class DAGBuilder:
     spec.loader.exec_module(module)
     return module
 
-  _import_source = functools.partialmethod(_import_entity, folder_name="sources")
+  _import_source = functools.partialmethod(_import_entity,
+                                           folder_name="sources")
   _import_destination = functools.partialmethod(
       _import_entity, folder_name="destinations"
   )
@@ -87,16 +89,20 @@ class DAGBuilder:
 
     for activation in self.latest_config["activations"]:
       # actual implementations of each source and destination
-      target_source = self._import_source(activation["source"]["type"]).Source()
-      target_destination = self._import_destination(
-          activation["destination"]["type"]
-      ).Destination(activation["destination"])
-      dynamic_dag = self._build_dynamic_dag(
-          activation, external_connections, target_source, target_destination
-      )
+      try:
+        target_source = self._import_source(activation["source"]["type"]
+                                            ).Source()
+        target_destination = self._import_destination(
+            activation["destination"]["type"]
+        ).Destination(activation["destination"])
+        dynamic_dag = self._build_dynamic_dag(
+            activation, external_connections, target_source, target_destination
+        )
 
-      # register dag by calling the dag object
-      dynamic_dag()
+        # register dag by calling the dag object
+        dynamic_dag()
+      except Exception as error:  # pylint: disable=broad-except
+        print(f"DAG registration error: {error}")
 
 
 builder = DAGBuilder()
