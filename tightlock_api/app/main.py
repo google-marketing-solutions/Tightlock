@@ -1,24 +1,22 @@
 """Entrypoint for FastAPI application."""
 import contextlib
 import json
+from typing import Any
 
 from clients import AirflowClient
 from db import get_session
-from fastapi import Depends
-from fastapi import FastAPI
-from fastapi import HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import Response
-from models import Activation
-from models import Config
+from models import Activation, Config
+from security import check_authentication_header
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-
-from typing import Any
+from starlette import status
 
 # Creates base app and v1 API objects
 app = FastAPI()
-v1 = FastAPI()
+v1 = FastAPI(dependencies=[Depends(check_authentication_header)])
 
 
 @app.on_event("startup")
@@ -34,11 +32,10 @@ async def create_initial_config():
       pass  # Ignore workers trying to recreate initial config
 
 
-# TODO(b/264568702)
 @v1.post("/connect")
 async def connect():
   """Validates API connection with a client."""
-  pass
+  return Response(status_code=status.HTTP_200_OK)
 
 
 @v1.post("/activations/{activation_name}:trigger")
@@ -120,7 +117,6 @@ async def get_activations(session: AsyncSession = Depends(get_session)):
   ]
 
 
-
 @v1.get("/schemas", response_model=dict[str, Any])
 async def get_schemas():
   """Retrieves available schemas for Activations."""
@@ -128,5 +124,6 @@ async def get_schemas():
   f = open("schemas_sample.json")
   data = json.load(f)
   return data
+
 
 app.mount("/api/v1", v1)
