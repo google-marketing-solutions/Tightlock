@@ -6,7 +6,7 @@ from urllib import parse
 
 def test_sample_data(helpers):
   """Verifies if sample data files are accessible by Drill."""
-  request_session, api_url = helpers.get_container_client('drill')
+  request_session, api_url = helpers.get_drill_client()
   test_payload = {
       'queryType': 'SQL',
       'query': 'SELECT * FROM dfs.`data/integration_test.csvh`',

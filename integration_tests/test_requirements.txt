@@ -1,3 +1,3 @@
 pytest-docker-compose
-pytest-mypy
+pytest-dotenv
 requests
