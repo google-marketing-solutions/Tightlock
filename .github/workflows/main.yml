@@ -11,7 +11,7 @@ jobs:
       - name: Run Tightlock Containers
         env:
           COMPOSE_INTERACTIVE_NO_CLI: 1
-        run: bash ./run_tightlock.sh
+        run: bash ./run_tightlock.sh --non-interactive
       - name: Check running containers
         run: docker-compose ps -a
       - name: Check API logs
@@ -33,7 +33,7 @@ jobs:
       - name: Run Tightlock Containers
         env:
           COMPOSE_INTERACTIVE_NO_CLI: 1
-        run: bash ./run_tightlock.sh
+        run: bash ./run_tightlock.sh --non-interactive
       - name: Check running containers
         run: docker-compose ps -a
       - name: Check API logs
