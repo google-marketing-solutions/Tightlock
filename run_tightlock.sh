@@ -4,7 +4,7 @@ if ! [ -f $ENV ]; then
   echo -e "AIRFLOW_UID=$(id -u)\nAIRFLOW_GID=0" > $ENV
 
   # generate or read API key
-  PSEUDORANDOM_API_KEY=$( cat /dev/urandom | tr -dc '[:alpha:]' | fold -w20 | head -n 1 )
+  PSEUDORANDOM_API_KEY=$( dd bs=512 if=/dev/urandom count=1 2>/dev/null | tr -dc '[:alpha:]' | fold -w20 | head -n 1 )
   if ! [ $1 == "--non-interactive" ]; then
     echo "Choose API key generation method."
     select yn in "User-provided" "Pseudorandom"; do
