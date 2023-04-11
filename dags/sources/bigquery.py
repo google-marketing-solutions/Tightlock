@@ -2,7 +2,7 @@
 
 import json
 import tempfile
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any, List, Mapping, Sequence
 
 from google.cloud import bigquery
 from pydantic import BaseModel
@@ -25,7 +25,7 @@ class Source:
       fields: Sequence[str],
       offset: int,
       limit: int,
-  ) -> Iterable[Any]:
+  ) -> List[Mapping[str, Any]]:
     """get_data implemention for BigQuery source."""
     bq_connection = BigQueryConnection.parse_obj(source)
     if bq_connection.credentials:
@@ -47,7 +47,15 @@ class Source:
     )
     query_job = client.query(query)
 
-    return query_job.result()
+    rows = []
+    for element in query_job.result():
+      # create dict to hold results and respect the return type
+      row = {}
+      for field in fields:
+        row[field] = element[field]
+      rows.append(row)
+
+    return rows
 
   def config_schema(self) -> str:
     return BigQueryConnection.schema_json()
