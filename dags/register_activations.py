@@ -90,7 +90,7 @@ class DAGBuilder:
 
   def register_dags(self):
     """Loops over all configured activations and create an Airflow DAG for each one of them."""
-    external_connections = {}  # self.latest_config["external_connections"]
+    external_connections = {} # TODO(b/277966895): Delete external_connections references if this is not used anymore in the config.
 
     for activation in self.latest_config["activations"]:
       # actual implementations of each source and destination
