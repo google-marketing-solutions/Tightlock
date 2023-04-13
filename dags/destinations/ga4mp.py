@@ -5,13 +5,23 @@
 import enum
 import json
 import logging
-from typing import Annotated, Any, Dict, Iterable, List, Literal, Optional, Tuple, Union
-import errors
+from typing import (
+    Annotated,
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Mapping,
+    Union,
+)
 
+import errors
 import immutabledict
-from pydantic import BaseModel
-from pydantic import Field
 import requests
+from pydantic import BaseModel, Field
 
 
 class GA4Base(BaseModel):
@@ -39,22 +49,14 @@ _FIREBASE_ID_COLUMN = "app_instance_id"
 _GTAG_ID_COLUMN = "client_id"
 
 _ERROR_TYPES = immutabledict.immutabledict({
-    "client_id":
-        errors.ErrorNameIDMap.GA4_HOOK_ERROR_VALUE_REQUIRED_CLIENT_ID,
-    "user_id":
-        errors.ErrorNameIDMap.GA4_HOOK_ERROR_VALUE_INVALID_USER_ID,
-    "timestamp_micros":
-        errors.ErrorNameIDMap.GA4_HOOK_ERROR_VALUE_INVALID_TIMESTAMP_MICROS,
-    "user_properties":
-        errors.ErrorNameIDMap.GA4_HOOK_ERROR_VALUE_INVALID_USER_PROPERTIES,
-    "non_personalized_ads":
-        errors.ErrorNameIDMap.GA4_HOOK_ERROR_VALUE_INVALID_NON_PERSONALIZED_ADS,
-    "events":
-        errors.ErrorNameIDMap.GA4_HOOK_ERROR_VALUE_INVALID_EVENTS,
-    "events.params":
-        errors.ErrorNameIDMap.GA4_HOOK_ERROR_VALUE_INVALID_EVENTS_PARAMS,
-    "events.params.items":
-        errors.ErrorNameIDMap.GA4_HOOK_ERROR_VALUE_INVALID_EVENTS_PARAMS_ITEMS,
+    "client_id": errors.ErrorNameIDMap.GA4_HOOK_ERROR_VALUE_REQUIRED_CLIENT_ID,
+    "user_id": errors.ErrorNameIDMap.GA4_HOOK_ERROR_VALUE_INVALID_USER_ID,
+    "timestamp_micros": errors.ErrorNameIDMap.GA4_HOOK_ERROR_VALUE_INVALID_TIMESTAMP_MICROS,
+    "user_properties": errors.ErrorNameIDMap.GA4_HOOK_ERROR_VALUE_INVALID_USER_PROPERTIES,
+    "non_personalized_ads": errors.ErrorNameIDMap.GA4_HOOK_ERROR_VALUE_INVALID_NON_PERSONALIZED_ADS,
+    "events": errors.ErrorNameIDMap.GA4_HOOK_ERROR_VALUE_INVALID_EVENTS,
+    "events.params": errors.ErrorNameIDMap.GA4_HOOK_ERROR_VALUE_INVALID_EVENTS_PARAMS,
+    "events.params.items": errors.ErrorNameIDMap.GA4_HOOK_ERROR_VALUE_INVALID_EVENTS_PARAMS_ITEMS,
 })
 
 
@@ -86,8 +88,7 @@ class Destination:
 
   def _get_valid_and_invalid_events(
       self, events: List[Dict[str, Any]]
-  ) -> Tuple[List[Tuple[int, Dict[str, Any]]], List[Tuple[
-      int, errors.ErrorNameIDMap]]]:
+  ) -> Tuple[List[Tuple[int, Dict[str, Any]]], List[Tuple[int, errors.ErrorNameIDMap]]]:
     """Prepares index-event tuples to keep order while sending.
 
        Validation of the payload is done by posting it to the validation API
@@ -115,7 +116,7 @@ class Destination:
         payload["app_instance_id"] = event["app_instance_id"]
       elif self.payload_type == PayloadTypes.GTAG.value:
         payload["client_id"] = event["client_id"]
-      payload["user_id"] = event["user_id"]
+      payload["user_id"] = str(event["user_id"])
       payload["non_personalized_ads"] = self.non_personalized_ads
       if self.user_properties:
         payload["user_properties"] = self.user_properties
@@ -123,8 +124,8 @@ class Destination:
           "name": event["event_name"],
           "params": {
               "engagement_time_msec": event["engagement_time_msec"],
-              "session_id": event["session_id"]
-          }
+              "session_id": event["session_id"],
+          },
       }]
 
       try:
@@ -139,7 +140,8 @@ class Destination:
   def _parse_validate_result(
       self,
       event: Dict[str, Any],  # pylint: disable=unused-argument
-      response: requests.Response):
+      response: requests.Response,
+  ):
     """Parses the response returned from the debug API.
 
        The response body contains a JSON to indicate the validated result.
@@ -163,17 +165,19 @@ class Destination:
     """
     if response.status_code >= 500:
       raise errors.DataOutConnectorValueError(
-          error_num=errors.ErrorNameIDMap.RETRIABLE_GA4_HOOK_ERROR_HTTP_ERROR)
+          error_num=errors.ErrorNameIDMap.RETRIABLE_GA4_HOOK_ERROR_HTTP_ERROR
+      )
     elif response.status_code != 200:
       raise errors.DataOutConnectorValueError(
-          error_num=errors.ErrorNameIDMap.NON_RETRIABLE_ERROR_EVENT_NOT_SENT)
+          error_num=errors.ErrorNameIDMap.NON_RETRIABLE_ERROR_EVENT_NOT_SENT
+      )
 
     try:
       validation_result = response.json()
     except json.JSONDecodeError as err:
       raise errors.DataOutConnectorValueError(
-          error_num=errors.ErrorNameIDMap.RETRIABLE_GA4_HOOK_ERROR_HTTP_ERROR
-          .value) from err
+          error_num=errors.ErrorNameIDMap.RETRIABLE_GA4_HOOK_ERROR_HTTP_ERROR.value
+      ) from err
 
     # Payload is valid: validation messages are only returned if there is a
     # problem with the payload.
@@ -187,19 +191,19 @@ class Destination:
 
     for property_name in _ERROR_TYPES:
       if field_path == property_name or property_name in description:
-        raise errors.DataOutConnectorValueError(
-            error_num=_ERROR_TYPES[property_name])
+        raise errors.DataOutConnectorValueError(error_num=_ERROR_TYPES[property_name])
 
     # Prevent from losing error message if it is undefined due to API change.
     # Note: TCRM has an "id" field which we don't have:
     # go/tcrm-install#prepare-data-to-send-to-google-analytics-4
-    logging.error("fieldPath: %s, description: %s",
-                  message["fieldPath"], message["description"])
+    logging.error(
+        "fieldPath: %s, description: %s", message["fieldPath"], message["description"]
+    )
     raise errors.DataOutConnectorValueError(
-        error_num=errors.ErrorNameIDMap.GA4_HOOK_ERROR_INVALID_VALUES)
+        error_num=errors.ErrorNameIDMap.GA4_HOOK_ERROR_INVALID_VALUES
+    )
 
-  def _send_validate_request(self, payload: Dict[str,
-                                                 Any]) -> requests.Response:
+  def _send_validate_request(self, payload: Dict[str, Any]) -> requests.Response:
     """Sends the GA4 payload to the debug API for data validating.
 
        By adding the key-value pair
@@ -221,21 +225,8 @@ class Destination:
     except requests.ConnectionError as err:
       raise errors.DataOutConnectorValueError(
           error_num=errors.ErrorNameIDMap.RETRIABLE_GA4_HOOK_ERROR_HTTP_ERROR
-          ) from err
+      ) from err
     return response
-
-  def _parse_input_data(
-      self, rows: List[Tuple[str, ...]]) -> List[Dict[str, Any]]:
-    """Parses input data and transforms it into a list of dictionaries.
-    """
-    events = []
-    fields = self.fields()
-    for event in rows:
-      event_dict = {}
-      for i, field in enumerate(fields):
-        event_dict[field] = event[i]
-      events.append(event_dict)
-    return events
 
   def _send_payload(self, payload: Dict[str, Any]) -> None:
     """Sends payload to GA via Measurement Protocol REST API.
@@ -254,7 +245,9 @@ class Destination:
       self.log.info(
           """Debug mode: Simulating sending event to GA4 (data will not
           actually be sent). URL:{}. payload data:{}.""".format(
-              self.post_url, payload))
+              self.post_url, payload
+          )
+      )
       return
 
     try:
@@ -264,25 +257,28 @@ class Destination:
       if response.status_code < 200 or response.status_code >= 300:
         raise errors.DataOutConnectorSendUnsuccessfulError(
             msg="Sending payload to GA did not complete successfully.",
-            error_num=errors.ErrorNameIDMap.RETRIABLE_GA_HOOK_ERROR_HTTP_ERROR)
+            error_num=errors.ErrorNameIDMap.RETRIABLE_GA_HOOK_ERROR_HTTP_ERROR,
+        )
     except requests.ConnectionError:
       raise errors.DataOutConnectorSendUnsuccessfulError(
           msg="Sending payload to GA did not complete successfully.",
-          error_num=errors.ErrorNameIDMap.RETRIABLE_GA_HOOK_ERROR_HTTP_ERROR)
+          error_num=errors.ErrorNameIDMap.RETRIABLE_GA_HOOK_ERROR_HTTP_ERROR,
+      )
 
-  def send_data(self, input_data: Iterable[Any]):
+  def send_data(self, input_data: List[Mapping[str, Any]]):
     """Builds payload ans sends data to GA4MP API."""
-    rows = input_data.fetchall()
-    input_data_dict = self._parse_input_data(rows)
-    valid_events, invalid_indices_and_errors = (
-        self._get_valid_and_invalid_events(input_data_dict))
+    valid_events, invalid_indices_and_errors = self._get_valid_and_invalid_events(
+        input_data
+    )
 
     for valid_event in valid_events:
       try:
         event = valid_event[1]
         self._send_payload(event)
-      except (errors.DataOutConnectorSendUnsuccessfulError,
-              errors.DataOutConnectorValueError) as error:
+      except (
+          errors.DataOutConnectorSendUnsuccessfulError,
+          errors.DataOutConnectorValueError,
+      ) as error:
         index = valid_event[0]
         invalid_indices_and_errors.append((index, error.error_num))
 
@@ -294,8 +290,6 @@ class Destination:
       error_num = invalid_event[1]
       # TODO(b/272258038): TBD What to do with invalid events data.
       print(f"event_index: {event_index}; error_num: {error_num}")
-
-    return rows
 
   def schema(self):
     GA4MP = Annotated[Union[GA4Web, GA4App], Field(discriminator="event_type")]
@@ -314,6 +308,9 @@ class Destination:
         "session_id",
     ]
 
+  def batch_size(self):
+    return 10000
+
   def _validate_credentials(self) -> None:
     """Validate credentials.
 
@@ -322,7 +319,8 @@ class Destination:
     """
     if not self.api_secret:
       raise errors.DataOutConnectorValueError(
-          f"Missing API secret in config: {self.config}")
+          f"Missing API secret in config: {self.config}"
+      )
 
     valid_payload_types = (PayloadTypes.FIREBASE.value, PayloadTypes.GTAG.value)
     if self.payload_type not in valid_payload_types:
@@ -331,8 +329,7 @@ class Destination:
           "payload_type is gtag or firebase."
       )
 
-    if (self.payload_type == PayloadTypes.FIREBASE.value and
-        not self.firebase_app_id):
+    if self.payload_type == PayloadTypes.FIREBASE.value and not self.firebase_app_id:
       raise errors.DataOutConnectorValueError(
           "Wrong payload_type or missing firebase_app_id. Please make sure "
           "firebase_app_id is set when payload_type is firebase."
