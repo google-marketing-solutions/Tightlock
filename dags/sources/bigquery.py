@@ -2,15 +2,14 @@
 
 import json
 import tempfile
-from typing import Any, List, Mapping, Sequence
+from typing import Any, List, Optional, Mapping, Sequence
 
 from google.cloud import bigquery
 from pydantic import BaseModel
 
 
 class BigQueryConnection(BaseModel):
-  credentials: Mapping[str, str]
-  project_id: str
+  credentials: Optional[Mapping[str, str]] = None
   dataset: str
   table: str
 
@@ -36,7 +35,7 @@ class Source:
         credentials_path = credentials_file.name
       client = bigquery.Client.from_service_account_json(credentials_path)
     else:
-      client = bigquery.Client(project_id=bq_connection.project_id)
+      client = bigquery.Client()
     location = f"""`{bq_connection.dataset}.{bq_connection.table}`"""
     fields_string = ",".join(fields)
     query = (
