@@ -15,9 +15,13 @@
 
 `docker exec -ti tightlock_postgres_1 psql -U tightlock -W tightlock` - Runs Postgres REPL inside DB container (useful for inspecting tables)
 
-## Deployong on Google Compute Engine 
+## Deploying on Google Compute Engine 
 
 > TODO(b/265932821): Change for installer instructions once installer is available
+
+- SSH into the GCE VM (all commands below must be run from the VM context)
+
+- Clone or upload Tightlock repository into the VM
 
 - Change exposed port for `tightlock_api` from `8081` to `80` on the `docker-compose.yaml` file.
 
