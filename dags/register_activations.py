@@ -86,7 +86,6 @@ class DAGBuilder:
         offset = 0
         get_data = partial(
             target_source.get_data,
-            source=activation["source"],
             connections=external_connections,
             fields=fields,
             limit=batch_size,
