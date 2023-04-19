@@ -2,7 +2,7 @@
 
 import json
 import tempfile
-from typing import Any, List, Optional, Mapping, Sequence
+from typing import Any, Dict, List, Optional, Mapping, Sequence
 
 from google.cloud import bigquery
 from pydantic import BaseModel
@@ -17,16 +17,18 @@ class BigQueryConnection(BaseModel):
 class Source:
   """Implements SourceProto protocol for BigQuery."""
 
+  def __init__(self, config: Dict[str, Any]):
+    self.config = config
+
   def get_data(
       self,
-      source: Mapping[str, Any],
-      connections: Mapping[str, Any],
+      connections: Sequence[Mapping[str, Any]],
       fields: Sequence[str],
       offset: int,
       limit: int,
   ) -> List[Mapping[str, Any]]:
     """get_data implemention for BigQuery source."""
-    bq_connection = BigQueryConnection.parse_obj(source)
+    bq_connection = BigQueryConnection.parse_obj(self.config)
     if bq_connection.credentials:
       with tempfile.NamedTemporaryFile(
           mode="w", encoding="utf-8", delete=False
@@ -56,5 +58,5 @@ class Source:
 
     return rows
 
-  def config_schema(self) -> str:
+  def schema(self) -> Dict[str, Any]:
     return BigQueryConnection.schema_json()

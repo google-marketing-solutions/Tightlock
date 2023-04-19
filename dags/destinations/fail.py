@@ -18,3 +18,6 @@ class Destination:
 
   def schema(self) -> Dict[str, Any]:
     return {"foo": "bar"}
+
+  def batch_size(self) -> int:
+    return 42

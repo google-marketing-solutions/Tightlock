@@ -21,7 +21,7 @@ class DagUtils:
     dags_path = f"airflow/dags/{folder_name}"
     folder_path = pathlib.Path().resolve().parent / dags_path
     for filename in os.listdir(folder_path):
-      if os.path.isfile(filename):
+      if os.path.isfile(folder_path / filename) and filename != "__init__.py" :
         module_name, _ = filename.split(".py")
         module_path = os.path.join(folder_path, filename)
         spec = importlib.util.spec_from_file_location(module_name, module_path)

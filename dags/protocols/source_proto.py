@@ -5,8 +5,10 @@ from typing import Any, Mapping, Protocol, List, Sequence, Dict, runtime_checkab
 
 @runtime_checkable
 class SourceProto(Protocol):
+  def __init__(self, config: Dict[str, Any]):
+    ...
+
   def get_data(self,
-               source: Mapping[str, Any],
                connections: Sequence[Mapping[str, Any]],
                fields: Sequence[str],
                offset: int,
