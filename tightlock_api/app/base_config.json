@@ -6,15 +6,20 @@
       "config": {}
     }
   ],
-  "activations": [
-    {
-      "name": "sample_ga4mp_app_hit",
-      "source": {
+  "sources": {
+    "sample_ga4mp_app_hit_source": {
         "type": "local_file",
         "external_connection": "",
         "location": "ga4_app_sample_data.csvh"
-      },
-      "destination": {
+    },
+    "intended_failure_source": {
+        "type": "local_file",
+        "external_connection": "",
+        "location": "ga4_app_sample_data.csvh"
+    }
+  },
+  "destinations": {
+    "sample_ga4mp_app_hit_destination": {
         "type": "GA4MP",
         "payload_type": "firebase",
         "api_secret": "fjOZ9EwoTb26IllLLjvQZw",
@@ -26,40 +31,29 @@
           }
         },
         "debug": false
-      },
-      "schedule": ""
     },
+    "intended_failure_destination": {
+      "type": "FAIL"
+    }
+  },
+  "activations": [
     {
-      "name": "sample_ga4mp_web_hit",
+      "name": "sample_ga4mp_app_hit",
       "source": {
-        "type": "local_file",
-        "external_connection": "",
-        "location": "ga4_web_sample_data.csvh"
+        "$ref": "#/sources/sample_ga4mp_app_hit_source"
       },
       "destination": {
-        "type": "GA4MP",
-        "payload_type": "gtag",
-        "api_secret": "Ro2qgDj_SN6K--uUr0pEHA",
-        "measurement_id": "G-JGCYGC2MS7",
-        "non_personalized_ads": false,
-        "user_properties": {
-          "customer_tier": {
-            "value": "enterprise"
-          }
-        },
-        "debug": true
+        "$ref": "#/destinations/sample_ga4mp_app_hit_destination"
       },
       "schedule": ""
     },
     {
       "name": "intended_failure",
       "source": {
-        "type": "local_file",
-        "external_connection": "",
-        "location": "ga4_app_sample_data.csvh"
+        "$ref": "#/sources/intended_failure_source"
       },
       "destination": {
-        "type": "FAIL"
+        "$ref": "#/destinations/intended_failure_destination"
       },
       "schedule": ""
     }
