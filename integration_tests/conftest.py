@@ -43,11 +43,15 @@ class Helpers:
 
 @pytest.fixture(scope="session", autouse=True)
 def wait_for_api(session_scoped_container_getter):
-  """Wait for Airflow to be ready before starting integration tests."""
+  """Wait for Airflow and Drill to be ready before starting integration tests."""
   airflow_request_session, api_url = Helpers(
       session_scoped_container_getter
   ).get_airflow_client()
+  drill_request_session, drill_url = Helpers(
+    session_scoped_container_getter
+  ).get_drill_client()
   assert airflow_request_session.get(parse.urljoin(api_url, "health"))
+  assert drill_request_session.get(parse.urljoin(drill_url, "status"))
 
 
 @pytest.fixture(scope="session")
