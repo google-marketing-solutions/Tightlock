@@ -7,6 +7,8 @@ import sys
 from dataclasses import dataclass
 from typing import Any, List, Mapping, Sequence, Tuple
 
+import traceback
+
 from airflow.providers.apache.drill.hooks.drill import DrillHook
 
 _TABLE_ALIAS = "t"
@@ -80,5 +82,6 @@ class DrillMixin:
     try:
       cursor.execute(query)
     except Exception:  # pylint: disable=broad-except
+      print(f"Drill validation error: {traceback.format_exc()}")
       return ValidationResult(False, f"Invalid location: {path}")
     return ValidationResult(True, "")
