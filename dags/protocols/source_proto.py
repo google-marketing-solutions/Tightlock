@@ -2,7 +2,7 @@
 
 from typing import (Any, Dict, List, Mapping, Protocol, Sequence, runtime_checkable)
 
-from utils import ValidationResult
+from dags.utils import ValidationResult
 
 
 @runtime_checkable

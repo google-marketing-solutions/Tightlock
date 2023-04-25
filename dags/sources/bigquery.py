@@ -8,7 +8,7 @@ from google.cloud import bigquery
 from google.cloud.exceptions import NotFound
 from pydantic import BaseModel
 
-from utils import ValidationResult
+from dags.utils import ValidationResult
 
 
 class BigQueryConnection(BaseModel):
@@ -63,7 +63,7 @@ class Source:
   def schema(self) -> Dict[str, Any]:
     return BigQueryConnection.schema_json()
 
-  def validate(self) -> Dict[str, Any]:
+  def validate(self) -> ValidationResult:
     try:
       self.client.get_table(self.location)
       return ValidationResult(True, "")
