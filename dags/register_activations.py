@@ -4,9 +4,10 @@ import datetime
 import functools
 import importlib.util
 import pathlib
-from typing import Any, Mapping, Sequence
-
+import re
+import traceback
 from functools import partial
+from typing import Any, Mapping, Sequence
 
 from airflow.decorators import dag, task
 from airflow.hooks.postgres_hook import PostgresHook
@@ -20,6 +21,22 @@ class DAGBuilder:
   def __init__(self):
     self.latest_config = self._get_latest_config()
 
+  def _config_from_ref(self, ref: Mapping[str, str]) -> SourceProto | DestinationProto:
+    refs_regex = r"^#\/(sources|destinations)\/(.*)"
+    ref_str = ref["$ref"]
+    match = re.search(refs_regex, ref_str)
+    target_folder = match.group(1)
+    target_name = match.group(2)
+    target_config = self.latest_config[target_folder][target_name]
+    target_type = target_config.get("type")
+    if not target_type:
+      raise ValueError("Missing config attribute `type`.")
+    if target_folder == "sources":
+      return self._import_entity(target_type, target_folder).Source()
+    elif target_folder == "destinations":
+      return self._import_entity(target_type, target_folder).Destination(target_config)
+    raise ValueError(f"Not supported folder: {target_folder}")
+
   def _import_entity(
       self, source_name: str, folder_name: str
   ) -> SourceProto | DestinationProto:
@@ -31,11 +48,6 @@ class DAGBuilder:
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
-
-  _import_source = functools.partialmethod(_import_entity, folder_name="sources")
-  _import_destination = functools.partialmethod(
-      _import_entity, folder_name="destinations"
-  )
 
   def _get_latest_config(self):
     sql_stmt = "SELECT value FROM Config ORDER BY create_date DESC LIMIT 1"
@@ -77,36 +89,36 @@ class DAGBuilder:
             source=activation["source"],
             connections=external_connections,
             fields=fields,
-            limit=batch_size)
+            limit=batch_size,
+        )
         data = get_data(offset=offset)
         while data:
           target_destination.send_data(data)
           offset += batch_size
           data = get_data(offset=offset)
-    
+
       process()
 
     return dynamic_generated_dag
 
   def register_dags(self):
     """Loops over all configured activations and create an Airflow DAG for each one of them."""
-    external_connections = {} # TODO(b/277966895): Delete external_connections references if this is not used anymore in the config.
+    external_connections = (
+        {}
+    )  # TODO(b/277966895): Delete external_connections references if this is not used anymore in the config.
 
     for activation in self.latest_config["activations"]:
       # actual implementations of each source and destination
       try:
-        target_source = self._import_source(activation["source"]["type"]).Source()
-        target_destination = self._import_destination(
-            activation["destination"]["type"]
-        ).Destination(activation["destination"])
+        target_source = self._config_from_ref(activation["source"])
+        target_destination = self._config_from_ref(activation["destination"])
         dynamic_dag = self._build_dynamic_dag(
             activation, external_connections, target_source, target_destination
         )
-
         # register dag by calling the dag object
         dynamic_dag()
-      except Exception as error:  # pylint: disable=broad-except
-        print(f"DAG registration error: {error}")
+      except Exception:  # pylint: disable=broad-except
+        print(f"DAG registration error: {traceback.format_exc()}")
 
 
 builder = DAGBuilder()
