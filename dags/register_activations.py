@@ -22,13 +22,15 @@ class DAGBuilder:
     self.latest_config = self._get_latest_config()
 
   def _config_from_ref(self, ref: Mapping[str, str]) -> SourceProto | DestinationProto:
-    refs_regex = r"^#\/(.*)\/(.*)"
+    refs_regex = r"^#\/(sources|destinations)\/(.*)"
     ref_str = ref["$ref"]
     match = re.search(refs_regex, ref_str)
     target_folder = match.group(1)
     target_name = match.group(2)
     target_config = self.latest_config[target_folder][target_name]
-    target_type = target_config["type"]
+    target_type = target_config.get("type")
+    if not target_type:
+      raise ValueError("Missing config attribute `type`.")
     if target_folder == "sources":
       return self._import_entity(target_type, target_folder).Source()
     elif target_folder == "destinations":
