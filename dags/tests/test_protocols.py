@@ -1,9 +1,9 @@
 """Test adherence to Destination and Source protocols."""
-
-from dags.protocols.destination_proto import DestinationProto
-from dags.protocols.source_proto import SourceProto
-from dags.utils import DagUtils
+from protocols.destination_proto import DestinationProto
+from protocols.source_proto import SourceProto
+from utils import DagUtils
 import inspect
+
 
 dag_utils = DagUtils()
 

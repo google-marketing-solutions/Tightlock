@@ -1,8 +1,7 @@
 """Defines protocol for source classes."""
-
 from typing import (Any, Dict, List, Mapping, Protocol, Sequence, runtime_checkable)
 
-from dags.utils import ValidationResult
+from utils import ValidationResult
 
 
 @runtime_checkable

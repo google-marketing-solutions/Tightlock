@@ -1,5 +1,4 @@
 """BigQuery source implementation."""
-
 import json
 import tempfile
 from typing import Any, Dict, List, Optional, Mapping, Sequence
@@ -8,7 +7,7 @@ from google.cloud import bigquery
 from google.cloud.exceptions import NotFound
 from pydantic import BaseModel
 
-from dags.utils import ValidationResult
+from utils import ValidationResult
 
 
 class BigQueryConnection(BaseModel):

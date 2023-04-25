@@ -1,10 +1,9 @@
 """Local file source implementation."""
-
 from typing import Any, Dict, List, Literal, Mapping, Sequence
 
 from pydantic import BaseModel
-from dags.utils import DrillMixin
-from dags.utils import ValidationResult
+from utils import DrillMixin
+from utils import ValidationResult
 
 
 class LocalFile(BaseModel):
