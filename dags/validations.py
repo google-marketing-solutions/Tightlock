@@ -37,7 +37,7 @@ def validate():
   PythonOperator(
       task_id="validate_source",
       op_kwargs={
-          "source_name": "{{ dag_run.conf.get('source') }}",
+          "source_name": "{{ dag_run.conf.get('source_name') }}",
           "source_config": "{{ dag_run.conf.get('source_config')}}",
       },
       python_callable=validate_source,

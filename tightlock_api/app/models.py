@@ -6,10 +6,20 @@ from typing import Any, Dict, Optional
 from sqlalchemy import UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy_json import mutable_json_type
-from sqlmodel import Column
-from sqlmodel import DateTime
-from sqlmodel import Field
-from sqlmodel import SQLModel
+from sqlmodel import Column, DateTime, Field, SQLModel
+
+
+class ValidationResult(SQLModel):
+  """Result of source or destination validation."""
+
+  is_valid: str
+  message: str
+
+
+class ConfigValue(SQLModel):
+  """Represents a generic value for configs (sources or destinations)."""
+
+  value: Dict[str, Any]
 
 
 class Activation(SQLModel):

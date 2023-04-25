@@ -7,7 +7,7 @@ from clients import AirflowClient
 from db import get_session
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import Response
-from models import Activation, Config
+from models import Activation, Config, ConfigValue, ValidationResult
 from security import check_authentication_header
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
@@ -124,6 +124,16 @@ async def get_schemas():
   f = open("schemas_sample.json")
   data = json.load(f)
   return data
+
+
+@v1.post("/sources/{source_name}:validate", response_model=ValidationResult)
+async def validate_source(
+    source_name: str,
+    source_config: ConfigValue,
+    airflow_client=Depends(AirflowClient),
+):
+  response = await airflow_client.validate_source(source_name, source_config.value)
+  return response
 
 
 app.mount("/api/v1", v1)

@@ -32,7 +32,7 @@ class DAGBuilder:
     if not target_type:
       raise ValueError("Missing config attribute `type`.")
     if target_folder == "sources":
-      return self._import_entity(target_type, target_folder).Source()
+      return self._import_entity(target_type, target_folder).Source(target_config)
     elif target_folder == "destinations":
       return self._import_entity(target_type, target_folder).Destination(target_config)
     raise ValueError(f"Not supported folder: {target_folder}")
