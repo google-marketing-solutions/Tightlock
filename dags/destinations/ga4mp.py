@@ -13,6 +13,7 @@ from typing import (
     List,
     Literal,
     Optional,
+    Sequence,
     Tuple,
     Mapping,
     Union,
@@ -265,7 +266,7 @@ class Destination:
           error_num=errors.ErrorNameIDMap.RETRIABLE_GA_HOOK_ERROR_HTTP_ERROR,
       )
 
-  def send_data(self, input_data: List[Mapping[str, Any]]):
+  def send_data(self, input_data: List[Mapping[str, Any]]) -> None:
     """Builds payload ans sends data to GA4MP API."""
     valid_events, invalid_indices_and_errors = self._get_valid_and_invalid_events(
         input_data
@@ -291,12 +292,12 @@ class Destination:
       # TODO(b/272258038): TBD What to do with invalid events data.
       print(f"event_index: {event_index}; error_num: {error_num}")
 
-  def schema(self):
+  def schema(self) -> Dict[str, Any]:
     GA4MP = Annotated[Union[GA4Web, GA4App], Field(discriminator="event_type")]
 
     return GA4MP.schema_json()
 
-  def fields(self):
+  def fields(self) -> Sequence[str]:
     if self.payload_type == PayloadTypes.FIREBASE.value:
       id_column_name = _FIREBASE_ID_COLUMN
     else:
@@ -308,7 +309,7 @@ class Destination:
         "session_id",
     ]
 
-  def batch_size(self):
+  def batch_size(self) -> int:
     return 10000
 
   def _validate_credentials(self) -> None:

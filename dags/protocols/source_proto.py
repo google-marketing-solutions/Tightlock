@@ -1,17 +1,26 @@
 """Defines protocol for source classes."""
+from typing import (Any, Dict, List, Mapping, Protocol, Sequence, runtime_checkable)
 
-from typing import Any, Mapping, Protocol, List, Sequence, Dict, runtime_checkable
+from utils import ValidationResult
 
 
 @runtime_checkable
 class SourceProto(Protocol):
-  def get_data(self,
-               source: Mapping[str, Any],
-               connections: Sequence[Mapping[str, Any]],
-               fields: Sequence[str],
-               offset: int,
-               limit: int) -> List[Mapping[str, Any]]:
+
+  def __init__(self, config: Dict[str, Any]):
+    ...
+
+  def get_data(
+      self,
+      connections: Sequence[Mapping[str, Any]],
+      fields: Sequence[str],
+      offset: int,
+      limit: int,
+  ) -> List[Mapping[str, Any]]:
     ...
 
   def schema(self) -> Dict[str, Any]:
+    ...
+
+  def validate(self) -> ValidationResult:
     ...

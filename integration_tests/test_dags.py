@@ -5,7 +5,7 @@ from urllib import parse
 
 def test_dag_import_errors(helpers):
   """Verifies if there are no DAG import errors."""
-  # TODO(b/267772197): Add functionality to store usn:password.
+  # TODO(b/278797552): Import errors for dynamic dags are not captured anymore after graceful failures were implemented
   request_session, api_url = helpers.get_airflow_client()
   import_errors = request_session.get(
       parse.urljoin(api_url,

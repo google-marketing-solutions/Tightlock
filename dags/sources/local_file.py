@@ -1,9 +1,9 @@
 """Local file source implementation."""
+from typing import Any, Dict, List, Literal, Mapping, Sequence
 
-from typing import Any, Mapping, Sequence, List, Literal
 from pydantic import BaseModel
-
 from utils import DrillMixin
+from utils import ValidationResult
 
 
 class LocalFile(BaseModel):
@@ -14,17 +14,23 @@ class LocalFile(BaseModel):
 class Source(DrillMixin):
   """Implements SourceProto protocol for Drill Local Files."""
 
-  def get_data(self,
-               source: Mapping[str, Any],
-               connections: Sequence[Mapping[str, Any]],
-               fields: Sequence[str],
-               offset: int,
-               limit: int
-               ) -> List[Mapping[str, Any]]:
-    location = source['location']
-    conn_name = 'dfs'
-    from_target = f'{conn_name}.`data/{location}`'
-    return self.get_drill_data(from_target, fields, offset, limit)
+  def __init__(self, config: Dict[str, Any]):
+    self.config = config
+    self.location = self.config['location']
+    self.conn_name = 'dfs'
+    self.path = f'{self.conn_name}.`data/{self.location}`'
 
-  def schema(self):
+  def get_data(
+      self,
+      connections: Sequence[Mapping[str, Any]],
+      fields: Sequence[str],
+      offset: int,
+      limit: int,
+  ) -> List[Mapping[str, Any]]:
+    return self.get_drill_data(self.path, fields, offset, limit)
+
+  def schema(self) -> Dict[str, Any]:
     return LocalFile.schema_json()
+
+  def validate(self) -> ValidationResult:
+    return self.validate_drill(self.path)

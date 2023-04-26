@@ -1,11 +1,13 @@
 """BigQuery source implementation."""
-
 import json
 import tempfile
-from typing import Any, List, Optional, Mapping, Sequence
+from typing import Any, Dict, List, Optional, Mapping, Sequence
 
 from google.cloud import bigquery
+from google.cloud.exceptions import NotFound
 from pydantic import BaseModel
+
+from utils import ValidationResult
 
 
 class BigQueryConnection(BaseModel):
@@ -17,34 +19,35 @@ class BigQueryConnection(BaseModel):
 class Source:
   """Implements SourceProto protocol for BigQuery."""
 
+  def __init__(self, config: Dict[str, Any]):
+    self.bq_connection = BigQueryConnection.parse_obj(config)
+    if self.bq_connection.credentials:
+      with tempfile.NamedTemporaryFile(
+          mode="w", encoding="utf-8", delete=False
+      ) as credentials_file:
+        json.dump(self.bq_connection.credentials, credentials_file)
+        credentials_path = credentials_file.name
+      self.client = bigquery.Client.from_service_account_json(credentials_path)
+    else:
+      self.client = bigquery.Client()
+    self.location = f"""{self.bq_connection.dataset}.{self.bq_connection.table}"""
+
   def get_data(
       self,
-      source: Mapping[str, Any],
-      connections: Mapping[str, Any],
+      connections: Sequence[Mapping[str, Any]],
       fields: Sequence[str],
       offset: int,
       limit: int,
   ) -> List[Mapping[str, Any]]:
     """get_data implemention for BigQuery source."""
-    bq_connection = BigQueryConnection.parse_obj(source)
-    if bq_connection.credentials:
-      with tempfile.NamedTemporaryFile(
-          mode="w", encoding="utf-8", delete=False
-      ) as credentials_file:
-        json.dump(bq_connection.credentials, credentials_file)
-        credentials_path = credentials_file.name
-      client = bigquery.Client.from_service_account_json(credentials_path)
-    else:
-      client = bigquery.Client()
-    location = f"""`{bq_connection.dataset}.{bq_connection.table}`"""
     fields_string = ",".join(fields)
     query = (
         f"SELECT {fields_string}"
-        f" FROM {location}"
+        f" FROM `{self.location}`"
         f" ORDER BY {fields_string}"
         f" LIMIT {limit} OFFSET {offset}"
     )
-    query_job = client.query(query)
+    query_job = self.client.query(query)
 
     rows = []
     for element in query_job.result():
@@ -56,5 +59,12 @@ class Source:
 
     return rows
 
-  def config_schema(self) -> str:
+  def schema(self) -> Dict[str, Any]:
     return BigQueryConnection.schema_json()
+
+  def validate(self) -> ValidationResult:
+    try:
+      self.client.get_table(self.location)
+      return ValidationResult(True, "")
+    except NotFound:
+      return ValidationResult(False, f"Table {self.location} is not found.")
