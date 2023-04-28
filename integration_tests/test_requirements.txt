@@ -1,3 +1,4 @@
 pytest-docker-compose
 pytest-dotenv
 requests
+tenacity
