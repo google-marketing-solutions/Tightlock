@@ -25,6 +25,8 @@ def test_validate_source(helpers, test_location, expected_result):
                   f"api/v1/sources/local_file:validate"),
                   json={"value": {"location": test_location}}
     )
+  if response.status_code != 200:
+    pytest.fail(response.text)
   validation_result = response.json()
   assert ast.literal_eval(validation_result["is_valid"]) == expected_result
   

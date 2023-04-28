@@ -23,7 +23,7 @@ class Helpers:
       request_session.auth = auth
     if api_key:
       request_session.headers.update({"X-API-Key": api_key})
-    retries = Retry(total=5, backoff_factor=1, status_forcelist=[500, 502, 503, 504])
+    retries = Retry(total=5, backoff_factor=1, status_forcelist=[404, 500, 502, 503, 504])
     request_session.mount("http://", HTTPAdapter(max_retries=retries))
 
     service = self.container_getter.get(container_name).network_info[0]
@@ -44,14 +44,25 @@ class Helpers:
 @pytest.fixture(scope="session", autouse=True)
 def wait_for_api(session_scoped_container_getter):
   """Wait for Airflow and Drill to be ready before starting integration tests."""
-  airflow_request_session, api_url = Helpers(
+  airflow_request_session, airflow_url = Helpers(
       session_scoped_container_getter
   ).get_airflow_client()
   drill_request_session, drill_url = Helpers(
     session_scoped_container_getter
   ).get_drill_client()
-  assert airflow_request_session.get(parse.urljoin(api_url, "health"))
-  assert drill_request_session.get(parse.urljoin(drill_url, "status"))
+  api_request_session, api_url = Helpers(
+    session_scoped_container_getter
+  ).get_tightlock_api_client()
+
+  # assert Airflow health
+  airflow_health = airflow_request_session.get(parse.urljoin(airflow_url, "health")).json().get("metadatabase").get("status")
+  assert airflow_health == "healthy"
+  # assert Drill health
+  drill_health_status_code = drill_request_session.get(parse.urljoin(drill_url, "status")).status_code
+  assert drill_health_status_code == 200
+  # assert API health
+  api_health_status_code = api_request_session.post(parse.urljoin(api_url, "api/v1/connect")).status_code
+  assert api_health_status_code == 200
 
 
 @pytest.fixture(scope="session")

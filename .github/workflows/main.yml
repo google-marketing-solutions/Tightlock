@@ -30,15 +30,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Run Tightlock Containers
-        env:
-          COMPOSE_INTERACTIVE_NO_CLI: 1
-        run: bash ./run_tightlock.sh --non-interactive
-      - name: Check running containers
-        run: docker-compose ps -a
-      - name: Check API logs
-        run: docker-compose logs tightlock-api
-      - name: Check Airflow logs
-        run: docker-compose logs airflow-init
-      - name: Integration Tests
+      - name: Run Integration Tests
         run: bash ./run_integration_tests.sh
