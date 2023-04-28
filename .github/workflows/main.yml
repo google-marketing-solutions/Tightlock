@@ -33,7 +33,7 @@ jobs:
       - name: Run Integration Tests
         run: bash ./run_integration_tests.sh
       - name: Rename logs
-        run: bash for i in logs/**/*:*:*; do mv -- "$i" "${i//:/_}" done
+        run: for i in logs/**/*:*:*; do mv -- "$i" "${i//:/_}"; done
       - name: Archive logs
         uses: actions/upload-artifact@v3
         with:
