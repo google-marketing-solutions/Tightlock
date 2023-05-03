@@ -1,5 +1,5 @@
 """Defines protocol for source classes."""
-from typing import (Any, Dict, List, Mapping, Protocol, Sequence, runtime_checkable)
+from typing import (Any, Dict, List, Mapping, Protocol, Sequence, runtime_checkable, Optional)
 
 from utils import ValidationResult
 

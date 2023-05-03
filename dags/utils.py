@@ -4,10 +4,9 @@ import importlib
 import os
 import pathlib
 import sys
+import traceback
 from dataclasses import dataclass
 from typing import Any, List, Mapping, Sequence, Tuple
-
-import traceback
 
 from airflow.providers.apache.drill.hooks.drill import DrillHook
 
@@ -17,8 +16,9 @@ _TABLE_ALIAS = "t"
 @dataclass
 class ValidationResult:
   """Class for reporting of validation results."""
+
   is_valid: bool
-  message: str
+  message: Sequence[str]
 
 
 class DagUtils:
@@ -83,5 +83,5 @@ class DrillMixin:
       cursor.execute(query)
     except Exception:  # pylint: disable=broad-except
       print(f"Drill validation error: {traceback.format_exc()}")
-      return ValidationResult(False, f"Invalid location: {path}")
-    return ValidationResult(True, "")
+      return ValidationResult(False, [f"Invalid location: {path}"])
+    return ValidationResult(True, [])

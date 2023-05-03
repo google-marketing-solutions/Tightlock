@@ -30,3 +30,15 @@ def test_validate_source(helpers, test_location, expected_result):
   validation_result = response.json()
   assert ast.literal_eval(validation_result["is_valid"]) == expected_result
   
+
+def test_validate_destination(helpers):
+  request_session, api_url = helpers.get_tightlock_api_client()
+  response = request_session.post(
+    parse.urljoin(api_url,
+                  f"api/v1/destinations/ga4mp:validate"),
+                  json={"value": {"payload_type": "firebase", "api_secret": "test", "firebase_app_id": "test"}}
+    )
+  if response.status_code != 200:
+    pytest.fail(response.text)
+  validation_result = response.json()
+  assert ast.literal_eval(validation_result["is_valid"])

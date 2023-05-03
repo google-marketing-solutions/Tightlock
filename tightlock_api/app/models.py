@@ -1,7 +1,7 @@
 """Definition of data models used by Tightlock application."""
 
 import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Sequence, Optional
 
 from sqlalchemy import UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
@@ -13,7 +13,7 @@ class ValidationResult(SQLModel):
   """Result of source or destination validation."""
 
   is_valid: str
-  message: str
+  message: Sequence[str]
 
 
 class ConfigValue(SQLModel):

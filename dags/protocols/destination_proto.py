@@ -1,15 +1,25 @@
 """Defines protocol for destination classes."""
 
-from typing import Any, Dict, Protocol, Sequence, List, runtime_checkable, Mapping
+from typing import (
+    Any,
+    Dict,
+    List,
+    Mapping,
+    Protocol,
+    Sequence,
+    runtime_checkable,
+)
+
+from utils import ValidationResult
 
 
 @runtime_checkable
 class DestinationProto(Protocol):
+
   def __init__(self, config: Dict[str, Any]):
     ...
 
-  def send_data(
-      self, input_data: List[Mapping[str, Any]]) -> None:
+  def send_data(self, input_data: List[Mapping[str, Any]]) -> None:
     ...
 
   def fields(self) -> Sequence[str]:
@@ -19,4 +29,7 @@ class DestinationProto(Protocol):
     ...
 
   def batch_size(self) -> int:
+    ...
+
+  def validate(self) -> ValidationResult:
     ...
