@@ -1,4 +1,4 @@
 pytest-docker-compose
 pytest-dotenv
-requests
+requests==2.29.0
 tenacity
