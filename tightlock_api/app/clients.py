@@ -39,10 +39,8 @@ class AirflowClient:
       return response
 
   async def _validate_target(
-    self,
-    target_class: str,
-    target_name: str,
-    target_config: dict[str, Any]) -> ValidationResult:
+      self, target_class: str, target_name: str, target_config: dict[str, Any]
+  ) -> ValidationResult:
     # Trigger validate_source DAG
     conf = {"target_name": target_name, "target_config": target_config}
     dag_id = f"validate_{target_class.lower()}"
@@ -56,7 +54,7 @@ class AirflowClient:
     xcom_response = await self._get_request(url)
     if xcom_response.status_code != 200:
       return ValidationResult(
-          is_valid=False, message=f"Target `{target_name}` is unavailable."
+          is_valid=False, messages=f"Target `{target_name}` is unavailable."
       )
     parsed_xcom_response = json.loads(xcom_response.content)
     # Parse json with literal_eval as XCOM returns the response with single quotes
@@ -85,4 +83,6 @@ class AirflowClient:
   async def validate_destination(
       self, destination_name: str, destination_config: dict[str, Any]
   ) -> ValidationResult:
-    return await self._validate_target("Destination", destination_name, destination_config)
+    return await self._validate_target(
+        "Destination", destination_name, destination_config
+    )

@@ -12,8 +12,8 @@ from sqlmodel import Column, DateTime, Field, SQLModel
 class ValidationResult(SQLModel):
   """Result of source or destination validation."""
 
-  is_valid: str
-  message: Sequence[str]
+  is_valid: bool
+  messages: Sequence[str]
 
 
 class ConfigValue(SQLModel):

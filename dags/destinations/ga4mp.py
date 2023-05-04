@@ -320,18 +320,20 @@ class Destination:
         "timestamp_micros": timestamp_micros,
         "non_personalized_ads": False,
         "events": [],
-        "validationBehavior": "ENFORCE_RECOMMENDATIONS"
+        "validationBehavior": "ENFORCE_RECOMMENDATIONS",
     }
     if self.payload_type == PayloadTypes.GTAG.value:
       payload["client_id"] = "validation_client_id"
     else:
-      payload["app_instance_id"] = "cccccccccccccccccccccccccccccccc"  # 32 digit app_instance_id
+      payload[
+          "app_instance_id"
+      ] = "cccccccccccccccccccccccccccccccc"  # 32 digit app_instance_id
     validation_response = self._send_validate_request(payload).json()
     validation_messages = validation_response["validationMessages"]
     if len(validation_messages) < 1:
       return ValidationResult(True, [])
     else:
-      return ValidationResult(False, validation_messages[0]["description"])
+      return ValidationResult(False, validation_messages)
 
   def _validate_credentials(self) -> None:
     """Validate credentials.

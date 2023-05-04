@@ -18,7 +18,7 @@ class ValidationResult:
   """Class for reporting of validation results."""
 
   is_valid: bool
-  message: Sequence[str]
+  messages: Sequence[str]
 
 
 class DagUtils:
