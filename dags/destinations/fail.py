@@ -1,7 +1,9 @@
 """This destination is supposed to fail and be gracefully handled."""
 
 
-from typing import Any, Dict, Iterable, List, Mapping, Sequence
+from typing import Any, Dict, List, Mapping, Sequence
+
+from utils import ValidationResult
 
 
 class Destination:
@@ -21,3 +23,6 @@ class Destination:
 
   def batch_size(self) -> int:
     return 42
+
+  def validate(self) -> ValidationResult:
+    return ValidationResult(False, ["I'm always invalid."])

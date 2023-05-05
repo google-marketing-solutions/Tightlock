@@ -1,12 +1,11 @@
 """BigQuery source implementation."""
 import json
 import tempfile
-from typing import Any, Dict, List, Optional, Mapping, Sequence
+from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from google.cloud import bigquery
 from google.cloud.exceptions import NotFound
 from pydantic import BaseModel
-
 from utils import ValidationResult
 
 
@@ -30,7 +29,7 @@ class Source:
       self.client = bigquery.Client.from_service_account_json(credentials_path)
     else:
       self.client = bigquery.Client()
-    self.location = f"""{self.bq_connection.dataset}.{self.bq_connection.table}"""
+    self.location = f"{self.bq_connection.dataset}.{self.bq_connection.table}"
 
   def get_data(
       self,
@@ -65,6 +64,6 @@ class Source:
   def validate(self) -> ValidationResult:
     try:
       self.client.get_table(self.location)
-      return ValidationResult(True, "")
+      return ValidationResult(True, [])
     except NotFound:
-      return ValidationResult(False, f"Table {self.location} is not found.")
+      return ValidationResult(False, [f"Table {self.location} is not found."])

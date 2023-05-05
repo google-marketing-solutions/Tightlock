@@ -27,8 +27,7 @@ async def create_initial_config():
   get_session_wrapper = contextlib.asynccontextmanager(get_session)
   async with get_session_wrapper() as session:
     try:
-      await create_config(Config(label="Initial Config", value=data),
-                          session=session)
+      await create_config(Config(label="Initial Config", value=data), session=session)
     except HTTPException:
       pass  # Ignore workers trying to recreate initial config
 
@@ -78,8 +77,7 @@ async def get_latest_config(session: AsyncSession = Depends(get_session)):
 
 
 @v1.get("/configs/{config_id}", response_model=Config)
-async def get_config(config_id: int,
-                     session: AsyncSession = Depends(get_session)):
+async def get_config(config_id: int, session: AsyncSession = Depends(get_session)):
   """Retrieves a config with the provided id."""
   statement = select(Config).where(Config.id == config_id)
   config = await session.execute(statement)
@@ -92,8 +90,7 @@ async def get_config(config_id: int,
 
 
 @v1.post("/configs", response_model=Config)
-async def create_config(config: Config,
-                        session: AsyncSession = Depends(get_session)):
+async def create_config(config: Config, session: AsyncSession = Depends(get_session)):
   """Creates a new config using the provided config object."""
   session.add(config)
   try:
@@ -136,6 +133,16 @@ async def validate_source(
     airflow_client=Depends(AirflowClient),
 ):
   response = await airflow_client.validate_source(source_name, source_config.value)
+  return response
+
+
+@v1.post("/destinations/{destination_name}:validate", response_model=ValidationResult)
+async def validate_destination(
+    destination_name: str,
+    destination_config: ConfigValue,
+    airflow_client=Depends(AirflowClient),
+):
+  response = await airflow_client.validate_destination(destination_name, destination_config.value)
   return response
 
 

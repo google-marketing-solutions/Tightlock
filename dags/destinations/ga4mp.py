@@ -2,6 +2,7 @@
 
 # pylint: disable=raise-missing-from
 
+import datetime
 import enum
 import json
 import logging
@@ -12,10 +13,10 @@ from typing import (
     Iterable,
     List,
     Literal,
+    Mapping,
     Optional,
     Sequence,
     Tuple,
-    Mapping,
     Union,
 )
 
@@ -23,6 +24,7 @@ import errors
 import immutabledict
 import requests
 from pydantic import BaseModel, Field
+from utils import ValidationResult
 
 
 class GA4Base(BaseModel):
@@ -311,6 +313,27 @@ class Destination:
 
   def batch_size(self) -> int:
     return 10000
+
+  def validate(self) -> ValidationResult:
+    timestamp_micros = int(datetime.datetime.now().timestamp() * 1e6)
+    payload = {
+        "timestamp_micros": timestamp_micros,
+        "non_personalized_ads": False,
+        "events": [],
+        "validationBehavior": "ENFORCE_RECOMMENDATIONS",
+    }
+    if self.payload_type == PayloadTypes.GTAG.value:
+      payload["client_id"] = "validation_client_id"
+    else:
+      payload[
+          "app_instance_id"
+      ] = "cccccccccccccccccccccccccccccccc"  # 32 digit app_instance_id
+    validation_response = self._send_validate_request(payload).json()
+    validation_messages = validation_response["validationMessages"]
+    if len(validation_messages) < 1:
+      return ValidationResult(True, [])
+    else:
+      return ValidationResult(False, validation_messages)
 
   def _validate_credentials(self) -> None:
     """Validate credentials.

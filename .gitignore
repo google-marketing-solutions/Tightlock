@@ -114,6 +114,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+.tightlock_integration_test_venv
 
 # Spyder project settings
 .spyderproject
