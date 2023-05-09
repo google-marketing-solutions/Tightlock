@@ -1,6 +1,10 @@
 # terraform artifacts
-.terraform/*
-.*.tfstate
+**/.terraform/*
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
 
 # airflow artifacts
 logs/*
