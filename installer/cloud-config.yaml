@@ -1,0 +1,76 @@
+#cloud-config
+
+users:
+- name: tightlock
+  uid: 2000
+
+ssh_keys:
+  rsa_private: | 
+    -----BEGIN OPENSSH PRIVATE KEY-----
+    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
+    -----END OPENSSH PRIVATE KEY-----
+
+  rsa_public: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDUfSl+fHUA7le4yksfxvCljrrvksM0YURskfI6KpMayRoqMxeIKPNZcFjkxTLqqc6E2YpHPeFKZpNoege7QTKtBRLBKOtxL51J4/HkpxQgSZaoRWccWuTAlDvNuw+GfacWxC5F0Gx32d7GcwXJx+E5ItG/aKQw/Hi0HIffBx9Ku5YkrWk5SL8qtkPQgV3oNki8Zi6HGbaUOjk6W20v8kKQU3xS2Ij5tUA6xDG0HPUR0sKD8z1RsqrSPupXMaTkM14yzC2HtZPoH4bS6BvFoUnqWoOnFWbt7cTrPv2ivh1KeSL35CRwPlbRw7GuB+pbS1WOCiinbVN3qGWbMrO9Xsx3Nf+Fr++Pdho7qJmASPmZdaagmhpAG+qspsa3tCIn1B5xaDtXdLxR1tYvVQi/M66Jv2KWPuLp6XDd+BUpzQ7C2tghzRBAgQDV66Ut1N7wIEFfMcjX9Tax/ZF5JHQUIMMTUJzZpkGkTfmGgKrW81LMBSnwIGL8JP+en4H0Aif0zFU= caiotomazelli@tightlock-backend
+
+write_files:
+- path: /etc/systemd/system/tightlock.service
+  permissions: '0644'
+  owner: root
+  content: |
+    [Unit]
+    Description=Start a simple docker container
+
+    [Service]
+    ExecStart=/usr/bin/docker run --rm -u 2000 --name=mycloudservice busybox:latest /bin/sleep 3600
+    ExecStop=run -v /var/run/docker.sock:/var/run/docker.sock --rm -v "$PWD:$PWD" -w "$PWD" docker/compose:1.29.2 down -v
+    ExecStopPost=/usr/bin/docker rm mycloudservice
+
+runcmd:
+- systemctl daemon-reload
+- chmod 400 /etc/ssh/ssh_host_rsa_key 
+- ssh -o "StrictHostKeyChecking no" git@github.com
+- git clone -c "core.sshCommand=ssh -i /etc/ssh/ssh_host_rsa_key -F /dev/null" git@github.com:google/Tightlock.git /home/Tightlock
+- cd /home/Tightlock
+- systemctl start cloudservice.service
+
+
+
+# change docker commands to run with tightlock user 2000 and check if names make sense
+# see best way to expose port 80 in prod (dynamic compose file or other file)
+# see how to prompt/pass API key during installation
+# output IP and merge with API Key

@@ -16,10 +16,15 @@ resource "google_compute_instance" "tightlock-backend" {
     }
   }
 
-  network_interface {
-    network = "default"
-    access_config {
-      nat_ip = "${google_compute_address.vm-static-ip.address}"
-    }
+ network_interface {
+   network = "default"
+   access_config {
+     nat_ip = "${google_compute_address.vm-static-ip.address}"
+   }
+ }
+
+ metadata = {
+    user-data = file("cloud-config.yaml")
   }
 }
+
