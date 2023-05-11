@@ -1,19 +1,21 @@
 # coding=utf-8
-# Copyright 2020 Google LLC.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 # python3
+
+"""
+Copyright 2023 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+     https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License."""
+
 
 """Errors file for this data connector component.
 
@@ -21,6 +23,7 @@ All exceptions defined by the library should be in this file.
 """
 import enum
 from typing import Optional
+
 import immutabledict
 
 # A dictionary with error numbers and error descriptions to use for consistent
@@ -29,7 +32,7 @@ _ERROR_ID_DESCRIPTION_MAP = immutabledict.immutabledict({
     10: 'General error occurred.',
     11: 'Event not sent due to authentication error. Event is due for retry.',
     12: 'Event not sent. Event is due for retry.',
-    13: 'Event not sent to Google Ads. Couldn\'t get service from Google Adwords API',
+    13: "Event not sent to Google Ads. Couldn't get service from Google Adwords API",
     14: 'Error in sending event to Google Ads. Failed to create user list with response error.',
     15: 'Error in sending event to Google Ads. Failed to add members to the user list.',
     16: 'Event not sent to Google Ads UAC. Fail to get airflow connection.',
@@ -39,7 +42,6 @@ _ERROR_ID_DESCRIPTION_MAP = immutabledict.immutabledict({
     20: 'Error in sending event to Google Analytics. Http error.',
     21: 'Error in loading events from Google Cloud Storage. Http error.',
     22: 'Error in sending event to Google Analytics 4. Http error.',
-
     50: 'Event not sent. Event will not be retried.',
     51: 'Error in sending event to Ads Customer Match. Hashed values in the payload do not match SHA256 format.',
     52: 'Error in sending event to Ads Customer Match. HashedEmail field does not meet SHA256 format.',
@@ -60,9 +62,9 @@ _ERROR_ID_DESCRIPTION_MAP = immutabledict.immutabledict({
     67: 'Error in sending event to Ads Offline Conversion. Length of googleClickId should be between 1 and 512.',
     68: 'Error in sending event to Ads UAC. Event is missing at least one mandatory field(s).',
     69: 'Error in sending event to Ads UAC. Unsupported app event type in payload. Example: "first_open", "session_start", "in_app_purchase", "view_item_list", "view_item", "view_search_results", "add_to_cart", "ecommerce_purchase", "custom".',
-    70: 'Error in sending event to Ads UAC. App event type must be \'custom\' when app event name exists.',
+    70: "Error in sending event to Ads UAC. App event type must be 'custom' when app event name exists.",
     71: 'Error in sending event to Ads UAC. Wrong raw device id format in payload. Should be compatible with RFC4122.',
-    72: 'Error in sending event to Ads UAC. Wrong raw device id type in payload. Example: \'advertisingid\', \'idfa\'.',
+    72: "Error in sending event to Ads UAC. Wrong raw device id type in payload. Example: 'advertisingid', 'idfa'.",
     73: 'Error in sending event to Ads UAC. Wrong limit-ad-tracking status in payload. Example: 0, 1.',
     74: 'Error in loading events from BigQuery. Unable to get any blobs.',
     75: 'Error in sending event to Campaign Manager. Event is missing at least one mandatory field(s).',
@@ -99,6 +101,7 @@ _ERROR_ID_DESCRIPTION_MAP = immutabledict.immutabledict({
 # error handling across TCRM.
 class ErrorNameIDMap(enum.Enum):
   """An enum maps error names and error numbers."""
+
   # Retriable error numbers start from 10
   ERROR = 10
   RETRIABLE_ERROR_OUTPUT_AUTHENTICATION_FAILED = 11
@@ -176,9 +179,12 @@ class Error(Exception):
   details and stack tracing use.
   """
 
-  def __init__(self, msg: str = '',
-               error_num: ErrorNameIDMap = ErrorNameIDMap.ERROR,
-               error: Optional[Exception] = None) -> None:
+  def __init__(
+      self,
+      msg: str = '',
+      error_num: ErrorNameIDMap = ErrorNameIDMap.ERROR,
+      error: Optional[Exception] = None,
+  ) -> None:
     super(Error, self).__init__()
     self.error_num = error_num
     self.msg = msg
