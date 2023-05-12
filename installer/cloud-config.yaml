@@ -65,14 +65,15 @@ ssh_keys:
 write_files:
 - path: /etc/systemd/system/tightlock.service
   permissions: '0644'
-  owner: tightlock
+  owner: root
   content: |
     [Unit]
     Description=Start Tightlock service
 
     [Service]
+    User=tightlock
     WorkingDirectory=/home/tightlock/Tightlock
-    ExecStart=bash /home/tightlock/Tightlock/run_tightlock.sh -e prod -i non-interactive -k $API_KEY
+    ExecStart=bash /home/tightlock/Tightlock/run_tightlock.sh -e prod -i non-interactive -k ${API_KEY}
     Restart=on-failure
 
 runcmd:
@@ -85,4 +86,4 @@ runcmd:
 - [su, tightlock, -c, "ssh-keyscan github.com >> ~/.ssh/known_hosts"]
 - sudo rm -rf /home/tightlock/Tightlock
 - [su, tightlock, -c, "git clone -b installer git@github.com:google/Tightlock.git /home/tightlock/Tightlock"]
-- [su, tightlock, -c, "systemctl start tightlock.service"]
+- systemctl start tightlock.service
