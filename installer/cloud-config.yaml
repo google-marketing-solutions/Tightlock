@@ -71,7 +71,7 @@ write_files:
     Description=Start Tightlock service
 
     [Service]
-    ExecStart=/home/Tightlock/run_tightlock.sh
+    ExecStart=bash /home/Tightlock/run_tightlock.sh -e prod -i non-interactive
     ExecStop=/usr/bin/docker stop tightlock
     ExecStopPost=/usr/bin/docker rm tightlock
 
@@ -79,7 +79,7 @@ runcmd:
 - systemctl daemon-reload
 - chmod 400 /etc/ssh/ssh_host_rsa_key 
 - ssh -o "StrictHostKeyChecking no" git@github.com
-- ssh-keyscan github.com >> ~/.ssh/known_hosts
+- ssh-keyscan github.com >> ~/etc/known_hosts
 - rm -rf /home/Tightlock
 - git clone -b installer -c "core.sshCommand=ssh -i /etc/ssh/ssh_host_rsa_key -F /dev/null" git@github.com:google/Tightlock.git /home/Tightlock
 - cd /home/Tightlock
