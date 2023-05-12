@@ -58,11 +58,11 @@ if ! [ -f $ENV ]; then
         esac
     done
   else
-  if [[ -n "$PROVIDED_API_KEY" ]]
-  then
-    API_KEY=$PROVIDED_API_KEY
-  else
-    API_KEY=$PSEUDORANDOM_API_KEY
+    if [[ -n "$PROVIDED_API_KEY" ]]; then
+      API_KEY=$PROVIDED_API_KEY
+    else
+      API_KEY=$PSEUDORANDOM_API_KEY
+    fi
   fi
   # append API key to env file
   echo -e "TIGHTLOCK_API_KEY=$API_KEY" >> $ENV

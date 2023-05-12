@@ -26,7 +26,7 @@
 done
 
 # Create env
-bash ./create_env.sh $INTERACTIVE_FLAG $ENV_FLAG
+bash ./create_env.sh $INTERACTIVE_FLAG $ENV_FLAG $PROVIDED_API_KEY
 
 # define which docker-compose command to use based on the environment
 if [ $ENV_FLAG == "prod" ]; then
