@@ -40,7 +40,11 @@ resource "google_compute_instance" "tightlock-backend" {
  }
 
  metadata = {
-    user-data = file("cloud-config.yaml")
+    user-data = templatefile("cloud-config.yaml", {API_KEY= "${var.apiKey}"})
   }
+}
+
+output "ConnectionCode" {
+  value = base64encode("{'apiKey': '${var.apiKey}', 'address': '${google_compute_address.vm-static-ip.address}'}")
 }
 

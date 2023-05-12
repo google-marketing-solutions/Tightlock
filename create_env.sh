@@ -37,6 +37,7 @@ if ! [ -f $ENV ]; then
 
   INTERACTIVE_FLAG=$1
   ENV_FLAG=$2
+  PROVIDED_API_KEY=$3
 
   # create env specific variables
   if [ $ENV_FLAG == "prod" ]; then
@@ -56,6 +57,10 @@ if ! [ -f $ENV ]; then
             Pseudorandom ) API_KEY=$PSEUDORANDOM_API_KEY; echo "API key: ${API_KEY}"; break;;
         esac
     done
+  else
+  if [[ -n "$PROVIDED_API_KEY" ]]
+  then
+    API_KEY=$PROVIDED_API_KEY
   else
     API_KEY=$PSEUDORANDOM_API_KEY
   fi

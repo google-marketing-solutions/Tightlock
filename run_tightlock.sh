@@ -15,10 +15,11 @@
   # read flags
   ENV_FLAG=dev
   INTERACTIVE_FLAG=interactive
-  while getopts ":e:i:" opt; do
+  while getopts ":e:i:k:" opt; do
   case $opt in
     e) ENV_FLAG=$OPTARG;;
     i) INTERACTIVE_FLAG=$OPTARG;;
+    k) PROVIDED_API_KEY=$OPTARG;;
     \?) echo "Invalid option -$OPTARG" >&2
     exit 1;;
   esac
