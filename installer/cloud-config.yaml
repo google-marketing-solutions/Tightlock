@@ -71,24 +71,23 @@ write_files:
     Description=Start Tightlock service
 
     [Service]
+    WorkingDirectory=/home/tightlock/Tightlock
     ExecStart=bash /home/tightlock/Tightlock/run_tightlock.sh -e prod -i non-interactive
-    ExecStop=/usr/bin/docker stop tightlock
-    ExecStopPost=/usr/bin/docker rm tightlock
+    Restart=on-failure
 
 runcmd:
 - systemctl daemon-reload
 - chmod 400 /etc/ssh/ssh_host_rsa_key 
-- ssh -o "StrictHostKeyChecking no" git@github.com
-- ssh-keyscan github.com >> /etc/ssh/known_hosts
+- cp /etc/ssh/ssh_host_rsa_key /home/tightlock/.ssh/id_rsa
+- chown 2000 /home/tightlock/.ssh/id_rsa 
+- [su, tightlock, -c, "chmod 400 /home/tightlock/.ssh/id_rsa"]
+- [su, tightlock, -c, 'ssh -o "StrictHostKeyChecking no" git@github.com']
+- [su, tightlock, -c, "ssh-keyscan github.com >> ~/.ssh/known_hosts"]
 - sudo rm -rf /home/tightlock/Tightlock
-- [su, tightlock, -c, "git clone -b installer -c 'core.sshCommand=ssh -i /etc/ssh/ssh_host_rsa_key -F /dev/null' git@github.com:google/Tightlock.git /home/tightlock/Tightlock"]
-# - git clone -b installer -c "core.sshCommand=ssh -i /etc/ssh/ssh_host_rsa_key -F /dev/null" git@github.com:google/Tightlock.git /home/tightlock/Tightlock
-- cd /home/tightlock/Tightlock
+- [su, tightlock, -c, "git clone -b installer git@github.com:google/Tightlock.git /home/tightlock/Tightlock"]
 - systemctl start tightlock.service
 
 
 
-# change docker commands to run with tightlock user 2000 and check if names make sense
-# see best way to expose port 80 in prod (dynamic compose file or other file)
 # see how to prompt/pass API key during installation
 # output IP and merge with API Key
