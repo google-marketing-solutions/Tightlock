@@ -14,14 +14,41 @@
 
 ENV=".env"
 if ! [ -f $ENV ]; then
-  NON_INTERACTIVE_FLAG=$1
-  
   # create env file and write Airflow UID ang GID to it
   echo -e "AIRFLOW_UID=$(id -u)\nAIRFLOW_GID=0" > $ENV
 
+  # read flags
+  #while getopts ":a:z:" opt; do
+  #case $opt in
+  #  e) ENV_FLAG="$OPTARG"
+  #  ;;
+  #  i) INTERACTIVE_FLAG="$OPTARG"
+  #  ;;
+  #  \?) echo "Invalid option -$OPTARG" >&2
+  #  exit 1
+  #  ;;
+  #esac
+
+  #case $OPTARG in
+  #  -*) echo "Option $opt needs a value"
+  #  exit 1
+  #  ;;
+  #esac
+
+  INTERACTIVE_FLAG=$1
+  ENV_FLAG=$2
+
+  # create env specific variables
+  if [ $ENV_FLAG == "prod" ]; then
+    API_PORT=80
+  else
+    API_PORT=8081
+  fi
+  echo -e "API_PORT=$API_PORT" >> $ENV
+
   # generate or read API key
   PSEUDORANDOM_API_KEY=$( dd bs=512 if=/dev/urandom count=1 2>/dev/null | tr -dc '[:alpha:]' | fold -w20 | head -n 1 )
-  if ! [ $NON_INTERACTIVE_FLAG == "--non-interactive" ]; then
+  if ! [ $INTERACTIVE_FLAG == "non-interactive" ]; then
     echo "Choose API key generation method."
     select yn in "User-provided" "Pseudorandom"; do
         case $yn in

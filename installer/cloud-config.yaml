@@ -18,6 +18,7 @@ users:
 - name: tightlock
   uid: 2000
 
+# TODO(b/282190052): Remove ssh_keys from cloud-config once repo is public 
 ssh_keys:
   rsa_private: | 
     -----BEGIN OPENSSH PRIVATE KEY-----
@@ -67,18 +68,18 @@ write_files:
   owner: root
   content: |
     [Unit]
-    Description=Start a simple docker container
+    Description=Start Tightlock service
 
     [Service]
-    ExecStart=/usr/bin/docker run --rm -u 2000 --name=mycloudservice busybox:latest /bin/sleep 3600
-    ExecStop=run -v /var/run/docker.sock:/var/run/docker.sock --rm -v "$PWD:$PWD" -w "$PWD" docker/compose:1.29.2 down -v
-    ExecStopPost=/usr/bin/docker rm mycloudservice
+    ExecStart=/home/Tightlock/run_tightlock.sh
+    ExecStop=/usr/bin/docker stop tightlock
+    ExecStopPost=/usr/bin/docker rm tightlock
 
 runcmd:
 - systemctl daemon-reload
 - chmod 400 /etc/ssh/ssh_host_rsa_key 
 - ssh -o "StrictHostKeyChecking no" git@github.com
-- git clone -c "core.sshCommand=ssh -i /etc/ssh/ssh_host_rsa_key -F /dev/null" git@github.com:google/Tightlock.git /home/Tightlock
+- git clone -b installer -c "core.sshCommand=ssh -i /etc/ssh/ssh_host_rsa_key -F /dev/null" git@github.com:google/Tightlock.git /home/Tightlock
 - cd /home/Tightlock
 - systemctl start cloudservice.service
 
