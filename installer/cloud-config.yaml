@@ -79,9 +79,11 @@ runcmd:
 - systemctl daemon-reload
 - chmod 400 /etc/ssh/ssh_host_rsa_key 
 - ssh -o "StrictHostKeyChecking no" git@github.com
+- ssh-keyscan github.com >> ~/.ssh/known_hosts
+- rm -rf /home/Tightlock
 - git clone -b installer -c "core.sshCommand=ssh -i /etc/ssh/ssh_host_rsa_key -F /dev/null" git@github.com:google/Tightlock.git /home/Tightlock
 - cd /home/Tightlock
-- systemctl start cloudservice.service
+- systemctl start tightlock.service
 
 
 
