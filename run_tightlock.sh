@@ -29,7 +29,7 @@ bash ./create_env.sh $INTERACTIVE_FLAG $ENV_FLAG
 
 # define which docker-compose command to use based on the environment
 if [ $ENV_FLAG == "prod" ]; then
-  COMPOSE_CMD="docker run --name=tightlock -v /var/run/docker.sock:/var/run/docker.sock --rm -v $PWD:$PWD -w $PWD docker/compose:1.29.2"
+  COMPOSE_CMD="docker run -v /var/run/docker.sock:/var/run/docker.sock --rm -v $PWD:$PWD -w $PWD docker/compose:1.29.2"
 else
   COMPOSE_CMD='docker-compose'
 fi
