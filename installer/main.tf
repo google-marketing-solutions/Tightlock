@@ -24,7 +24,7 @@ resource "google_compute_instance" "tightlock-backend" {
   name         = "tightlock-backend"
   machine_type = "e2-standard-4"
   zone         = "us-central1-a"
-  project = "tightlock-dev-gke"
+  project      = "tightlock-dev-gke"
 
  boot_disk {
     initialize_params {

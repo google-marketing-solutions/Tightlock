@@ -17,24 +17,6 @@ if ! [ -f $ENV ]; then
   # create env file and write Airflow UID ang GID to it
   echo -e "AIRFLOW_UID=$(id -u)\nAIRFLOW_GID=0" > $ENV
 
-  # read flags
-  #while getopts ":a:z:" opt; do
-  #case $opt in
-  #  e) ENV_FLAG="$OPTARG"
-  #  ;;
-  #  i) INTERACTIVE_FLAG="$OPTARG"
-  #  ;;
-  #  \?) echo "Invalid option -$OPTARG" >&2
-  #  exit 1
-  #  ;;
-  #esac
-
-  #case $OPTARG in
-  #  -*) echo "Option $opt needs a value"
-  #  exit 1
-  #  ;;
-  #esac
-
   INTERACTIVE_FLAG=$1
   ENV_FLAG=$2
   PROVIDED_API_KEY=$3
