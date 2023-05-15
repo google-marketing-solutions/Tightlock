@@ -17,6 +17,7 @@
 users:
 - name: tightlock
   uid: 2000
+  groups: docker
 
 # TODO(b/282190052): Remove ssh_keys from cloud-config once repo is public 
 ssh_keys:
@@ -71,6 +72,7 @@ write_files:
     Description=Start Tightlock service
 
     [Service]
+    User=tightlock
     WorkingDirectory=/home/tightlock/Tightlock
     ExecStart=bash /home/tightlock/Tightlock/run_tightlock.sh -e prod -i non-interactive -k ${API_KEY}
     Restart=on-failure
@@ -86,6 +88,3 @@ runcmd:
 - sudo rm -rf /home/tightlock/Tightlock
 - [su, tightlock, -c, "git clone -b installer git@github.com:google/Tightlock.git /home/tightlock/Tightlock"]
 - systemctl start tightlock.service
-
-
-# TODO User=tightlock to avoid running airflow as root
