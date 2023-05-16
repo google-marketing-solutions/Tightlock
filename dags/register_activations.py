@@ -94,9 +94,10 @@ class DAGBuilder:
         start_date=datetime.datetime.now(),
         schedule_interval=schedule_interval,
     )
-    def dynamic_generated_dag():
+    def dynamic_generated_dag(**kwargs):
       @task
       def process():
+        return kwargs.get('execution_date')
         fields = target_destination.fields()
         batch_size = target_destination.batch_size()
         offset = 0

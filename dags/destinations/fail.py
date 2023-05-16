@@ -27,8 +27,8 @@ class Destination:
   def __init__(self, config: Dict[str, Any]):
     raise Exception("Thuo shan't instantiate me!!!")
 
-  def send_data(self, input_data: List[Mapping[str, Any]]) -> None:
-    print(f"input_data: {input_data}")
+  def send_data(self, input_data: List[Mapping[str, Any]], dry_run: bool) -> None:
+    print(f"input_data: {input_data} and dry_run: {dry_run}")
 
   def fields(self) -> Sequence[str]:
     return ["foo", "bar", "qux", "zap"]
