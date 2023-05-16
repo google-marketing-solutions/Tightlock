@@ -1,6 +1,14 @@
 # Tightlock - First-Party Data Tool
 
-## Useful commands
+## Deploying on Google Compute Engine 
+
+Tightlock can be easily installed in GCP by cloning the repository in Cloud Shell and running the following commands:
+```
+cd installer/
+terraform apply
+```
+
+## Developer cheatsheet
 
 `docker-compose up -d --build` - Initializes application detached and rebuilds containers
 
@@ -14,19 +22,3 @@
 - `alembic upgrade head` - Applies migrations to DB
 
 `docker exec -ti tightlock_postgres_1 psql -U tightlock -W tightlock` - Runs Postgres REPL inside DB container (useful for inspecting tables)
-
-## Deploying on Google Compute Engine 
-
-> TODO(b/265932821): Change for installer instructions once installer is available
-
-- SSH into the GCE VM (all commands below must be run from the VM context)
-
-- Clone or upload Tightlock repository into the VM
-
-- Change exposed port for `tightlock_api` from `8081` to `80` on the `docker-compose.yaml` file.
-
-- Turn down all containers by running `docker run -v /var/run/docker.sock:/var/run/docker.sock --rm -v "$PWD:$PWD" -w "$PWD" docker/compose:1.29.2 down -v`
-
-- Modify `run_tightlock.sh` script, changing references to the `docker-compose` command to `docker run -v /var/run/docker.sock:/var/run/docker.sock --rm -v "$PWD:$PWD" -w "$PWD" docker/compose:1.29.2`
-
-- Run `bash run_tightlock.sh` and provide or create an API key

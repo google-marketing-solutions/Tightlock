@@ -14,14 +14,24 @@
 
 ENV=".env"
 if ! [ -f $ENV ]; then
-  NON_INTERACTIVE_FLAG=$1
-  
   # create env file and write Airflow UID ang GID to it
   echo -e "AIRFLOW_UID=$(id -u)\nAIRFLOW_GID=0" > $ENV
 
+  INTERACTIVE_FLAG=$1
+  ENV_FLAG=$2
+  PROVIDED_API_KEY=$3
+
+  # create env specific variables
+  if [ $ENV_FLAG == "prod" ]; then
+    API_PORT=80
+  else
+    API_PORT=8081
+  fi
+  echo -e "API_PORT=$API_PORT" >> $ENV
+
   # generate or read API key
   PSEUDORANDOM_API_KEY=$( dd bs=512 if=/dev/urandom count=1 2>/dev/null | tr -dc '[:alpha:]' | fold -w20 | head -n 1 )
-  if ! [ $NON_INTERACTIVE_FLAG == "--non-interactive" ]; then
+  if ! [ $INTERACTIVE_FLAG == "non-interactive" ]; then
     echo "Choose API key generation method."
     select yn in "User-provided" "Pseudorandom"; do
         case $yn in
@@ -30,7 +40,11 @@ if ! [ -f $ENV ]; then
         esac
     done
   else
-    API_KEY=$PSEUDORANDOM_API_KEY
+    if [[ -n "$PROVIDED_API_KEY" ]]; then
+      API_KEY=$PROVIDED_API_KEY
+    else
+      API_KEY=$PSEUDORANDOM_API_KEY
+    fi
   fi
   # append API key to env file
   echo -e "TIGHTLOCK_API_KEY=$API_KEY" >> $ENV

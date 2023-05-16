@@ -100,7 +100,7 @@ services:
   tightlock-api:
     build: ./tightlock_api
     ports:
-      - 8081:80
+      - ${API_PORT:-8081}:80
       - 8082:8000 # documentation
     environment:
       MAX_WORKERS: 5 # needed to limit the number of DB connections

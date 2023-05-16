@@ -25,7 +25,7 @@ PY3=$ENV_NAME/bin/python
 $PY3 -m pip install -r integration_tests/test_requirements.txt
 
 # Create env
-./create_env.sh "--non-interactive"
+./create_env.sh non-interactive test 
 
 # Remove potentially running containers and run integration tests
 docker-compose down 

@@ -12,9 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+  # read flags
+  ENV_FLAG=dev
+  INTERACTIVE_FLAG=interactive
+  while getopts ":e:i:k:" opt; do
+  case $opt in
+    e) ENV_FLAG=$OPTARG;;
+    i) INTERACTIVE_FLAG=$OPTARG;;
+    k) PROVIDED_API_KEY=$OPTARG;;
+    \?) echo "Invalid option -$OPTARG" >&2
+    exit 1;;
+  esac
+done
+
 # Create env
-NON_INTERACTIVE_FLAG=$1
-./create_env.sh $NON_INTERACTIVE_FLAG
+bash ./create_env.sh $INTERACTIVE_FLAG $ENV_FLAG $PROVIDED_API_KEY
+
+# define which docker-compose command to use based on the environment
+if [ $ENV_FLAG == "prod" ]; then
+  COMPOSE_CMD="docker run -v /var/run/docker.sock:/var/run/docker.sock --rm -v $PWD:$PWD -w $PWD docker/compose:1.29.2"
+else
+  COMPOSE_CMD='docker-compose'
+fi
 
 # Run containers
-docker-compose up --build -d
+$COMPOSE_CMD up --build -d
