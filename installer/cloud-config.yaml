@@ -36,5 +36,5 @@ write_files:
 runcmd:
 - systemctl daemon-reload
 - sudo rm -rf /home/tightlock/Tightlock
-- [su, tightlock, -c, "git clone -b installer https://github.com/google/Tightlock.git /home/tightlock/Tightlock"]
+- [su, tightlock, -c, "git clone https://github.com/google/Tightlock.git /home/tightlock/Tightlock"]
 - systemctl start tightlock.service
