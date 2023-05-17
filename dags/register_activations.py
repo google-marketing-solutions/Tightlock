@@ -1,18 +1,17 @@
 """
- Copyright 2023 Google LLC
+Copyright 2023 Google LLC
 
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-      https://www.apache.org/licenses/LICENSE-2.0
+     https://www.apache.org/licenses/LICENSE-2.0
 
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
- """
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License."""
 
 """Registers activations dynamically from config."""
 
@@ -27,6 +26,7 @@ from typing import Any, Mapping, Sequence
 
 from airflow.decorators import dag, task
 from airflow.hooks.postgres_hook import PostgresHook
+from airflow.operators.python_operator import PythonOperator
 from protocols.destination_proto import DestinationProto
 from protocols.source_proto import SourceProto
 
@@ -83,21 +83,19 @@ class DAGBuilder:
       target_destination: DestinationProto,
   ):
     """Dynamically creates a DAG based on a given activation."""
-    dag_id = f"{activation['name']}_dag"
+    activation_id = f"{activation['name']}_dag"
 
     schedule = activation["schedule"]
     schedule_interval = schedule if schedule else None
 
     @dag(
-        dag_id=dag_id,
+        dag_id=activation_id,
         is_paused_upon_creation=False,
         start_date=datetime.datetime.now(),
         schedule_interval=schedule_interval,
     )
-    def dynamic_generated_dag(**kwargs):
-      @task
-      def process():
-        return kwargs.get('execution_date')
+    def dynamic_generated_dag():
+      def process(dry_run: bool) -> None:
         fields = target_destination.fields()
         batch_size = target_destination.batch_size()
         offset = 0
@@ -109,11 +107,15 @@ class DAGBuilder:
         )
         data = get_data(offset=offset)
         while data:
-          target_destination.send_data(data)
+          target_destination.send_data(data, dry_run)
           offset += batch_size
           data = get_data(offset=offset)
 
-      process()
+      PythonOperator(
+          task_id=activation_id,
+          op_kwargs={"dry_run": "{{dag_run.conf.get('dry_run', False)}}"},
+          python_callable=process,
+      )
 
     return dynamic_generated_dag
 

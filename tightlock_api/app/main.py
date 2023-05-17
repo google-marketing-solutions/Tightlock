@@ -1,18 +1,17 @@
 """
- Copyright 2023 Google LLC
+Copyright 2023 Google LLC
 
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-      https://www.apache.org/licenses/LICENSE-2.0
+     https://www.apache.org/licenses/LICENSE-2.0
 
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
- """
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License."""
 
 """Entrypoint for FastAPI application."""
 import contextlib
@@ -21,7 +20,7 @@ from typing import Any
 
 from clients import AirflowClient
 from db import get_session
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Body, Depends, FastAPI, HTTPException
 from fastapi.responses import Response
 from models import Activation, Config, ConfigValue, ValidationResult
 from security import check_authentication_header
@@ -56,10 +55,13 @@ async def connect():
 
 @v1.post("/activations/{activation_name}:trigger")
 async def trigger_activation(
-    activation_name: str, airflow_client=Depends(AirflowClient)
+    activation_name: str,
+    dry_run: bool = Body(..., embed=True),
+    airflow_client=Depends(AirflowClient),
 ):
   """Triggers an activation identified by name."""
-  response = await airflow_client.trigger(activation_name)
+  trigger_conf = {"dry_run": dry_run}
+  response = await airflow_client.trigger(activation_name, conf=trigger_conf)
   return Response(status_code=response.status_code)
 
 
@@ -158,7 +160,9 @@ async def validate_destination(
     destination_config: ConfigValue,
     airflow_client=Depends(AirflowClient),
 ):
-  response = await airflow_client.validate_destination(destination_name, destination_config.value)
+  response = await airflow_client.validate_destination(
+      destination_name, destination_config.value
+  )
   return response
 
 
