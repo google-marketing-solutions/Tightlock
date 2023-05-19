@@ -35,7 +35,9 @@ class DestinationProto(Protocol):
   def __init__(self, config: Dict[str, Any]):
     ...
 
-  def send_data(self, input_data: List[Mapping[str, Any]]) -> None:
+  def send_data(self,
+                input_data: List[Mapping[str, Any]],
+                dry_run: bool) -> None:
     ...
 
   def fields(self) -> Sequence[str]:

@@ -1,18 +1,17 @@
 """
- Copyright 2023 Google LLC
+Copyright 2023 Google LLC
 
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-      https://www.apache.org/licenses/LICENSE-2.0
+     https://www.apache.org/licenses/LICENSE-2.0
 
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
- """
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License."""
 
 """GA4 MP destination implementation."""
 
@@ -284,22 +283,27 @@ class Destination:
           error_num=errors.ErrorNameIDMap.RETRIABLE_GA_HOOK_ERROR_HTTP_ERROR,
       )
 
-  def send_data(self, input_data: List[Mapping[str, Any]]) -> None:
+  def send_data(self, input_data: List[Mapping[str, Any]], dry_run: bool) -> None:
     """Builds payload ans sends data to GA4MP API."""
     valid_events, invalid_indices_and_errors = self._get_valid_and_invalid_events(
         input_data
     )
 
-    for valid_event in valid_events:
-      try:
-        event = valid_event[1]
-        self._send_payload(event)
-      except (
-          errors.DataOutConnectorSendUnsuccessfulError,
-          errors.DataOutConnectorValueError,
-      ) as error:
-        index = valid_event[0]
-        invalid_indices_and_errors.append((index, error.error_num))
+    if not dry_run:
+      for valid_event in valid_events:
+        try:
+          event = valid_event[1]
+          self._send_payload(event)
+        except (
+            errors.DataOutConnectorSendUnsuccessfulError,
+            errors.DataOutConnectorValueError,
+        ) as error:
+          index = valid_event[0]
+          invalid_indices_and_errors.append((index, error.error_num))
+      else:
+        print(
+            "Dry-Run: Events will be validated agains the debug endpoint and will not be actually sent."
+        )
 
     print(f"Valid events: {valid_events}")
     print(f"Invalid events: {invalid_indices_and_errors}")
