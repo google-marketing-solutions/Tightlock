@@ -18,6 +18,7 @@ limitations under the License."""
 import datetime
 import functools
 import importlib.util
+import json
 import pathlib
 import re
 import traceback
@@ -95,7 +96,7 @@ class DAGBuilder:
         schedule_interval=schedule_interval,
     )
     def dynamic_generated_dag():
-      def process(dry_run: bool) -> None:
+      def process(task_instance, dry_run: bool) -> None:
         fields = target_destination.fields()
         batch_size = target_destination.batch_size()
         offset = 0
@@ -110,7 +111,8 @@ class DAGBuilder:
           target_destination.send_data(data, dry_run)
           offset += batch_size
           data = get_data(offset=offset)
-
+      
+        task_instance.xcom_push("Test_key", 42)
       PythonOperator(
           task_id=activation_id,
           op_kwargs={"dry_run": "{{dag_run.conf.get('dry_run', False)}}"},

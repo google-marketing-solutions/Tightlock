@@ -1,18 +1,17 @@
 """
- Copyright 2023 Google LLC
+Copyright 2023 Google LLC
 
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-      https://www.apache.org/licenses/LICENSE-2.0
+     https://www.apache.org/licenses/LICENSE-2.0
 
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
- """
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License."""
 
 """API clients used by TIghtlock routes."""
 import ast
@@ -20,7 +19,7 @@ import datetime
 import json
 import random
 import time
-from typing import Any, Optional
+from typing import Any, Optional, Sequence
 
 import httpx
 from models import ValidationResult
@@ -76,6 +75,22 @@ class AirflowClient:
     # Parse json with literal_eval as XCOM returns the response with single quotes
     validation_result = ast.literal_eval(parsed_xcom_response["value"])
     return ValidationResult(**validation_result)
+
+  async def list_dag_runs(
+      self, activation_names: Sequence[str], offset: int = 0, limit: int = 50
+  ):
+    dag_ids = [f"{name}_dag" for name in activation_names]
+    order_by = '-execution_date'
+    url = f"{self.base_url}/dags/~/dagRuns/list"
+    payload = {"dag_ids": dag_ids, "order_by": order_by, "page_offset": offset, "page_limit": limit}
+    return await self._post_request(url, payload)
+
+  async def get_dag_run_xcom(self, dag_id: str, dag_run_id: str, xcom_key: str):
+    task_id = dag_id  # currently, dags only have one task and share id with tasks
+    url = f"{self.base_url}/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/xcomEntries/{xcom_key}"
+    response = await self._get_request(url) 
+    return response
+
 
   async def trigger(
       self,

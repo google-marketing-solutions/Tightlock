@@ -124,15 +124,8 @@ async def create_config(config: Config, session: AsyncSession = Depends(get_sess
 async def get_activations(session: AsyncSession = Depends(get_session)):
   """Queries latest config and query activations field from config json."""
   latest_config = await get_latest_config(session=session)
-  return [
-      Activation(
-          name=a["name"],
-          source_name=a["source_name"],
-          destination_name=a["destination_name"],
-          schedule=a["schedule"],
-      )
-      for a in latest_config.value["activations"]
-  ]
+  activations = [Activation(**a) for a in latest_config.value["activations"]]
+  return activations
 
 
 @v1.get("/schemas", response_model=dict[str, Any])
@@ -164,6 +157,25 @@ async def validate_destination(
       destination_name, destination_config.value
   )
   return response
+
+
+@v1.get("/activations/~/runs:batchGet", response_model=dict[str, Any])
+async def batch_get_activations_runs(
+    session: AsyncSession = Depends(get_session), airflow_client=Depends(AirflowClient)
+):
+  activations = await get_activations(session)
+  activation_names = [activation.name for activation in activations]
+  response = await airflow_client.list_dag_runs(activation_names)
+  return response.json()
+
+  # retrieve list of runs: api/v1/dags/~/dagRuns/list
+  # need a separate API to retrieve XComs with additional data (success, errors etc)
+  # send_data to be modified and output these values
+
+
+@v1.get("activations/{activation_name}/runs/{run_name}/result")
+async def get_activation_run_result():
+  pass
 
 
 app.mount("/api/v1", v1)
