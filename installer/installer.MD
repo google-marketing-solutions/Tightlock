@@ -1,5 +1,38 @@
-# Proposition for MVP
+# Terraform
 
-# Terraform -> Provision VM instance, static IP and link the two
+## Preparing for deployment
 
-# Ansible + Cloud Init: Download Github, run server and output code (IP + API Key)
+This installer is using [Terraform](https://www.terraform.io) to define all resources required to set up Tightlock on Google Cloud Platform.
+Click the below button to clone this repository in Google Cloud and get started.
+
+[![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://shell.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https%3A%2F%2Fgithub.com%2Fgoogle%2FTightlock&cloudshell_git_branch=main&cloudshell_open_in_editor=installer%2Fvariables.tfvars)
+
+### Update variables.tfvars file
+
+Update the `variables.tfvars` file and provide the following two values. If you clicked the `Open in Cloud Shell` button this file should be opened directly in your Cloud Shell Editor.
+
+| variable   | description                                          |
+| ---------- | ---------------------------------------------------- |
+| api_key    | API Key for generating the front end connection key. |
+| project_id | Google Cloud Project ID                              |
+
+## Deploy
+
+To deploy Tightlock via Terraform run the below two commands in Cloud Shell Terminal.
+
+The `init` command will initialise the Terraform configuration.
+```shell
+terraform init
+```
+
+The `apply` command will apply the resources to GCP, all required changes are listed when you run this command and you'll be prompted to confirm before anything is applied.
+
+```shell
+terraform apply -var-file=variables.tfvars
+```
+
+## Destroy deployed resources
+In case you want to undo the deployment you can run the below command from the same directory as you've deployed it from.
+```shell
+terraform destroy -var-file=variables.tfvars
+```
