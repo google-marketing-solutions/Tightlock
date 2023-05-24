@@ -30,6 +30,10 @@ resource "google_compute_address" "vm-static-ip" {
   name    = "vm-static-ip"
   project = var.project_id
   region  = "us-central1"
+  depends_on = [
+    google_project_service.cloudresourcemanager,
+    google_project_service.compute
+  ]
 }
 
 resource "google_compute_instance" "tightlock-backend" {
@@ -54,6 +58,10 @@ resource "google_compute_instance" "tightlock-backend" {
   metadata = {
     user-data = templatefile("cloud-config.yaml", { API_KEY = "${var.api_key}" })
   }
+
+  depends_on = [
+    google_compute_address.vm-static-ip
+  ]
 }
 
 output "ConnectionCode" {
