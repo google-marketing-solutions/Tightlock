@@ -1,5 +1,5 @@
 # user-provided API key
-variable "apiKey" {
+variable "api_key" {
   type        = string
   description = "API Key for generating the front end connection key."
 }
