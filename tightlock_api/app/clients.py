@@ -22,7 +22,7 @@ import time
 from typing import Any, Optional, Sequence
 
 import httpx
-from models import ValidationResult
+from models import Activation, RunLog, RunResult, ValidationResult
 
 _AIRFLOW_BASE_URL = "http://airflow-webserver:8080"
 
@@ -76,21 +76,64 @@ class AirflowClient:
     validation_result = ast.literal_eval(parsed_xcom_response["value"])
     return ValidationResult(**validation_result)
 
-  async def list_dag_runs(
-      self, activation_names: Sequence[str], offset: int = 0, limit: int = 50
-  ):
-    dag_ids = [f"{name}_dag" for name in activation_names]
-    order_by = '-execution_date'
-    url = f"{self.base_url}/dags/~/dagRuns/list"
-    payload = {"dag_ids": dag_ids, "order_by": order_by, "page_offset": offset, "page_limit": limit}
-    return await self._post_request(url, payload)
-
-  async def get_dag_run_xcom(self, dag_id: str, dag_run_id: str, xcom_key: str):
+  async def _get_dag_run_xcom(self, dag_id: str, dag_run_id: str, xcom_key: str):
     task_id = dag_id  # currently, dags only have one task and share id with tasks
     url = f"{self.base_url}/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/xcomEntries/{xcom_key}"
-    response = await self._get_request(url) 
+    response = await self._get_request(
+        url, status_forcelist=[]
+    )  # do not retry to improve performance
     return response
 
+  def _build_run_log_response(
+      self, activation: Activation, run: dict[str, Any], run_result: RunResult
+  ) -> RunLog:
+    default_str_value = "Missing"
+    source_name = activation.source["$ref"].split("#/sources/")[1]
+    destination_name = activation.destination["$ref"].split("#/destinations/")[1]
+    run_log = RunLog(
+        activation_name=activation.name,
+        source_name=source_name or default_str_value,
+        destination_name=destination_name or default_str_value,
+        schedule=activation.schedule or "None",
+        state=run.get("state") or default_str_value,
+        run_at=run.get("end_date") or default_str_value,
+        run_type=run.get("run_type") or default_str_value,
+        run_result=run_result,
+    )
+
+    return run_log
+
+  async def list_dag_runs(
+      self,
+      activation_by_dag_id: dict[str, Activation],
+      offset: int = 0,
+      limit: int = 50,
+  ) -> Sequence[RunLog]:
+    dag_ids = [dag_id for dag_id in activation_by_dag_id.keys()]
+    order_by = "-execution_date"
+    url = f"{self.base_url}/dags/~/dagRuns/list"
+    payload = {
+        "dag_ids": dag_ids,
+        "order_by": order_by,
+        "page_offset": offset,
+        "page_limit": limit,
+    }
+    list_response = await self._post_request(url, payload)
+    runs = list_response.json().get("dag_runs")
+    run_logs = []
+    for run in runs:
+      dag_id = run["dag_id"]
+      dag_run_id = run["dag_run_id"]
+      xcom_key = "run_result"
+      run_result_response = await self._get_dag_run_xcom(dag_id, dag_run_id, xcom_key)
+      run_result_json = run_result_response.json()
+      run_result = ast.literal_eval(run_result_json.get("value") or '{}')
+      run_log = self._build_run_log_response(
+          activation_by_dag_id[dag_id], run, RunResult(**run_result)
+      )
+      run_logs.append(run_log)
+
+    return run_logs
 
   async def trigger(
       self,

@@ -16,12 +16,11 @@ limitations under the License."""
 """Registers activations dynamically from config."""
 
 import datetime
-import functools
 import importlib.util
-import json
 import pathlib
 import re
 import traceback
+from dataclasses import asdict
 from functools import partial
 from typing import Any, Mapping, Sequence
 
@@ -30,6 +29,7 @@ from airflow.hooks.postgres_hook import PostgresHook
 from airflow.operators.python_operator import PythonOperator
 from protocols.destination_proto import DestinationProto
 from protocols.source_proto import SourceProto
+from utils import RunResult
 
 
 class DAGBuilder:
@@ -107,12 +107,14 @@ class DAGBuilder:
             limit=batch_size,
         )
         data = get_data(offset=offset)
+        run_result = RunResult(0, 0, [])
         while data:
-          target_destination.send_data(data, dry_run)
+          run_result += target_destination.send_data(data, dry_run)
           offset += batch_size
           data = get_data(offset=offset)
-      
-        task_instance.xcom_push("Test_key", 42)
+
+        task_instance.xcom_push("run_result", asdict(run_result))
+
       PythonOperator(
           task_id=activation_id,
           op_kwargs={"dry_run": "{{dag_run.conf.get('dry_run', False)}}"},

@@ -16,9 +16,9 @@ limitations under the License."""
 """This destination is supposed to fail and be gracefully handled."""
 
 
-from typing import Any, Dict, List, Mapping, Sequence
+from typing import Any, Dict, List, Mapping, Optional, Sequence
 
-from utils import ValidationResult
+from utils import RunResult, ValidationResult
 
 
 class Destination:
@@ -27,7 +27,9 @@ class Destination:
   def __init__(self, config: Dict[str, Any]):
     raise Exception("Thuo shan't instantiate me!!!")
 
-  def send_data(self, input_data: List[Mapping[str, Any]], dry_run: bool) -> None:
+  def send_data(
+      self, input_data: List[Mapping[str, Any]], dry_run: bool
+  ) -> Optional[RunResult]:
     print(f"input_data: {input_data} and dry_run: {dry_run}")
 
   def fields(self) -> Sequence[str]:

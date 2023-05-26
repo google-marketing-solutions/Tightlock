@@ -16,13 +16,13 @@ limitations under the License."""
 """Entrypoint for FastAPI application."""
 import contextlib
 import json
-from typing import Any
+from typing import Annotated, Any
 
 from clients import AirflowClient
 from db import get_session
-from fastapi import Body, Depends, FastAPI, HTTPException
+from fastapi import Body, Depends, FastAPI, HTTPException, Query
 from fastapi.responses import Response
-from models import Activation, Config, ConfigValue, ValidationResult
+from models import Activation, Config, ConfigValue, RunLog, ValidationResult
 from security import check_authentication_header
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
@@ -159,23 +159,30 @@ async def validate_destination(
   return response
 
 
-@v1.get("/activations/~/runs:batchGet", response_model=dict[str, Any])
+@v1.get("/activations/~/runs:batchGet", response_model=list[RunLog])
 async def batch_get_activations_runs(
-    session: AsyncSession = Depends(get_session), airflow_client=Depends(AirflowClient)
+    session: AsyncSession = Depends(get_session),
+    airflow_client=Depends(AirflowClient),
+    activation_names: Annotated[list[str] | None, Query()] = None,
+    page: int = 0,
+    page_size: int = 20,
 ):
+  # define target activations
   activations = await get_activations(session)
-  activation_names = [activation.name for activation in activations]
-  response = await airflow_client.list_dag_runs(activation_names)
-  return response.json()
+  if not activation_names:  # if none passed, gets logs from all activations
+    activation_names = [activation.name for activation in activations]
+  else:  # if activation_names passed, filter activations object by name
+    activations[:] = [a for a in activations if a.name in activation_names]
 
-  # retrieve list of runs: api/v1/dags/~/dagRuns/list
-  # need a separate API to retrieve XComs with additional data (success, errors etc)
-  # send_data to be modified and output these values
+  activation_by_dag_id = {
+      f"{activation.name}_dag": activation for activation in activations
+  }
 
+  runs_response = await airflow_client.list_dag_runs(
+      activation_by_dag_id, limit=page_size, offset=page * page_size
+  )
 
-@v1.get("activations/{activation_name}/runs/{run_name}/result")
-async def get_activation_run_result():
-  pass
+  return runs_response
 
 
 app.mount("/api/v1", v1)

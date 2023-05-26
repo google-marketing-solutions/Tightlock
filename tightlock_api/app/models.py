@@ -24,6 +24,28 @@ from sqlalchemy_json import mutable_json_type
 from sqlmodel import Column, DateTime, Field, SQLModel
 
 
+class RunResult(SQLModel):
+  """Result of an activation run."""
+
+  successful_hits: int = 0
+  failed_hits: int = 0
+  error_messages: Sequence[str] = []
+  dry_run: bool = False
+
+
+class RunLog(SQLModel):
+  """Full log of an activation run."""
+
+  activation_name: str
+  source_name: str
+  destination_name: str
+  schedule: str
+  state: str
+  run_at: datetime.datetime
+  run_type: str
+  run_result: RunResult
+
+
 class ValidationResult(SQLModel):
   """Result of source or destination validation."""
 
