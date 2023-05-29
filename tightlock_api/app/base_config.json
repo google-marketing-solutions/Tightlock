@@ -1,62 +1,7 @@
 {
-  "external_connections": [
-    {
-      "name": "gcs",
-      "connection": "gs://tightlock-dev-storage",
-      "config": {}
-    }
-  ],
-  "sources": {
-    "sample_ga4mp_app_hit_source": {
-        "type": "local_file",
-        "external_connection": "",
-        "location": "ga4_app_sample_data.csvh"
-    },
-    "intended_failure_source": {
-        "type": "local_file",
-        "external_connection": "",
-        "location": "ga4_app_sample_data.csvh"
-    }
-  },
-  "destinations": {
-    "sample_ga4mp_app_hit_destination": {
-        "type": "GA4MP",
-        "payload_type": "firebase",
-        "api_secret": "fjOZ9EwoTb26IllLLjvQZw",
-        "firebase_app_id": "1:155612940587:android:52015e8b7cfde606ee5d6e",
-        "non_personalized_ads": true,
-        "user_properties": {
-          "customer_tier": {
-            "value": "enterprise"
-          }
-        },
-        "debug": false
-    },
-    "intended_failure_destination": {
-      "type": "FAIL"
-    }
-  },
-  "activations": [
-    {
-      "name": "sample_ga4mp_app_hit",
-      "source": {
-        "$ref": "#/sources/sample_ga4mp_app_hit_source"
-      },
-      "destination": {
-        "$ref": "#/destinations/sample_ga4mp_app_hit_destination"
-      },
-      "schedule": ""
-    },
-    {
-      "name": "intended_failure",
-      "source": {
-        "$ref": "#/sources/intended_failure_source"
-      },
-      "destination": {
-        "$ref": "#/destinations/intended_failure_destination"
-      },
-      "schedule": ""
-    }
-  ],
+  "external_connections": [],
+  "sources": {},
+  "destinations": {},
+  "activations": [],
   "secrets": {}
 }
