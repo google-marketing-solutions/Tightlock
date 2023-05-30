@@ -11,16 +11,18 @@ Click the below button to clone this repository in Google Cloud and get started.
 
 Update the `variables.tfvars` file and provide the following two values. If you clicked the `Open in Cloud Shell` button this file should be opened directly in your Cloud Shell Editor.
 
-| variable   | description                                          |
-| ---------- | ---------------------------------------------------- |
-| api_key    | API Key for generating the front end connection key. |
-| project_id | Google Cloud Project ID                              |
+| variable              | description                                                                                               |
+| --------------------- | --------------------------------------------------------------------------------------------------------- |
+| api_key               | API Key for generating the front end connection key.                                                      |
+| project_id            | Google Cloud Project ID                                                                                   |
+| create_bq_sample_data | If set to true a BigQuery dataset and tables will be created with sample data uploaded via a Cloud Bucket |
 
 ## Deploy
 
 To deploy Tightlock via Terraform run the below two commands in Cloud Shell Terminal.
 
 The `init` command will initialise the Terraform configuration.
+
 ```shell
 terraform init
 ```
@@ -32,7 +34,9 @@ terraform apply -var-file=variables.tfvars
 ```
 
 ## Destroy deployed resources
+
 In case you want to undo the deployment you can run the below command from the same directory as you've deployed it from.
+
 ```shell
 terraform destroy -var-file=variables.tfvars
 ```
