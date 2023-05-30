@@ -1,28 +1,49 @@
 """
- Copyright 2023 Google LLC
+Copyright 2023 Google LLC
 
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-      https://www.apache.org/licenses/LICENSE-2.0
+     https://www.apache.org/licenses/LICENSE-2.0
 
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
- """
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License."""
 
 """Definition of data models used by Tightlock application."""
 
 import datetime
-from typing import Any, Dict, Sequence, Optional
+from typing import Any, Dict, Optional, Sequence
 
 from sqlalchemy import UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy_json import mutable_json_type
 from sqlmodel import Column, DateTime, Field, SQLModel
+
+
+class RunResult(SQLModel):
+  """Result of an activation run."""
+
+  successful_hits: int = 0
+  failed_hits: int = 0
+  error_messages: Sequence[str] = []
+  dry_run: bool = False
+
+
+class RunLog(SQLModel):
+  """Full log of an activation run."""
+
+  activation_name: str
+  source_name: str
+  destination_name: str
+  schedule: str
+  state: str
+  run_at: datetime.datetime
+  run_type: str
+  run_result: RunResult
 
 
 class ValidationResult(SQLModel):
@@ -45,8 +66,8 @@ class Activation(SQLModel):
   """
 
   name: str  # Activation name
-  source_name: str  # Source name
-  destination_name: str  # Destination name
+  source: Dict[str, Any]  # Source
+  destination: Dict[str, Any]  # Destination
   schedule: Optional[str] = None  # A cron expression or preset
 
 

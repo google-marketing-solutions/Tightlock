@@ -25,7 +25,6 @@ from typing import (
     Annotated,
     Any,
     Dict,
-    Iterable,
     List,
     Literal,
     Mapping,
@@ -39,7 +38,7 @@ import errors
 import immutabledict
 import requests
 from pydantic import BaseModel, Field
-from utils import ValidationResult
+from utils import RunResult, ValidationResult
 
 
 class GA4Base(BaseModel):
@@ -283,7 +282,9 @@ class Destination:
           error_num=errors.ErrorNameIDMap.RETRIABLE_GA_HOOK_ERROR_HTTP_ERROR,
       )
 
-  def send_data(self, input_data: List[Mapping[str, Any]], dry_run: bool) -> None:
+  def send_data(
+      self, input_data: List[Mapping[str, Any]], dry_run: bool
+  ) -> Optional[RunResult]:
     """Builds payload ans sends data to GA4MP API."""
     valid_events, invalid_indices_and_errors = self._get_valid_and_invalid_events(
         input_data
@@ -313,6 +314,15 @@ class Destination:
       error_num = invalid_event[1]
       # TODO(b/272258038): TBD What to do with invalid events data.
       print(f"event_index: {event_index}; error_num: {error_num}")
+
+    run_result = RunResult(
+        successful_hits=len(valid_events),
+        failed_hits=len(invalid_indices_and_errors),
+        error_messages=[str(error[1]) for error in invalid_indices_and_errors],
+        dry_run=dry_run,
+    )
+
+    return run_result
 
   def schema(self) -> Dict[str, Any]:
     GA4MP = Annotated[Union[GA4Web, GA4App], Field(discriminator="event_type")]

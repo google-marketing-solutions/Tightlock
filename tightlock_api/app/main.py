@@ -16,13 +16,13 @@ limitations under the License."""
 """Entrypoint for FastAPI application."""
 import contextlib
 import json
-from typing import Any
+from typing import Annotated, Any
 
 from clients import AirflowClient
 from db import get_session
-from fastapi import Body, Depends, FastAPI, HTTPException
+from fastapi import Body, Depends, FastAPI, HTTPException, Query
 from fastapi.responses import Response
-from models import Activation, Config, ConfigValue, ValidationResult
+from models import Activation, Config, ConfigValue, RunLog, ValidationResult
 from security import check_authentication_header
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
@@ -124,15 +124,8 @@ async def create_config(config: Config, session: AsyncSession = Depends(get_sess
 async def get_activations(session: AsyncSession = Depends(get_session)):
   """Queries latest config and query activations field from config json."""
   latest_config = await get_latest_config(session=session)
-  return [
-      Activation(
-          name=a["name"],
-          source_name=a["source_name"],
-          destination_name=a["destination_name"],
-          schedule=a["schedule"],
-      )
-      for a in latest_config.value["activations"]
-  ]
+  activations = [Activation(**a) for a in latest_config.value["activations"]]
+  return activations
 
 
 @v1.get("/schemas", response_model=dict[str, Any])
@@ -164,6 +157,32 @@ async def validate_destination(
       destination_name, destination_config.value
   )
   return response
+
+
+@v1.get("/activations/~/runs:batchGet", response_model=list[RunLog])
+async def batch_get_activations_runs(
+    session: AsyncSession = Depends(get_session),
+    airflow_client=Depends(AirflowClient),
+    activation_names: Annotated[list[str] | None, Query()] = None,
+    page: int = 0,
+    page_size: int = 20,
+):
+  # define target activations
+  activations = await get_activations(session)
+  if not activation_names:  # if none passed, gets logs from all activations
+    activation_names = [activation.name for activation in activations]
+  else:  # if activation_names passed, filter activations object by name
+    activations[:] = [a for a in activations if a.name in activation_names]
+
+  activation_by_dag_id = {
+      f"{activation.name}_dag": activation for activation in activations
+  }
+
+  runs_response = await airflow_client.list_dag_runs(
+      activation_by_dag_id, limit=page_size, offset=page * page_size
+  )
+
+  return runs_response
 
 
 app.mount("/api/v1", v1)
