@@ -41,6 +41,7 @@ resource "google_compute_instance" "tightlock-backend" {
   machine_type = "e2-standard-4"
   zone         = "us-central1-a"
   project      = var.project_id
+  tags = ["http-server"]
 
   boot_disk {
     initialize_params {
