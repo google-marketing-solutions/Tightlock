@@ -15,6 +15,7 @@ limitations under the License."""
 
 """Registers activations dynamically from config."""
 
+import ast
 import datetime
 import importlib.util
 import pathlib
@@ -53,6 +54,12 @@ class DAGBuilder:
     elif target_folder == "destinations":
       return self._import_entity(target_type, target_folder).Destination(target_config)
     raise ValueError(f"Not supported folder: {target_folder}")
+
+  def _parse_dry_run(self, dry_run_str: str) -> bool:
+    try:
+      return ast.literal_eval(dry_run_str)
+    except ValueError:
+      return False
 
   def _import_entity(
       self, source_name: str, folder_name: str
@@ -96,7 +103,8 @@ class DAGBuilder:
         schedule_interval=schedule_interval,
     )
     def dynamic_generated_dag():
-      def process(task_instance, dry_run: bool) -> None:
+      def process(task_instance, dry_run_str: str) -> None:
+        dry_run = self._parse_dry_run(dry_run_str)
         fields = target_destination.fields()
         batch_size = target_destination.batch_size()
         offset = 0
@@ -107,7 +115,7 @@ class DAGBuilder:
             limit=batch_size,
         )
         data = get_data(offset=offset)
-        run_result = RunResult(0, 0, [])
+        run_result = RunResult(0, 0, [], dry_run)
         while data:
           run_result += target_destination.send_data(data, dry_run)
           offset += batch_size
@@ -117,7 +125,7 @@ class DAGBuilder:
 
       PythonOperator(
           task_id=activation_id,
-          op_kwargs={"dry_run": "{{dag_run.conf.get('dry_run', False)}}"},
+          op_kwargs={"dry_run_str": "{{dag_run.conf.get('dry_run', False)}}"},
           python_callable=process,
       )
 

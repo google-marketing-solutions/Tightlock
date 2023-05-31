@@ -301,10 +301,10 @@ class Destination:
         ) as error:
           index = valid_event[0]
           invalid_indices_and_errors.append((index, error.error_num))
-      else:
-        print(
-            "Dry-Run: Events will be validated agains the debug endpoint and will not be actually sent."
-        )
+    else:
+      print(
+          "Dry-Run: Events will be validated agains the debug endpoint and will not be actually sent."
+      )
 
     print(f"Valid events: {valid_events}")
     print(f"Invalid events: {invalid_indices_and_errors}")
