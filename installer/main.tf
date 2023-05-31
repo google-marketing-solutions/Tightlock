@@ -66,7 +66,7 @@ resource "google_compute_instance" "tightlock-backend" {
 }
 
 output "ConnectionCode" {
-  value = base64encode("{'apiKey': '${var.api_key}', 'address': '${google_compute_address.vm-static-ip.address}'}")
+  value = base64encode("{\"apiKey\": \"${var.api_key}\", \"address\": \"${google_compute_address.vm-static-ip.address}\"}")
 }
 
 output "Address" {
