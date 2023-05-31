@@ -130,18 +130,18 @@ class Destination:
     for i, event in enumerate(events):
       payload = {}
       if self.payload_type == PayloadTypes.FIREBASE.value:
-        payload["app_instance_id"] = event["app_instance_id"]
+        payload["app_instance_id"] = event.get("app_instance_id", "")
       elif self.payload_type == PayloadTypes.GTAG.value:
-        payload["client_id"] = event["client_id"]
-      payload["user_id"] = str(event["user_id"])
+        payload["client_id"] = event.get("client_id", "")
+      payload["user_id"] = str(event.get("user_id", ""))
       payload["non_personalized_ads"] = self.non_personalized_ads
       if self.user_properties:
         payload["user_properties"] = self.user_properties
       payload["events"] = [{
-          "name": event["event_name"],
+          "name": event.get("event_name", ""),
           "params": {
-              "engagement_time_msec": event["engagement_time_msec"],
-              "session_id": event["session_id"],
+              "engagement_time_msec": event.get("engagement_time_msec", ""),
+              "session_id": event.get("session_id", ""),
           },
       }]
 
@@ -203,8 +203,8 @@ class Destination:
 
     # The validation API only ever returns one message.
     message = validation_result["validationMessages"][0]
-    field_path = message["fieldPath"]
-    description = message["description"]
+    field_path = message.get("fieldPath", "")
+    description = message.get("description", "")
 
     for property_name in _ERROR_TYPES:
       if field_path == property_name or property_name in description:
@@ -213,9 +213,7 @@ class Destination:
     # Prevent from losing error message if it is undefined due to API change.
     # Note: TCRM has an "id" field which we don't have:
     # go/tcrm-install#prepare-data-to-send-to-google-analytics-4
-    logging.error(
-        "fieldPath: %s, description: %s", message["fieldPath"], message["description"]
-    )
+    logging.error("fieldPath: %s, description: %s", field_path, description)
     raise errors.DataOutConnectorValueError(
         error_num=errors.ErrorNameIDMap.GA4_HOOK_ERROR_INVALID_VALUES
     )
