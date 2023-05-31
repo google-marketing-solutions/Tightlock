@@ -55,10 +55,14 @@ class DAGBuilder:
       return self._import_entity(target_type, target_folder).Destination(target_config)
     raise ValueError(f"Not supported folder: {target_folder}")
 
-  def _parse_dry_run(self, dry_run_str: str) -> bool:
+  def _parse_dry_run(self, activation_id: str, dry_run_str: str) -> bool:
     try:
-      return ast.literal_eval(dry_run_str)
+      dry_run = ast.literal_eval(dry_run_str)
+      if dry_run:
+        print(f"Dry-run enabled for {activation_id}")
+      return dry_run
     except ValueError:
+      print(f"Dry-run defaulting to False for {activation_id}")
       return False
 
   def _import_entity(
@@ -104,7 +108,7 @@ class DAGBuilder:
     )
     def dynamic_generated_dag():
       def process(task_instance, dry_run_str: str) -> None:
-        dry_run = self._parse_dry_run(dry_run_str)
+        dry_run = self._parse_dry_run(activation_id, dry_run_str)
         fields = target_destination.fields()
         batch_size = target_destination.batch_size()
         offset = 0
