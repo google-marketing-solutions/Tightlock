@@ -24,7 +24,7 @@ from fastapi import Body, Depends, FastAPI, HTTPException, Query
 from fastapi.responses import Response
 from models import Activation, Config, ConfigValue, RunLog, ValidationResult
 from security import check_authentication_header
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from starlette import status
@@ -85,12 +85,15 @@ async def get_latest_config(session: AsyncSession = Depends(get_session)):
   """Retrieves the most recent config."""
   statement = select(Config).order_by(Config.create_date.desc()).limit(1)
   result = await session.execute(statement)
-  row = result.one()
+  try:
+    row = result.one()[0]
+  except NoResultFound:
+    return Response(status_code=404)
   return Config(
-      create_date=row[0].create_date,
-      label=row[0].label,
-      value=row[0].value,
-      id=row[0].id,
+      create_date=row.create_date,
+      label=row.label,
+      value=row.value,
+      id=row.id,
   )
 
 
@@ -98,7 +101,11 @@ async def get_latest_config(session: AsyncSession = Depends(get_session)):
 async def get_config(config_id: int, session: AsyncSession = Depends(get_session)):
   """Retrieves a config with the provided id."""
   statement = select(Config).where(Config.id == config_id)
-  config = await session.execute(statement)
+  result = await session.execute(statement)
+  try:
+    config = result.one()[0]
+  except NoResultFound:
+    return Response(status_code=404)
   return Config(
       id=config.id,
       create_date=config.create_date,
