@@ -14,6 +14,9 @@
  limitations under the License.
  */
 
+data "google_compute_default_service_account" "default" {
+}
+
 resource "google_project_service" "compute" {
   project            = var.project_id
   disable_on_destroy = false
@@ -42,6 +45,7 @@ resource "google_compute_instance" "tightlock-backend" {
   zone         = "us-central1-a"
   project      = var.project_id
   tags = ["http-server"]
+  allow_stopping_for_update = true
 
   boot_disk {
     initialize_params {
@@ -58,6 +62,11 @@ resource "google_compute_instance" "tightlock-backend" {
 
   metadata = {
     user-data = templatefile("cloud-config.yaml", { API_KEY = "${var.api_key}" })
+  }
+
+  service_account {
+    email  = data.google_compute_default_service_account.default.email
+    scopes = ["cloud-platform"]
   }
 
   depends_on = [
