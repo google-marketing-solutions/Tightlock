@@ -40,7 +40,7 @@ resource "google_bigquery_dataset" "sample_data" {
   friendly_name               = "Tightlock Sample Data"
   description                 = "Sample Data to test Tightlock"
   location                    = "US"
-  default_table_expiration_ms = 3600000
+  default_table_expiration_ms = 5184000000
 }
 
 resource "google_bigquery_table" "ga4_app_sample_data_table" {
