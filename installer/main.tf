@@ -17,6 +17,12 @@
 data "google_compute_default_service_account" "default" {
 }
 
+resource "random_string" "backend_name" {
+  length  = 4
+  special = false
+  lower   = true
+}
+
 resource "google_project_service" "compute" {
   project            = var.project_id
   disable_on_destroy = false
@@ -30,7 +36,7 @@ resource "google_project_service" "cloudresourcemanager" {
 }
 
 resource "google_compute_address" "vm-static-ip" {
-  name    = "vm-static-ip"
+  name    = format("tightlock-%s-static-ip", random_string.backend_name.result)
   project = var.project_id
   region  = "us-central1"
   depends_on = [
@@ -40,12 +46,13 @@ resource "google_compute_address" "vm-static-ip" {
 }
 
 resource "google_compute_instance" "tightlock-backend" {
-  name         = "tightlock-backend"
-  machine_type = "e2-standard-4"
-  zone         = "us-central1-a"
-  project      = var.project_id
-  tags = ["http-server"]
+  name                      = format("tightlock-backend-%s", random_string.backend_name.result)
+  machine_type              = "e2-standard-4"
+  zone                      = "us-central1-a"
+  project                   = var.project_id
+  tags                      = ["http-server"]
   allow_stopping_for_update = true
+  deletion_protection       = false
 
   boot_disk {
     initialize_params {
@@ -81,4 +88,3 @@ output "ConnectionCode" {
 output "Address" {
   value = google_compute_address.vm-static-ip.address
 }
-
