@@ -45,6 +45,10 @@ class RunLog(SQLModel):
   run_type: str
   run_result: RunResult
 
+class RunLogsResponse(SQLModel):
+  """RunLogs endpoint response."""
+  run_logs: Sequence[RunLog]
+  total_entries: int
 
 class ValidationResult(SQLModel):
   """Result of source or destination validation."""
