@@ -1,5 +1,5 @@
 client_id,user_id,event_name,engagement_time_msec,session_id
-123,456,offline_purchase,100,132
-124,457,offline_purchase,110,133
-125,458,offline_purchase,120,134
-126,459,offline_purchase,130,135
+CI123,UI456,offline_purchase,100,132
+CI124,UI457,offline_purchase,110,133
+CI125,UI458,offline_purchase,120,134
+CI126,UI459,offline_purchase,130,135
