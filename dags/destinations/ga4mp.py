@@ -132,7 +132,7 @@ class Destination:
       if self.payload_type == PayloadTypes.FIREBASE.value:
         payload["app_instance_id"] = event.get("app_instance_id", "")
       elif self.payload_type == PayloadTypes.GTAG.value:
-        payload["client_id"] = event.get("client_id", "")
+        payload["client_id"] = str(event.get("client_id", ""))
       payload["user_id"] = str(event.get("user_id", ""))
       payload["non_personalized_ads"] = self.non_personalized_ads
       if self.user_properties:
