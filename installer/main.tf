@@ -15,12 +15,14 @@
  */
 
 data "google_compute_default_service_account" "default" {
+  project = var.project_id
 }
 
 resource "random_string" "backend_name" {
   length  = 4
   special = false
-  lower   = true
+  lower   = true            
+  upper   = false
 }
 
 resource "google_project_service" "compute" {
