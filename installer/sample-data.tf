@@ -41,13 +41,15 @@ resource "google_bigquery_dataset" "sample_data" {
   description                 = "Sample Data to test Tightlock"
   location                    = "US"
   default_table_expiration_ms = 5184000000
+  delete_contents_on_destroy  = true
 }
 
 resource "google_bigquery_table" "ga4_app_sample_data_table" {
-  count      = var.create_bq_sample_data ? 1 : 0
-  project    = var.project_id
-  dataset_id = google_bigquery_dataset.sample_data[0].dataset_id
-  table_id   = "ga4_app_sample_data"
+  count               = var.create_bq_sample_data ? 1 : 0
+  project             = var.project_id
+  dataset_id          = google_bigquery_dataset.sample_data[0].dataset_id
+  table_id            = "ga4_app_sample_data"
+  deletion_protection = false
   external_data_configuration {
     autodetect    = true
     source_format = "CSV"
@@ -58,10 +60,11 @@ resource "google_bigquery_table" "ga4_app_sample_data_table" {
 }
 
 resource "google_bigquery_table" "ga4_web_sample_data_table" {
-  count      = var.create_bq_sample_data ? 1 : 0
-  project    = var.project_id
-  dataset_id = google_bigquery_dataset.sample_data[0].dataset_id
-  table_id   = "ga4_web_sample_data"
+  count               = var.create_bq_sample_data ? 1 : 0
+  project             = var.project_id
+  dataset_id          = google_bigquery_dataset.sample_data[0].dataset_id
+  table_id            = "ga4_web_sample_data"
+  deletion_protection = false
   external_data_configuration {
     autodetect    = true
     source_format = "CSV"
