@@ -19,10 +19,10 @@ import datetime
 import json
 import random
 import time
-from typing import Any, Optional, Sequence
+from typing import Any, Optional
 
 import httpx
-from models import Activation, RunLog, RunResult, ValidationResult
+from models import Activation, RunLog, RunLogsResponse, RunResult, ValidationResult
 
 _AIRFLOW_BASE_URL = "http://airflow-webserver:8080"
 
@@ -108,7 +108,7 @@ class AirflowClient:
       activation_by_dag_id: dict[str, Activation],
       offset: int = 0,
       limit: int = 50,
-  ) -> Sequence[RunLog]:
+  ) -> RunLogsResponse:
     dag_ids = [dag_id for dag_id in activation_by_dag_id.keys()]
     order_by = "-execution_date"
     url = f"{self.base_url}/dags/~/dagRuns/list"
@@ -119,7 +119,9 @@ class AirflowClient:
         "page_limit": limit,
     }
     list_response = await self._post_request(url, payload)
-    runs = list_response.json().get("dag_runs")
+    list_response_json = list_response.json()
+    runs = list_response_json.get("dag_runs")
+    total_entries = list_response_json.get("total_entries")
     run_logs = []
     for run in runs:
       dag_id = run["dag_id"]
@@ -133,7 +135,12 @@ class AirflowClient:
       )
       run_logs.append(run_log)
 
-    return run_logs
+    response = RunLogsResponse(
+      run_logs=run_logs,
+      total_entries=total_entries
+    )
+
+    return response
 
   async def trigger(
       self,

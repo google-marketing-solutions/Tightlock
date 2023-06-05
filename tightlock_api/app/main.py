@@ -22,7 +22,7 @@ from clients import AirflowClient
 from db import get_session
 from fastapi import Body, Depends, FastAPI, HTTPException, Query
 from fastapi.responses import Response
-from models import Activation, Config, ConfigValue, RunLog, ValidationResult
+from models import Activation, Config, ConfigValue, RunLogsResponse, ValidationResult
 from security import check_authentication_header
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlmodel import select
@@ -166,7 +166,7 @@ async def validate_destination(
   return response
 
 
-@v1.get("/activations/~/runs:batchGet", response_model=list[RunLog])
+@v1.get("/activations/~/runs:batchGet", response_model=RunLogsResponse)
 async def batch_get_activations_runs(
     session: AsyncSession = Depends(get_session),
     airflow_client=Depends(AirflowClient),
