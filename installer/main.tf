@@ -37,6 +37,14 @@ resource "google_project_service" "cloudresourcemanager" {
   service            = "cloudresourcemanager.googleapis.com"
 }
 
+resource "google_compute_disk" "tightlock-storage" {
+  project = var.project_id
+  name    = format("tightlock-%s-storage", random_string.backend_name.result)
+  type    = "pd-ssd"
+  zone    = "us-central1-a"
+  size    = 50
+}
+
 resource "google_compute_address" "vm-static-ip" {
   name    = format("tightlock-%s-static-ip", random_string.backend_name.result)
   project = var.project_id
@@ -62,6 +70,11 @@ resource "google_compute_instance" "tightlock-backend" {
     }
   }
 
+  attached_disk {
+    source = google_compute_disk.tightlock-storage.self_link
+    device_name = local.storage_device_name
+  }
+
   network_interface {
     network = "default"
     access_config {
@@ -70,7 +83,7 @@ resource "google_compute_instance" "tightlock-backend" {
   }
 
   metadata = {
-    user-data = templatefile("cloud-config.yaml", { API_KEY = "${var.api_key}" })
+    user-data = templatefile("cloud-config.yaml", { API_KEY = "${var.api_key}", STORAGE_DEVICE_NAME = "${local.storage_device_name}" })
   }
 
   service_account {

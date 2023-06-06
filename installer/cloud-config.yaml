@@ -29,12 +29,17 @@ write_files:
 
     [Service]
     User=tightlock
-    WorkingDirectory=/home/tightlock/Tightlock
-    ExecStart=bash /home/tightlock/Tightlock/run_tightlock.sh -e prod -i non-interactive -k ${API_KEY}
+    WorkingDirectory=/mnt/disks/tightlock/Tightlock
+    ExecStart=bash /mnt/disks/tightlock/Tightlock/run_tightlock.sh -e prod -i non-interactive -k ${API_KEY}
     Restart=on-failure
 
+bootcmd:
+- mkfs.ext4 -m 0 -E lazy_itable_init=0,lazy_journal_init=0,discard /dev/disk/by-id/google-${STORAGE_DEVICE_NAME}
+- mkdir /mnt/disks/tightlock
+- mount -o discard,defaults /dev/disk/by-id/google-${STORAGE_DEVICE_NAME} /mnt/disks/tightlock
+
 runcmd:
+- chown -R tightlock:docker /mnt/disks/tightlock
+- [su, tightlock, -c, "git clone https://github.com/google/Tightlock.git /mnt/disks/tightlock/Tightlock"]
 - systemctl daemon-reload
-- sudo rm -rf /home/tightlock/Tightlock
-- [su, tightlock, -c, "git clone https://github.com/google/Tightlock.git /home/tightlock/Tightlock"]
 - systemctl start tightlock.service
