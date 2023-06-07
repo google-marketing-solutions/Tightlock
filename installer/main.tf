@@ -43,6 +43,10 @@ resource "google_compute_disk" "tightlock-storage" {
   type    = "pd-ssd"
   zone    = "us-central1-a"
   size    = 50
+  depends_on = [
+    google_project_service.cloudresourcemanager,
+    google_project_service.compute
+  ]
 }
 
 resource "google_compute_address" "vm-static-ip" {
@@ -92,7 +96,10 @@ resource "google_compute_instance" "tightlock-backend" {
   }
 
   depends_on = [
-    google_compute_address.vm-static-ip
+    google_compute_address.vm-static-ip,
+    google_compute_disk.tightlock-storage,
+    google_project_service.cloudresourcemanager,
+    google_project_service.compute
   ]
 }
 
