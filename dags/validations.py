@@ -17,12 +17,13 @@
 import datetime
 import importlib
 from dataclasses import asdict
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from airflow.decorators import dag
 from airflow.operators.python_operator import PythonOperator
 from protocols.destination_proto import DestinationProto
 from protocols.source_proto import SourceProto
+from utils import ValidationResult
 
 _SOURCE_CLASS_NAME = "Source"
 _DESTINATION_CLASS_NAME = "Destination"
@@ -75,9 +76,12 @@ class ValidationBuilder:
           target_config: Dict[str, Any],
       ) -> None:
         """Performs the actual validation of source or destination."""
-        target_instance = self._instance_from_name(
-            target_name, target_class, target_config
-        )
+        try:
+          target_instance = self._instance_from_name(
+              target_name, target_class, target_config
+          )
+        except KeyError as e:
+          return asdict(ValidationResult(False, [f"Missing field: {e}"]))
 
         # TODO(b/279079875): Pass destination fields to source validate to check schema in connection validation
         return asdict(target_instance.validate())
