@@ -15,6 +15,7 @@ limitations under the License."""
 
 """API clients used by TIghtlock routes."""
 import ast
+import asyncio
 import datetime
 import json
 import random
@@ -27,6 +28,14 @@ from models import (Activation, RunLog, RunLogsResponse, RunResult,
 
 _AIRFLOW_BASE_URL = "http://airflow-webserver:8080"
 
+
+class GitClient:
+  """Defines a git client for interacting with project version."""
+  def __init__(self):
+    pass
+
+  async def update_to_main(self):
+    return await asyncio.create_subprocess_shell('ls -la')
 
 class AirflowClient:
   """Defines a base airflow client."""

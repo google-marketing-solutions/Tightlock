@@ -18,11 +18,12 @@ import contextlib
 import json
 from typing import Annotated, Any
 
-from clients import AirflowClient
+from clients import AirflowClient, GitClient
 from db import get_session
 from fastapi import Body, Depends, FastAPI, HTTPException, Query
 from fastapi.responses import Response
-from models import Activation, Config, ConfigValue, RunLogsResponse, ValidationResult
+from models import (Activation, Config, ConfigValue, RunLogsResponse,
+                    ValidationResult)
 from security import check_authentication_header
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlmodel import select
@@ -190,6 +191,14 @@ async def batch_get_activations_runs(
   )
 
   return runs_response
+
+
+@v1.post("/updateVersion")
+async def update_tightlock_version(git_client=Depends(GitClient)):
+  p = await git_client.update_to_main()
+  result = await p.wait()
+  print(f"RESULT >>>> {result}")
+  return Response(content=str(result), status_code=status.HTTP_200_OK)
 
 
 app.mount("/api/v1", v1)
