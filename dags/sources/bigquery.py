@@ -19,6 +19,7 @@ import json
 import tempfile
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
+from google.auth.exceptions import RefreshError
 from google.cloud import bigquery
 from google.cloud.exceptions import NotFound
 from pydantic import BaseModel
@@ -81,5 +82,8 @@ class Source:
     try:
       self.client.get_table(self.location)
       return ValidationResult(True, [])
+    except RefreshError:
+      return ValidationResult(False,
+                              ["Missing credentials file (required when running outside of GCP)."])
     except NotFound:
       return ValidationResult(False, [f"Table {self.location} is not found."])
