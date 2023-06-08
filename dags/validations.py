@@ -61,13 +61,15 @@ class ValidationBuilder:
   ):
     """Builds a validation DAG for the given target_class."""
     validation_id = ValidationBuilder._get_validation_id(target_class)
+    start_date = datetime.datetime(2023, 1, 1, 0, 0, 0)
 
     @dag(
         dag_id=validation_id,
         is_paused_upon_creation=False,
-        start_date=datetime.datetime.now(),
+        start_date=start_date,
         schedule_interval=None,
         render_template_as_native_obj=True,
+        catchup=False
     )
     def validation_dag():
       def validate(
