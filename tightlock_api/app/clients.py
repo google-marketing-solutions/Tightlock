@@ -22,7 +22,8 @@ import time
 from typing import Any, Optional
 
 import httpx
-from models import Activation, RunLog, RunLogsResponse, RunResult, ValidationResult
+from models import (Activation, RunLog, RunLogsResponse, RunResult,
+                    ValidationResult)
 
 _AIRFLOW_BASE_URL = "http://airflow-webserver:8080"
 
@@ -69,7 +70,7 @@ class AirflowClient:
     xcom_response = await self._get_request(url)
     if xcom_response.status_code != 200:
       return ValidationResult(
-          is_valid=False, messages=f"Target `{target_name}` is unavailable."
+          is_valid=False, messages=[f"Target `{target_name}` is unavailable."]
       )
     parsed_xcom_response = json.loads(xcom_response.content)
     # Parse json with literal_eval as XCOM returns the response with single quotes
