@@ -20,6 +20,7 @@ import datetime
 import json
 import random
 import time
+from asyncio.subprocess import PIPE
 from typing import Any, Optional
 
 import httpx
@@ -35,7 +36,7 @@ class GitClient:
     pass
 
   async def update_to_main(self):
-    return await asyncio.create_subprocess_shell('ls -la')
+    return await asyncio.create_subprocess_shell('bash test.sh', stdout=PIPE, stderr=PIPE)
 
 class AirflowClient:
   """Defines a base airflow client."""

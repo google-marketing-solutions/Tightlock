@@ -196,8 +196,10 @@ async def batch_get_activations_runs(
 @v1.post("/updateVersion")
 async def update_tightlock_version(git_client=Depends(GitClient)):
   p = await git_client.update_to_main()
-  result = await p.wait()
-  print(f"RESULT >>>> {result}")
+  await p.wait()
+  data, error = await p.communicate()
+  # Named pipes for calling commands in the host from the container: https://stackoverflow.com/questions/32163955/how-to-run-shell-script-on-host-from-docker-container
+  result = f"DATA >>>> {data} \n\n\n ERROR >>>>> {error}"
   return Response(content=str(result), status_code=status.HTTP_200_OK)
 
 
