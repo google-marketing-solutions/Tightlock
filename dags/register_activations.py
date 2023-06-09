@@ -100,11 +100,14 @@ class DAGBuilder:
     schedule = activation["schedule"]
     schedule_interval = schedule if schedule else None
 
+    start_date = datetime.datetime(2023, 1, 1, 0, 0, 0)
+
     @dag(
         dag_id=activation_id,
         is_paused_upon_creation=False,
-        start_date=datetime.datetime.now(),
+        start_date=start_date,
         schedule_interval=schedule_interval,
+        catchup=False
     )
     def dynamic_generated_dag():
       def process(task_instance, dry_run_str: str) -> None:
