@@ -14,10 +14,6 @@
  limitations under the License.
  */
 
-data "google_compute_default_service_account" "default" {
-  project = var.project_id
-}
-
 resource "random_string" "backend_name" {
   length  = 4
   special = false
@@ -37,12 +33,24 @@ resource "google_project_service" "cloudresourcemanager" {
   service            = "cloudresourcemanager.googleapis.com"
 }
 
+data "google_compute_default_service_account" "default" {
+  project = var.project_id
+  depends_on = [
+    google_project_service.cloudresourcemanager,
+    google_project_service.compute
+  ]
+}
+
 resource "google_compute_disk" "tightlock-storage" {
   project = var.project_id
   name    = format("tightlock-%s-storage", random_string.backend_name.result)
   type    = "pd-ssd"
   zone    = var.compute_engine_zone
   size    = 50
+  depends_on = [
+    google_project_service.cloudresourcemanager,
+    google_project_service.compute
+  ]
 }
 
 resource "google_compute_address" "vm-static-ip" {
@@ -92,7 +100,8 @@ resource "google_compute_instance" "tightlock-backend" {
   }
 
   depends_on = [
-    google_compute_address.vm-static-ip
+    google_compute_address.vm-static-ip,
+    google_compute_disk.tightlock-storage
   ]
 }
 
