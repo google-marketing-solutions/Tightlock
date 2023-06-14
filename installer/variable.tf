@@ -13,3 +13,15 @@ variable "create_bq_sample_data" {
   type        = bool
   description = "If set to true a BigQuery dataset and tables will be created with sample data uploaded via a Cloud Bucket."
 }
+
+variable "compute_engine_zone" {
+  type        = string
+  description = "The zone that the machine should be created in."
+  default = "us-central1-a"
+}
+
+variable "compute_address_region" {
+  type        = string
+  description = "The Region in which the created address should reside."
+  default = "us-central1"
+}

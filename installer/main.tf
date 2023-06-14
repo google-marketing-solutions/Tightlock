@@ -41,14 +41,14 @@ resource "google_compute_disk" "tightlock-storage" {
   project = var.project_id
   name    = format("tightlock-%s-storage", random_string.backend_name.result)
   type    = "pd-ssd"
-  zone    = "us-central1-a"
+  zone    = var.compute_engine_zone
   size    = 50
 }
 
 resource "google_compute_address" "vm-static-ip" {
   name    = format("tightlock-%s-static-ip", random_string.backend_name.result)
   project = var.project_id
-  region  = "us-central1"
+  region  = var.compute_address_region
   depends_on = [
     google_project_service.cloudresourcemanager,
     google_project_service.compute
@@ -58,7 +58,7 @@ resource "google_compute_address" "vm-static-ip" {
 resource "google_compute_instance" "tightlock-backend" {
   name                      = format("tightlock-backend-%s", random_string.backend_name.result)
   machine_type              = "e2-standard-4"
-  zone                      = "us-central1-a"
+  zone                      = var.compute_engine_zone
   project                   = var.project_id
   tags                      = ["http-server"]
   allow_stopping_for_update = true
@@ -96,11 +96,11 @@ resource "google_compute_instance" "tightlock-backend" {
   ]
 }
 
-output "Compute Engine Instance" {
+output "Compute_Engine_Instance" {
   value = google_compute_instance.tightlock-backend.name
 }
 
-output "ConnectionCode" {
+output "Connection_Code" {
   value = base64encode("{\"apiKey\": \"${var.api_key}\", \"address\": \"${google_compute_address.vm-static-ip.address}\"}")
 }
 
