@@ -14,14 +14,10 @@
  limitations under the License.
  */
 
-data "google_compute_default_service_account" "default" {
-  project = var.project_id
-}
-
 resource "random_string" "backend_name" {
   length  = 4
   special = false
-  lower   = true            
+  lower   = true
   upper   = false
 }
 
@@ -37,18 +33,30 @@ resource "google_project_service" "cloudresourcemanager" {
   service            = "cloudresourcemanager.googleapis.com"
 }
 
+data "google_compute_default_service_account" "default" {
+  project = var.project_id
+  depends_on = [
+    google_project_service.cloudresourcemanager,
+    google_project_service.compute
+  ]
+}
+
 resource "google_compute_disk" "tightlock-storage" {
   project = var.project_id
   name    = format("tightlock-%s-storage", random_string.backend_name.result)
   type    = "pd-ssd"
-  zone    = "us-central1-a"
+  zone    = var.compute_engine_zone
   size    = 50
+  depends_on = [
+    google_project_service.cloudresourcemanager,
+    google_project_service.compute
+  ]
 }
 
 resource "google_compute_address" "vm-static-ip" {
   name    = format("tightlock-%s-static-ip", random_string.backend_name.result)
   project = var.project_id
-  region  = "us-central1"
+  region  = var.compute_address_region
   depends_on = [
     google_project_service.cloudresourcemanager,
     google_project_service.compute
@@ -58,7 +66,7 @@ resource "google_compute_address" "vm-static-ip" {
 resource "google_compute_instance" "tightlock-backend" {
   name                      = format("tightlock-backend-%s", random_string.backend_name.result)
   machine_type              = "e2-standard-4"
-  zone                      = "us-central1-a"
+  zone                      = var.compute_engine_zone
   project                   = var.project_id
   tags                      = ["http-server"]
   allow_stopping_for_update = true
@@ -71,7 +79,7 @@ resource "google_compute_instance" "tightlock-backend" {
   }
 
   attached_disk {
-    source = google_compute_disk.tightlock-storage.self_link
+    source      = google_compute_disk.tightlock-storage.self_link
     device_name = local.storage_device_name
   }
 
@@ -92,11 +100,16 @@ resource "google_compute_instance" "tightlock-backend" {
   }
 
   depends_on = [
-    google_compute_address.vm-static-ip
+    google_compute_address.vm-static-ip,
+    google_compute_disk.tightlock-storage
   ]
 }
 
-output "ConnectionCode" {
+output "Compute_Engine_Instance" {
+  value = google_compute_instance.tightlock-backend.name
+}
+
+output "Connection_Code" {
   value = base64encode("{\"apiKey\": \"${var.api_key}\", \"address\": \"${google_compute_address.vm-static-ip.address}\"}")
 }
 
