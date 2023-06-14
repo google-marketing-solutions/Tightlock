@@ -176,8 +176,7 @@ class Destination:
       payload["non_personalized_ads"] = self.non_personalized_ads
       if self.user_properties:
         payload["user_properties"] = self.user_properties
-      ts_str = event.get("timestamp_micros")
-      timestamp_micros = int(ts_str) if ts_str.isdigit() else None
+      timestamp_micros = self._parse_timestamp_micros(event)
       if timestamp_micros:
         payload["timestamp_micros"] = timestamp_micros
       params = {k: v for k, v in event.items() if self._validate_param(k, v)}
@@ -193,6 +192,11 @@ class Destination:
         invalid_indices_and_errors.append((i, error.error_num))
 
     return valid_events, invalid_indices_and_errors
+
+  def _parse_timestamp_micros(self, event: Dict[str, Any]):
+    t = event.get("timestamp_micros")
+    timestamp_micros = int(t) if t.isdigit() else None
+    return timestamp_micros
 
   def _validate_param(self, key: str, value: Any) -> bool:
     """Filter out null parameters and reserved keys."""
