@@ -17,11 +17,11 @@ variable "create_bq_sample_data" {
 variable "compute_engine_zone" {
   type        = string
   description = "The zone that the machine should be created in."
-  default = "us-central1-a"
+  default     = "us-central1-a"
 }
 
 variable "compute_address_region" {
   type        = string
   description = "The Region in which the created address should reside."
-  default = "us-central1"
+  default     = "us-central1"
 }

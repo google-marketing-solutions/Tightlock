@@ -21,7 +21,7 @@ data "google_compute_default_service_account" "default" {
 resource "random_string" "backend_name" {
   length  = 4
   special = false
-  lower   = true            
+  lower   = true
   upper   = false
 }
 
@@ -71,7 +71,7 @@ resource "google_compute_instance" "tightlock-backend" {
   }
 
   attached_disk {
-    source = google_compute_disk.tightlock-storage.self_link
+    source      = google_compute_disk.tightlock-storage.self_link
     device_name = local.storage_device_name
   }
 
