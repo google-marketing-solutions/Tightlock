@@ -76,6 +76,45 @@ _ERROR_TYPES = immutabledict.immutabledict({
     "events.params.items": errors.ErrorNameIDMap.GA4_HOOK_ERROR_VALUE_INVALID_EVENTS_PARAMS_ITEMS,
 })
 
+# TODO(b/287320050): Augment this list with user-provided custom fields
+_GA_REFERENCE_PARAMS = [
+  "session_id",
+  "engagement_time_msec",
+  "currency",
+  "value",
+  "coupon",
+  "payment_type",
+  "items",
+  "shipping_tier",
+  "campaign_id",
+  "campaign",
+  "source",
+  "medium",
+  "term",
+  "content",
+  "virtual_currency_name",
+  "group_id",
+  "level",
+  "character",
+  "method",
+  "score",
+  "transaction_id",
+  "shipping",
+  "tax",
+  "search_term",
+  "content_type",
+  "content_id",
+  "item_list_id",
+  "item_list_name",
+  "creative_name",
+  "creative_slot",
+  "promotion_id",
+  "promotion_name",
+  "item_id",
+  "item_name",
+  "achievement_id"
+]
+
 
 class PayloadTypes(enum.Enum):
   """GA4 Measurememt Protocol supported payload types."""
@@ -137,14 +176,15 @@ class Destination:
       payload["non_personalized_ads"] = self.non_personalized_ads
       if self.user_properties:
         payload["user_properties"] = self.user_properties
+      ts_str = event.get("timestamp_micros")
+      timestamp_micros = int(ts_str) if ts_str.isdigit() else None
+      if timestamp_micros:
+        payload["timestamp_micros"] = timestamp_micros
+      params = {k: v for k, v in event.items() if self._validate_param(k, v)}
       payload["events"] = [{
           "name": event.get("event_name", ""),
-          "params": {
-              "engagement_time_msec": event.get("engagement_time_msec", ""),
-              "session_id": event.get("session_id", ""),
-          },
+          "params": params,
       }]
-
       try:
         response = self._send_validate_request(payload)
         self._parse_validate_result(event, response)
@@ -153,6 +193,12 @@ class Destination:
         invalid_indices_and_errors.append((i, error.error_num))
 
     return valid_events, invalid_indices_and_errors
+
+  def _validate_param(self, key: str, value: Any) -> bool:
+    """Filter out null parameters and reserved keys."""
+    reserved_keys = ['app_instance_id', 'client_id', 'user_id', 'timestamp_micros', 'event_name']
+    result = key not in reserved_keys and value is not None and value != ''
+    return result
 
   def _parse_validate_result(
       self,
@@ -332,11 +378,10 @@ class Destination:
       id_column_name = _FIREBASE_ID_COLUMN
     else:
       id_column_name = _GTAG_ID_COLUMN
-    return [id_column_name] + [
+    return [id_column_name] + _GA_REFERENCE_PARAMS + [
         "user_id",
         "event_name",
-        "engagement_time_msec",
-        "session_id",
+        "timestamp_micros"
     ]
 
   def batch_size(self) -> int:
