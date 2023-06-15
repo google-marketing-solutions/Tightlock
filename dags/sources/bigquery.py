@@ -37,8 +37,7 @@ class Source:
 
   def __init__(self, config: Dict[str, Any]):
     try:
-      credentials = config["credentials"]
-      json.loads(credentials)
+      json.loads(config.get("credentials"))
     except ValueError:
       # json.loads fails if credentials are not a valid JSON object
       config["credentials"] = None
