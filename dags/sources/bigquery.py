@@ -36,6 +36,11 @@ class Source:
   """Implements SourceProto protocol for BigQuery."""
 
   def __init__(self, config: Dict[str, Any]):
+    try:
+      json.loads(config.get("credentials"))
+    except ValueError:
+      # json.loads fails if credentials are not a valid JSON object
+      config["credentials"] = None
     self.bq_connection = BigQueryConnection.parse_obj(config)
     if self.bq_connection.credentials:
       with tempfile.NamedTemporaryFile(
