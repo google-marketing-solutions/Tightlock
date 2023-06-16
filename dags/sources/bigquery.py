@@ -39,7 +39,7 @@ class Source:
     try:
       creds = json.loads(config.get("credentials"))
       config["credentials"] = creds
-    except ValueError:
+    except (ValueError, TypeError):
       # json.loads fails if credentials are not a valid JSON object
       config["credentials"] = None
     self.bq_connection = BigQueryConnection.parse_obj(config)
