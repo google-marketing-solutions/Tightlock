@@ -1,12 +1,8 @@
 # Tightlock - First-Party Data Tool
 
-## Deploying on Google Compute Engine 
+Named after the automatic joining mechanism used between train cars, *Tightlock* is a solution for sending first-party data to Google marketing-related APIs.
 
-Tightlock can be easily installed in GCP by cloning the repository in Cloud Shell and running the following commands:
-```
-cd installer/
-terraform apply
-```
+**Disclaimer:** This is not an officially supported Google product.
 
 ## Developer cheatsheet
 
