@@ -37,7 +37,8 @@ class Source:
 
   def __init__(self, config: Dict[str, Any]):
     try:
-      json.loads(config.get("credentials"))
+      creds = json.loads(config.get("credentials"))
+      config["credentials"] = creds
     except (ValueError, TypeError):
       # json.loads fails if credentials are not a valid JSON object
       config["credentials"] = None
@@ -61,11 +62,9 @@ class Source:
       limit: int,
   ) -> List[Mapping[str, Any]]:
     """get_data implemention for BigQuery source."""
-    fields_string = ",".join(fields)
     query = (
-        f"SELECT {fields_string}"
+        f"SELECT *"
         f" FROM `{self.location}`"
-        f" ORDER BY {fields_string}"
         f" LIMIT {limit} OFFSET {offset}"
     )
     query_job = self.client.query(query)
@@ -75,7 +74,8 @@ class Source:
       # create dict to hold results and respect the return type
       row = {}
       for field in fields:
-        row[field] = element[field]
+        if field in element.keys():
+          row[field] = element.get(field)
       rows.append(row)
 
     return rows

@@ -195,8 +195,10 @@ class Destination:
 
   def _parse_timestamp_micros(self, event: Dict[str, Any]):
     t = event.get("timestamp_micros")
-    timestamp_micros = int(t) if t.isdigit() else None
-    return timestamp_micros
+    if t:
+      timestamp_micros = int(t) if t.isdigit() else None
+      return timestamp_micros
+    return None
 
   def _validate_param(self, key: str, value: Any) -> bool:
     """Filter out null parameters and reserved keys."""
