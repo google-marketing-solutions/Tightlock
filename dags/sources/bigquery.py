@@ -41,9 +41,6 @@ class Source:
     except (ValueError, TypeError):
       # json.loads fails if credentials are not a valid JSON object
       config["credentials"] = None
-    except TypeError:
-      # json.loads fails if credentials are not a valid JSON object
-      config["credentials"] = None
     self.bq_connection = BigQueryConnection.parse_obj(config)
     if self.bq_connection.credentials:
       with tempfile.NamedTemporaryFile(
