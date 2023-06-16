@@ -38,7 +38,7 @@ class Source:
   def __init__(self, config: Dict[str, Any]):
     try:
       json.loads(config.get("credentials"))
-    except ValueError:
+    except (ValueError, TypeError):
       # json.loads fails if credentials are not a valid JSON object
       config["credentials"] = None
     except TypeError:
