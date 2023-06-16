@@ -150,7 +150,9 @@ async def validate_source(
     source_config: ConfigValue,
     airflow_client=Depends(AirflowClient),
 ):
-  response = await airflow_client.validate_source(source_name, source_config.value)
+  response = await airflow_client.validate_source(
+      source_name.lower(), source_config.value
+  )
   return response
 
 
@@ -161,7 +163,7 @@ async def validate_destination(
     airflow_client=Depends(AirflowClient),
 ):
   response = await airflow_client.validate_destination(
-      destination_name, destination_config.value
+      destination_name.lower(), destination_config.value
   )
   return response
 
