@@ -33,11 +33,18 @@ resource "google_project_service" "cloudresourcemanager" {
   service            = "cloudresourcemanager.googleapis.com"
 }
 
+resource "google_project_service" "iam" {
+  project            = var.project_id
+  disable_on_destroy = false
+  service            = "iam.googleapis.com"
+}
+
 data "google_compute_default_service_account" "default" {
   project = var.project_id
   depends_on = [
     google_project_service.cloudresourcemanager,
-    google_project_service.compute
+    google_project_service.compute,
+    google_project_service.iam
   ]
 }
 
