@@ -15,11 +15,11 @@
  """
 
 """Test adherence to Destination and Source protocols."""
+import inspect
+
 from protocols.destination_proto import DestinationProto
 from protocols.source_proto import SourceProto
 from utils import DagUtils
-import inspect
-
 
 dag_utils = DagUtils()
 
@@ -37,8 +37,7 @@ def base_test_protocol(folder_name: str, protocol: SourceProto | DestinationProt
     protocol_methods = inspect.getmembers(protocol, inspect.isfunction)
     for required_name, required_method in protocol_methods:
       for target_name, target_method in target_methods:
-        # TODO(b/278795989): Check __init__ signature when Airflow image is bumped to Python 3.11
-        if required_name == target_name and target_name != "__init__":
+        if required_name == target_name:
           assert inspect.signature(required_method) == inspect.signature(target_method)
 
 def test_destinations_protocol():
