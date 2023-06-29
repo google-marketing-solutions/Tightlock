@@ -1,4 +1,4 @@
 pytest-docker-compose==3.2.1
 pytest-dotenv==0.5.2
-requests==2.29.0
+requests==2.31.0
 tenacity==8.2.2
