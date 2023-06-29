@@ -1,10 +1,11 @@
-immutabledict
-pytest
-pytest-cov
-pytest-mypy
-requests
-pydantic
+immutabledict==2.2.4
+pytest==7.4.0
+pytest-cov==4.1.0
+pytest-mypy==0.10.3
+Requests==2.29.0
+pydantic==1.10.9
 
 # Data sources requirements
-apache-airflow-providers-apache-drill
-google-cloud-bigquery
+apache-airflow-providers-apache-drill==2.4.1
+google-cloud-bigquery==3.11.3
+

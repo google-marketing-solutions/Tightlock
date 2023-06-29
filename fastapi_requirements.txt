@@ -1,4 +1,0 @@
-# add relevant webserver dependencies
-pydrill
-pytest
-pytest-cov
