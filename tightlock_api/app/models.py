@@ -41,7 +41,7 @@ class RunLog(SQLModel):
   destination_name: str
   schedule: str
   state: str
-  run_at: datetime.datetime
+  run_at: Optional[datetime.datetime]
   run_type: str
   run_result: RunResult
 
