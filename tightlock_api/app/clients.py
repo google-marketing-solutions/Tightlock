@@ -97,7 +97,7 @@ class AirflowClient:
         destination_name=destination_name or default_str_value,
         schedule=activation.schedule or "None",
         state=run.get("state") or default_str_value,
-        run_at=run.get("end_date") or default_str_value,
+        run_at=run.get("end_date"),
         run_type=run.get("run_type") or default_str_value,
         run_result=run_result,
     )
