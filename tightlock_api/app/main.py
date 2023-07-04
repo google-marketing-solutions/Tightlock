@@ -11,7 +11,8 @@ Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
-limitations under the License."""
+limitations under the License.
+"""
 
 """Entrypoint for FastAPI application."""
 import contextlib
@@ -22,7 +23,8 @@ from clients import AirflowClient
 from db import get_session
 from fastapi import Body, Depends, FastAPI, HTTPException, Query
 from fastapi.responses import Response
-from models import Activation, Config, ConfigValue, RunLogsResponse, ValidationResult
+from models import (Activation, Config, ConfigValue, RunLogsResponse,
+                    ValidationResult)
 from security import check_authentication_header
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlmodel import select
@@ -42,7 +44,8 @@ async def create_initial_config():
   get_session_wrapper = contextlib.asynccontextmanager(get_session)
   async with get_session_wrapper() as session:
     try:
-      await create_config(Config(label="Initial Config", value=data), session=session)
+      await create_config(Config(label="Initial Config",
+                                 value=data), session=session)
     except HTTPException:
       pass  # Ignore workers trying to recreate initial config
 
@@ -58,8 +61,20 @@ async def trigger_activation(
     activation_name: str,
     dry_run: bool = Body(..., embed=True),
     airflow_client=Depends(AirflowClient),
-):
-  """Triggers an activation identified by name."""
+) -> Response:
+  """Triggers an activation identified by name.
+  
+  Args:
+    activation_name: The name of the target activation to trigger.
+    dry_run: A boolean indicating whether or not to actually send
+      the data to the underlying destination or if it should only
+      be validated (when validation is available).
+    airflow_client: Airflow Client dependency injection.
+  Returns:
+    An HTTP response that indicates success of the trigger request
+    via status_code.
+
+  """
   trigger_conf = {"dry_run": dry_run}
   response = await airflow_client.trigger(activation_name, conf=trigger_conf)
   return Response(status_code=response.status_code)
@@ -67,6 +82,13 @@ async def trigger_activation(
 
 @v1.get("/configs", response_model=list[Config])
 async def get_configs(session: AsyncSession = Depends(get_session)):
+  """Retrieves stored configs.
+  
+  Args:
+    session: Postgres DB session dependency injection.
+  Returns:
+    A List of stored configs wrapped in an HTTP JSONResponse.
+  """
   result = await session.execute(select(Config))
   configs = result.scalars().all()
   return [
@@ -82,7 +104,13 @@ async def get_configs(session: AsyncSession = Depends(get_session)):
 
 @v1.get("/configs:getLatest", response_model=Config)
 async def get_latest_config(session: AsyncSession = Depends(get_session)):
-  """Retrieves the most recent config."""
+  """Retrieves the most recent config.
+  
+  Args:
+    session: Postgres DB session dependency injection.
+  Returns:
+    The latest config that was created wrapped in an HTTP JSONResponse.
+  """
   statement = select(Config).order_by(Config.create_date.desc()).limit(1)
   result = await session.execute(statement)
   try:
@@ -98,8 +126,16 @@ async def get_latest_config(session: AsyncSession = Depends(get_session)):
 
 
 @v1.get("/configs/{config_id}", response_model=Config)
-async def get_config(config_id: int, session: AsyncSession = Depends(get_session)):
-  """Retrieves a config with the provided id."""
+async def get_config(config_id: int,
+                     session: AsyncSession = Depends(get_session)):
+  """Retrieves a config with the provided id.
+  
+  Args:
+    config_id: integer that uniquely identifies a config 
+    session: Postgres DB session dependency injection.
+  Returns:
+    The target config wrapped in an HTTP JSONResponse.
+  """
   statement = select(Config).where(Config.id == config_id)
   result = await session.execute(statement)
   try:
@@ -115,8 +151,18 @@ async def get_config(config_id: int, session: AsyncSession = Depends(get_session
 
 
 @v1.post("/configs", response_model=Config)
-async def create_config(config: Config, session: AsyncSession = Depends(get_session)):
-  """Creates a new config using the provided config object."""
+async def create_config(config: Config,
+                        session: AsyncSession = Depends(get_session)):
+  """Creates a new config using the provided config object.
+  
+  Args:
+    config: config object to be stored. 
+    session: Postgres DB session dependency injection.
+  Returns:
+    The stored config wrapped in an HTTP JSONResponse.
+  Raises:
+    HTTPException: A 409 error when the provided config label already exists. 
+  """
   session.add(config)
   try:
     await session.commit()
@@ -129,7 +175,13 @@ async def create_config(config: Config, session: AsyncSession = Depends(get_sess
 
 @v1.get("/activations", response_model=list[Activation])
 async def get_activations(session: AsyncSession = Depends(get_session)):
-  """Queries latest config and query activations field from config json."""
+  """Queries latest config and query activations field from config json.
+  
+  Args:
+    session: Postgres DB session dependency injection.
+  Returns:
+    The activations registered in the latests config wrapped in an HTTP JSONResponse.
+  """
   latest_config = await get_latest_config(session=session)
   activations = [Activation(**a) for a in latest_config.value["activations"]]
   return activations
@@ -137,7 +189,11 @@ async def get_activations(session: AsyncSession = Depends(get_session)):
 
 @v1.get("/schemas", response_model=dict[str, Any])
 async def get_schemas():
-  """Retrieves available schemas for Activations."""
+  """Retrieves available schemas for Activations.
+  
+  Returns:
+    A JSONSchema representing all sources and destinations schemas available.
+  """
   # TODO(b/270748315): Implement actual call to schemas DAG once available.
   f = open("schemas_sample.json")
   data = json.load(f)
@@ -150,6 +206,15 @@ async def validate_source(
     source_config: ConfigValue,
     airflow_client=Depends(AirflowClient),
 ):
+  """Validates the provided source config.
+  
+  Args:
+    source_name: The name of the source type to validate.
+    source_config: The ConfigValue object to be validated.
+    airflow_client: Airflow Client dependency injection.
+  Returns:
+    The ValidationResult object wrapped in an HTTP JSONResponse.
+  """
   response = await airflow_client.validate_source(
       source_name.lower(), source_config.value
   )
@@ -162,6 +227,15 @@ async def validate_destination(
     destination_config: ConfigValue,
     airflow_client=Depends(AirflowClient),
 ):
+  """Validates the provided destination config.
+  
+  Args:
+    destination_name: The name of the destination type to validate.
+    destination_config: The ConfigValue object to be validated.
+    airflow_client: Airflow Client dependency injection.
+  Returns:
+    The ValidationResult object wrapped in an HTTP JSONResponse.
+  """
   response = await airflow_client.validate_destination(
       destination_name.lower(), destination_config.value
   )
@@ -176,6 +250,20 @@ async def batch_get_activations_runs(
     page: int = 0,
     page_size: int = 20,
 ):
+  """Retrieves run logs for all activations.
+  
+  Args:
+    session: Postgres DB session dependency injection.
+    airflow_client: Airflow Client dependency injection.
+    activation_names: List of interested activations to retrieve logs from.
+      Defaults to None, when logs from all activations are retrieved.
+    page: Page number to be used by paginating clients. 
+      Defaults to zero, when no offset is applied.
+    page_size: Size of page to be used by paginating clients.
+      Defaults to 20. 
+  Returns:
+    The RunLogsResponse object wrapped in an HTTP JSONResponse.
+  """
   # define target activations
   activations = await get_activations(session)
   if not activation_names:  # if none passed, gets logs from all activations
