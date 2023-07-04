@@ -154,19 +154,21 @@ class DAGBuilder:
         dynamic_dag = self._build_dynamic_dag(
             connection, target_source, target_destination
         )
-        raise Exception("HA")
         # register dag by calling the dag object
         dynamic_dag()
       except Exception:  # pylint: disable=broad-except
         error_traceback = traceback.format_exc()
         print(f"DAG registration error: {error_traceback}")
-        register_errors = Variable.get(self.register_errors_var, deserialize_json=True)
+        register_errors = Variable.get(self.register_errors_var,
+                                       deserialize_json=True)
         register_errors.append({
-          "activation_name": activation["name"], 
-          "error": error_traceback
+            "activation_name": activation["name"], 
+            "error": error_traceback
         })
 
-        Variable.update(self.register_errors_var, register_errors, serialize_json=True)
+        Variable.update(self.register_errors_var,
+                        register_errors,
+                        serialize_json=True)
 
 
 builder = DAGBuilder()
