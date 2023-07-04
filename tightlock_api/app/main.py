@@ -260,7 +260,7 @@ async def batch_get_activations_runs(
     page: Page number to be used by paginating clients. 
       Defaults to zero, when no offset is applied.
     page_size: Size of page to be used by paginating clients.
-      Default to 20. 
+      Defaults to 20. 
   Returns:
     The RunLogsResponse object wrapped in an HTTP JSONResponse.
   """
