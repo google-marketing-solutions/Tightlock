@@ -16,6 +16,7 @@
 
 """Integration tests for airflow-webserver container."""
 
+import json
 from urllib import parse
 
 
@@ -25,8 +26,8 @@ def test_dag_import_errors(helpers):
   request_session, api_url = helpers.get_airflow_client()
   import_errors = request_session.get(
       parse.urljoin(api_url,
-                    "api/v1/importErrors")).json()
-  if import_errors["total_entries"] > 0:
+                    "api/v1/variables/register_errors")).json()
+  if len(json.loads(import_errors["value"])) > 0:
     for error in import_errors["import_errors"]:
       print(f"Import Error for DAG {error['filename']}: {error['stack_trace']}")
   assert import_errors["total_entries"] == 0

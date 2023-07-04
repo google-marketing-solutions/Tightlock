@@ -25,8 +25,9 @@ from dataclasses import asdict
 from functools import partial
 from typing import Any, Mapping, Optional, Sequence
 
-from airflow.decorators import dag, task
+from airflow.decorators import dag
 from airflow.hooks.postgres_hook import PostgresHook
+from airflow.models import Variable
 from airflow.operators.python_operator import PythonOperator
 from protocols.destination_proto import DestinationProto
 from protocols.source_proto import SourceProto
@@ -38,6 +39,10 @@ class DAGBuilder:
 
   def __init__(self):
     self.latest_config = self._get_latest_config()
+    self.register_errors_var = "register_errors"
+    Variable.set(key=self.register_errors_var,
+                 value=[],
+                 description="Report of dynamic DAG registering errors.")
 
   def _config_from_ref(self, ref: Mapping[str, str]) -> SourceProto | DestinationProto:
     refs_regex = r"^#\/(sources|destinations)\/(.*)"
@@ -149,10 +154,19 @@ class DAGBuilder:
         dynamic_dag = self._build_dynamic_dag(
             connection, target_source, target_destination
         )
+        raise Exception("HA")
         # register dag by calling the dag object
         dynamic_dag()
       except Exception:  # pylint: disable=broad-except
-        print(f"DAG registration error: {traceback.format_exc()}")
+        error_traceback = traceback.format_exc()
+        print(f"DAG registration error: {error_traceback}")
+        register_errors = Variable.get(self.register_errors_var, deserialize_json=True)
+        register_errors.append({
+          "activation_name": activation["name"], 
+          "error": error_traceback
+        })
+
+        Variable.update(self.register_errors_var, register_errors, serialize_json=True)
 
 
 builder = DAGBuilder()
