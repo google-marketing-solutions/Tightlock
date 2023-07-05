@@ -14,7 +14,7 @@
  limitations under the License.
  """
 
-from typing import (Any, Dict, List, Mapping, Protocol, Sequence,
+from typing import (Any, Dict, List, Mapping, Optional, Protocol, Sequence,
                     runtime_checkable)
 
 from utils import ValidationResult
@@ -35,20 +35,20 @@ class SourceProto(Protocol):
 
   def get_data(
       self,
-      connections: Sequence[Mapping[str, Any]],
       fields: Sequence[str],
       offset: int,
       limit: int,
+      reusable_credentials: Optional[Sequence[Mapping[str, Any]]],
   ) -> List[Mapping[str, Any]]:
     """Retrieves data from the target source.
     
     Args:
-      connections: An auxiliary list of reusable metadata
-        that may be shared by multiple sources.
       fields: A list of fields to be retrieved from the 
         underlying source.
       offset: The offset for the query.
       limit: The maximum number of records to return.
+      reusable_credentials: An auxiliary list of reusable credentials
+        that may be shared by multiple sources.
     Returns:
       A list of field-value mappings retrieved from the target data source.
     """

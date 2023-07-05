@@ -23,7 +23,7 @@ import re
 import traceback
 from dataclasses import asdict
 from functools import partial
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, Sequence, Optional
 
 from airflow.decorators import dag, task
 from airflow.hooks.postgres_hook import PostgresHook
@@ -90,9 +90,9 @@ class DAGBuilder:
   def _build_dynamic_dag(
       self,
       activation: Mapping[str, Any],
-      external_connections: Sequence[Any],
       target_source: SourceProto,
       target_destination: DestinationProto,
+      reusable_credentials: Optional[Sequence[Any]] = None,
   ):
     """Dynamically creates a DAG based on a given activation."""
     activation_id = f"{activation['name']}_dag"
@@ -117,9 +117,9 @@ class DAGBuilder:
         offset = 0
         get_data = partial(
             target_source.get_data,
-            connections=external_connections,
             fields=fields,
             limit=batch_size,
+            reusable_credentials=reusable_credentials
         )
         data = get_data(offset=offset)
         run_result = RunResult(0, 0, [], dry_run)
@@ -140,17 +140,13 @@ class DAGBuilder:
 
   def register_dags(self):
     """Loops over all configured activations and create an Airflow DAG for each one of them."""
-    external_connections = (
-        {}
-    )  # TODO(b/277966895): Delete external_connections references if this is not used anymore in the config.
-
     for activation in self.latest_config["activations"]:
       # actual implementations of each source and destination
       try:
         target_source = self._config_from_ref(activation["source"])
         target_destination = self._config_from_ref(activation["destination"])
         dynamic_dag = self._build_dynamic_dag(
-            activation, external_connections, target_source, target_destination
+            activation, target_source, target_destination
         )
         # register dag by calling the dag object
         dynamic_dag()
