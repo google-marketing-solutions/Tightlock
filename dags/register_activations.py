@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License."""
 
-"""Registers activations dynamically from config."""
+"""Registers connections dynamically from config."""
 
 import ast
 import datetime
@@ -23,7 +23,7 @@ import re
 import traceback
 from dataclasses import asdict
 from functools import partial
-from typing import Any, Mapping, Sequence, Optional
+from typing import Any, Mapping, Optional, Sequence
 
 from airflow.decorators import dag, task
 from airflow.hooks.postgres_hook import PostgresHook
@@ -55,14 +55,14 @@ class DAGBuilder:
       return self._import_entity(target_type, target_folder).Destination(target_config)
     raise ValueError(f"Not supported folder: {target_folder}")
 
-  def _parse_dry_run(self, activation_id: str, dry_run_str: str) -> bool:
+  def _parse_dry_run(self, connection_id: str, dry_run_str: str) -> bool:
     try:
       dry_run = ast.literal_eval(dry_run_str)
       if dry_run:
-        print(f"Dry-run enabled for {activation_id}")
+        print(f"Dry-run enabled for {connection_id}")
       return dry_run
     except ValueError:
-      print(f"Dry-run defaulting to False for {activation_id}")
+      print(f"Dry-run defaulting to False for {connection_id}")
       return False
 
   def _import_entity(
@@ -89,21 +89,21 @@ class DAGBuilder:
 
   def _build_dynamic_dag(
       self,
-      activation: Mapping[str, Any],
+      connection: Mapping[str, Any],
       target_source: SourceProto,
       target_destination: DestinationProto,
       reusable_credentials: Optional[Sequence[Any]] = None,
   ):
-    """Dynamically creates a DAG based on a given activation."""
-    activation_id = f"{activation['name']}_dag"
+    """Dynamically creates a DAG based on a given connection."""
+    connection_id = f"{connection['name']}_dag"
 
-    schedule = activation["schedule"]
+    schedule = connection["schedule"]
     schedule_interval = schedule if schedule else None
 
     start_date = datetime.datetime(2023, 1, 1, 0, 0, 0)
 
     @dag(
-        dag_id=activation_id,
+        dag_id=connection_id,
         is_paused_upon_creation=False,
         start_date=start_date,
         schedule_interval=schedule_interval,
@@ -111,7 +111,7 @@ class DAGBuilder:
     )
     def dynamic_generated_dag():
       def process(task_instance, dry_run_str: str) -> None:
-        dry_run = self._parse_dry_run(activation_id, dry_run_str)
+        dry_run = self._parse_dry_run(connection_id, dry_run_str)
         fields = target_destination.fields()
         batch_size = target_destination.batch_size()
         offset = 0
@@ -131,7 +131,7 @@ class DAGBuilder:
         task_instance.xcom_push("run_result", asdict(run_result))
 
       PythonOperator(
-          task_id=activation_id,
+          task_id=connection_id,
           op_kwargs={"dry_run_str": "{{dag_run.conf.get('dry_run', False)}}"},
           python_callable=process,
       )
@@ -139,14 +139,14 @@ class DAGBuilder:
     return dynamic_generated_dag
 
   def register_dags(self):
-    """Loops over all configured activations and create an Airflow DAG for each one of them."""
-    for activation in self.latest_config["activations"]:
+    """Loops over all configured connections and create an Airflow DAG for each one of them."""
+    for connection in self.latest_config["activations"]:
       # actual implementations of each source and destination
       try:
-        target_source = self._config_from_ref(activation["source"])
-        target_destination = self._config_from_ref(activation["destination"])
+        target_source = self._config_from_ref(connection["source"])
+        target_destination = self._config_from_ref(connection["destination"])
         dynamic_dag = self._build_dynamic_dag(
-            activation, target_source, target_destination
+            connection, target_source, target_destination
         )
         # register dag by calling the dag object
         dynamic_dag()

@@ -22,7 +22,7 @@ import time
 from typing import Any, Optional
 
 import httpx
-from models import (Activation, RunLog, RunLogsResponse, RunResult,
+from models import (Connection, RunLog, RunLogsResponse, RunResult,
                     ValidationResult)
 
 _AIRFLOW_BASE_URL = "http://airflow-webserver:8080"
@@ -86,16 +86,16 @@ class AirflowClient:
     return response
 
   def _build_run_log_response(
-      self, activation: Activation, run: dict[str, Any], run_result: RunResult
+      self, connection: Connection, run: dict[str, Any], run_result: RunResult
   ) -> RunLog:
     default_str_value = "Missing"
-    source_name = activation.source["$ref"].split("#/sources/")[1]
-    destination_name = activation.destination["$ref"].split("#/destinations/")[1]
+    source_name = connection.source["$ref"].split("#/sources/")[1]
+    destination_name = connection.destination["$ref"].split("#/destinations/")[1]
     run_log = RunLog(
-        activation_name=activation.name,
+        connection_name=connection.name,
         source_name=source_name or default_str_value,
         destination_name=destination_name or default_str_value,
-        schedule=activation.schedule or "None",
+        schedule=connection.schedule or "None",
         state=run.get("state") or default_str_value,
         run_at=run.get("end_date"),
         run_type=run.get("run_type") or default_str_value,
@@ -106,11 +106,11 @@ class AirflowClient:
 
   async def list_dag_runs(
       self,
-      activation_by_dag_id: dict[str, Activation],
+      connection_by_dag_id: dict[str, Connection],
       offset: int = 0,
       limit: int = 50,
   ) -> RunLogsResponse:
-    dag_ids = [dag_id for dag_id in activation_by_dag_id.keys()]
+    dag_ids = [dag_id for dag_id in connection_by_dag_id.keys()]
     order_by = "-execution_date"
     url = f"{self.base_url}/dags/~/dagRuns/list"
     payload = {
@@ -132,7 +132,7 @@ class AirflowClient:
       run_result_json = run_result_response.json()
       run_result = ast.literal_eval(run_result_json.get("value") or '{}')
       run_log = self._build_run_log_response(
-          activation_by_dag_id[dag_id], run, RunResult(**run_result)
+          connection_by_dag_id[dag_id], run, RunResult(**run_result)
       )
       run_logs.append(run_log)
 

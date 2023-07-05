@@ -23,7 +23,7 @@ from clients import AirflowClient
 from db import get_session
 from fastapi import Body, Depends, FastAPI, HTTPException, Query
 from fastapi.responses import Response
-from models import (Activation, Config, ConfigValue, RunLogsResponse,
+from models import (Config, ConfigValue, Connection, RunLogsResponse,
                     ValidationResult)
 from security import check_authentication_header
 from sqlalchemy.exc import IntegrityError, NoResultFound
@@ -56,16 +56,19 @@ async def connect():
   return Response(status_code=status.HTTP_200_OK)
 
 
+@v1.post("/connections/{connection_name}:trigger")
 @v1.post("/activations/{activation_name}:trigger")
-async def trigger_activation(
-    activation_name: str,
+async def trigger_connection(
+    activation_name: str | None = None,
+    connection_name: str | None = None,
     dry_run: bool = Body(..., embed=True),
     airflow_client=Depends(AirflowClient),
 ) -> Response:
-  """Triggers an activation identified by name.
+  """Triggers a connection identified by name.
   
   Args:
-    activation_name: The name of the target activation to trigger.
+    activation_name: The name of the target connection to trigger (legacy)
+    connection_name: The name of the target connection to trigger.
     dry_run: A boolean indicating whether or not to actually send
       the data to the underlying destination or if it should only
       be validated (when validation is available).
@@ -75,8 +78,10 @@ async def trigger_activation(
     via status_code.
 
   """
+  final_connection_name = activation_name or connection_name
   trigger_conf = {"dry_run": dry_run}
-  response = await airflow_client.trigger(activation_name, conf=trigger_conf)
+  response = await airflow_client.trigger(final_connection_name,
+                                          conf=trigger_conf)
   return Response(status_code=response.status_code)
 
 
@@ -173,23 +178,24 @@ async def create_config(config: Config,
   return config
 
 
-@v1.get("/activations", response_model=list[Activation])
-async def get_activations(session: AsyncSession = Depends(get_session)):
-  """Queries latest config and query activations field from config json.
+@v1.get("/connections", response_model=list[Connection])
+@v1.get("/activations", response_model=list[Connection])
+async def get_connections(session: AsyncSession = Depends(get_session)):
+  """Queries latest config and query connections field from config json.
   
   Args:
     session: Postgres DB session dependency injection.
   Returns:
-    The activations registered in the latests config wrapped in an HTTP JSONResponse.
+    The connections registered in the latests config wrapped in an HTTP JSONResponse.
   """
   latest_config = await get_latest_config(session=session)
-  activations = [Activation(**a) for a in latest_config.value["activations"]]
-  return activations
+  connections = [Connection(**a) for a in latest_config.value["activations"]]
+  return connections
 
 
 @v1.get("/schemas", response_model=dict[str, Any])
 async def get_schemas():
-  """Retrieves available schemas for Activations.
+  """Retrieves available schemas for Connections.
   
   Returns:
     A JSONSchema representing all sources and destinations schemas available.
@@ -242,21 +248,25 @@ async def validate_destination(
   return response
 
 
+@v1.get("/connections/~/runs:batchGet", response_model=RunLogsResponse)
 @v1.get("/activations/~/runs:batchGet", response_model=RunLogsResponse)
-async def batch_get_activations_runs(
+async def batch_get_connections_runs(
     session: AsyncSession = Depends(get_session),
     airflow_client=Depends(AirflowClient),
-    activation_names: Annotated[list[str] | None, Query()] = None,
+    final_connection_names: Annotated[list[str] | None, Query()] = None,
+    connection_names: Annotated[list[str] | None, Query()] = None,
     page: int = 0,
     page_size: int = 20,
 ):
-  """Retrieves run logs for all activations.
+  """Retrieves run logs for all connections.
   
   Args:
     session: Postgres DB session dependency injection.
     airflow_client: Airflow Client dependency injection.
-    activation_names: List of interested activations to retrieve logs from.
-      Defaults to None, when logs from all activations are retrieved.
+    activation_names: List of interested connection to retrieve logs from.
+      Defaults to None, when logs from all connections are retrieved (legacy).
+    connection_names: List of interested connections to retrieve logs from.
+      Defaults to None, when logs from all connections are retrieved.
     page: Page number to be used by paginating clients. 
       Defaults to zero, when no offset is applied.
     page_size: Size of page to be used by paginating clients.
@@ -264,19 +274,20 @@ async def batch_get_activations_runs(
   Returns:
     The RunLogsResponse object wrapped in an HTTP JSONResponse.
   """
-  # define target activations
-  activations = await get_activations(session)
-  if not activation_names:  # if none passed, gets logs from all activations
-    activation_names = [activation.name for activation in activations]
-  else:  # if activation_names passed, filter activations object by name
-    activations[:] = [a for a in activations if a.name in activation_names]
+  # define target connections
+  connections = await get_connections(session)
+  final_connection_names = final_connection_names or connection_names
+  if not final_connection_names:  # if none passed, gets logs from all connections
+    final_connection_names = [connection.name for connection in connections]
+  else:  # if connection_names passed, filter connections object by name
+    connections[:] = [a for a in connections if a.name in final_connection_names]
 
-  activation_by_dag_id = {
-      f"{activation.name}_dag": activation for activation in activations
+  connection_by_dag_id = {
+      f"{connection.name}_dag": connection for connection in connections
   }
 
   runs_response = await airflow_client.list_dag_runs(
-      activation_by_dag_id, limit=page_size, offset=page * page_size
+      connection_by_dag_id, limit=page_size, offset=page * page_size
   )
 
   return runs_response
