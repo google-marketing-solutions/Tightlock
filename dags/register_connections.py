@@ -161,10 +161,10 @@ class DAGBuilder:
         register_errors = Variable.get(self.register_errors_var,
                                        deserialize_json=True)
         register_errors.append({
-            "activation_name": activation["name"], 
+            "connection_name": connection["name"], 
             "error": error_traceback
         })
-        print(f"{activation['name']} registration error : {error_traceback}")
+        print(f"{connection['name']} registration error : {error_traceback}")
 
         Variable.update(self.register_errors_var,
                         register_errors,
