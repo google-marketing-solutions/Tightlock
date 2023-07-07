@@ -55,7 +55,7 @@ async def connect():
   """Validates API connection with a client."""
   return Response(status_code=status.HTTP_200_OK)
 
-
+# TODO(b/290388517): Remove mentions to activation once UI is ready
 @v1.post("/connections/{connection_name}:trigger")
 @v1.post("/activations/{activation_name}:trigger")
 async def trigger_connection(
@@ -178,6 +178,7 @@ async def create_config(config: Config,
   return config
 
 
+# TODO(b/290388517): Remove mentions to activation once UI is ready
 @v1.get("/connections", response_model=list[Connection])
 @v1.get("/activations", response_model=list[Connection])
 async def get_connections(session: AsyncSession = Depends(get_session)):
@@ -248,6 +249,7 @@ async def validate_destination(
   return response
 
 
+# TODO(b/290388517): Remove mentions to activation once UI is ready
 @v1.get("/connections/~/runs:batchGet", response_model=RunLogsResponse)
 @v1.get("/activations/~/runs:batchGet", response_model=RunLogsResponse)
 async def batch_get_connections_runs(

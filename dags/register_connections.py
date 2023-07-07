@@ -140,6 +140,7 @@ class DAGBuilder:
 
   def register_dags(self):
     """Loops over all configured connections and create an Airflow DAG for each one of them."""
+    # TODO(b/290388517): Remove mentions to activation once UI is ready
     for connection in self.latest_config["activations"]:
       # actual implementations of each source and destination
       try:
