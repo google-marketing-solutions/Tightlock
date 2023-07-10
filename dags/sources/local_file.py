@@ -14,8 +14,7 @@
  limitations under the License.
  """
 
-"""Local file source implementation."""
-from typing import Any, Dict, List, Literal, Mapping, Sequence
+from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence
 
 from pydantic import BaseModel
 from utils import DrillMixin
@@ -38,10 +37,10 @@ class Source(DrillMixin):
 
   def get_data(
       self,
-      connections: Sequence[Mapping[str, Any]],
       fields: Sequence[str],
       offset: int,
       limit: int,
+      reusable_credentials: Optional[Sequence[Mapping[str, Any]]],
   ) -> List[Mapping[str, Any]]:
     return self.get_drill_data(self.path, fields, offset, limit)
 

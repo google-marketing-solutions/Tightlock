@@ -14,7 +14,6 @@
  limitations under the License.
  """
 
-"""BigQuery source implementation."""
 import json
 import tempfile
 from typing import Any, Dict, List, Mapping, Optional, Sequence
@@ -56,10 +55,10 @@ class Source:
 
   def get_data(
       self,
-      connections: Sequence[Mapping[str, Any]],
       fields: Sequence[str],
       offset: int,
       limit: int,
+      reusable_credentials: Optional[Sequence[Mapping[str, Any]]],
   ) -> List[Mapping[str, Any]]:
     """get_data implemention for BigQuery source."""
     query = (
@@ -88,7 +87,10 @@ class Source:
       self.client.get_table(self.location)
       return ValidationResult(True, [])
     except RefreshError:
-      return ValidationResult(False,
-                              ["Missing credentials file (required when running outside of GCP)."])
+      return ValidationResult(
+          False,
+          ["Missing credentials file (required when running outside of GCP)."]
+      )
     except NotFound:
       return ValidationResult(False, [f"Table {self.location} is not found."])
+

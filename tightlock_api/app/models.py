@@ -25,7 +25,7 @@ from sqlmodel import Column, DateTime, Field, SQLModel
 
 
 class RunResult(SQLModel):
-  """Result of an activation run."""
+  """Result of a connection run."""
 
   successful_hits: int = 0
   failed_hits: int = 0
@@ -34,9 +34,9 @@ class RunResult(SQLModel):
 
 
 class RunLog(SQLModel):
-  """Full log of an activation run."""
+  """Full log of a connection run."""
 
-  activation_name: str
+  connection_name: str
   source_name: str
   destination_name: str
   schedule: str
@@ -63,13 +63,13 @@ class ConfigValue(SQLModel):
   value: Dict[str, Any]
 
 
-class Activation(SQLModel):
-  """Represents a configured activation.
+class Connection(SQLModel):
+  """Represents a configured connection.
 
   This model is part of the config and does not define a table for now.
   """
 
-  name: str  # Activation name
+  name: str  # Connection name
   source: Dict[str, Any]  # Source
   destination: Dict[str, Any]  # Destination
   schedule: Optional[str] = None  # A cron expression or preset
