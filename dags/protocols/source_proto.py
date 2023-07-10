@@ -19,6 +19,7 @@ from typing import (Any, Dict, List, Mapping, Optional, Protocol, Sequence,
 
 from utils import ValidationResult
 
+from pydantic import BaseModel
 
 @runtime_checkable
 class SourceProto(Protocol):
@@ -54,7 +55,8 @@ class SourceProto(Protocol):
     """
     ...
 
-  def schema(self) -> Dict[str, Any]:
+  @staticmethod
+  def schema() -> BaseModel:
     """Returns the required metadata for this source config.
     
     Returns:

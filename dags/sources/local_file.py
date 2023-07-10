@@ -44,8 +44,9 @@ class Source(DrillMixin):
   ) -> List[Mapping[str, Any]]:
     return self.get_drill_data(self.path, fields, offset, limit)
 
-  def schema(self) -> Dict[str, Any]:
-    return LocalFile.schema_json()
+  @staticmethod
+  def schema() -> BaseModel:
+    return LocalFile
 
   def validate(self) -> ValidationResult:
     return self.validate_drill(self.path)

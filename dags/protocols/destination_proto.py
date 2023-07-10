@@ -19,6 +19,8 @@ from typing import (Any, Dict, List, Mapping, Optional, Protocol, Sequence,
 
 from utils import RunResult, ValidationResult
 
+from pydantic import BaseModel
+
 
 @runtime_checkable
 class DestinationProto(Protocol):
@@ -68,7 +70,8 @@ class DestinationProto(Protocol):
     """
     ...
 
-  def schema(self) -> Dict[str, Any]:
+  @staticmethod
+  def schema() -> BaseModel:
     """Returns the required metadata for this destination config.
     
     Returns:

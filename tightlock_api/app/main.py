@@ -201,10 +201,7 @@ async def get_schemas():
   Returns:
     A JSONSchema representing all sources and destinations schemas available.
   """
-  # TODO(b/270748315): Implement actual call to schemas DAG once available.
-  f = open("schemas_sample.json")
-  data = json.load(f)
-  return data
+  ...
 
 
 @v1.post("/sources/{source_name}:validate", response_model=ValidationResult)

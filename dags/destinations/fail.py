@@ -20,6 +20,8 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from utils import RunResult, ValidationResult
 
+from pydantic import BaseModel
+
 
 class Destination:
   """Implements DestinationProto protocol."""
@@ -35,8 +37,9 @@ class Destination:
   def fields(self) -> Sequence[str]:
     return ["foo", "bar", "qux", "zap"]
 
-  def schema(self) -> Dict[str, Any]:
-    return {"foo": "bar"}
+  @staticmethod
+  def schema() -> BaseModel:
+    return None
 
   def batch_size(self) -> int:
     return 42

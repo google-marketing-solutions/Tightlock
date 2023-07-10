@@ -79,8 +79,9 @@ class Source:
 
     return rows
 
-  def schema(self) -> Dict[str, Any]:
-    return BigQueryConnection.schema_json()
+  @staticmethod
+  def schema() -> BigQueryConnection:
+    return BigQueryConnection
 
   def validate(self) -> ValidationResult:
     try:

@@ -21,42 +21,23 @@ import datetime
 import enum
 import json
 import logging
-from typing import (
-    Annotated,
-    Any,
-    Dict,
-    List,
-    Literal,
-    Mapping,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-)
+from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence, Tuple
 
 import errors
 import immutabledict
 import requests
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from utils import RunResult, ValidationResult
 
 
-class GA4Base(BaseModel):
-  type: Literal["GA4MP"] = "GA4MP"
+class GA4MP(BaseModel):
   api_secret: str
   non_personalized_ads: Optional[bool] = False
   debug: Optional[bool] = False
   user_properties: Optional[Dict[str, Dict[str, str]]]
-
-
-class GA4Web(GA4Base):
-  event_type: Literal["gtag"]
-  measurement_id: str
-
-
-class GA4App(GA4Base):
-  event_type: Literal["firebase"]
-  firebase_app_id: str
+  event_type: Literal['gtag'] | Literal['firebase']
+  measurement_id: Optional[str] = None
+  firebase_app_id: Optional[str] = None
 
 
 _GA_EVENT_POST_URL = "https://www.google-analytics.com/mp/collect"
@@ -374,10 +355,9 @@ class Destination:
 
     return run_result
 
-  def schema(self) -> Dict[str, Any]:
-    GA4MP = Annotated[Union[GA4Web, GA4App], Field(discriminator="event_type")]
-
-    return GA4MP.schema_json()
+  @staticmethod
+  def schema() -> BaseModel:
+    return GA4MP
 
   def fields(self) -> Sequence[str]:
     if self.payload_type == PayloadTypes.FIREBASE.value:
