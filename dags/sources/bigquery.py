@@ -73,7 +73,7 @@ class Source:
     return rows
 
   @staticmethod
-  def schema() -> ProtocolSchema:
+  def schema() -> Optional[ProtocolSchema]:
     return ProtocolSchema(
         "bigquery",
         [

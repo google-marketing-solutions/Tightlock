@@ -16,8 +16,7 @@
 
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
-from utils import DrillMixin, ProtocolSchema
-from utils import ValidationResult
+from utils import DrillMixin, ProtocolSchema, ValidationResult
 
 
 class Source(DrillMixin):
@@ -39,7 +38,7 @@ class Source(DrillMixin):
     return self.get_drill_data(self.path, fields, offset, limit)
 
   @staticmethod
-  def schema() -> ProtocolSchema:
+  def schema() -> Optional[ProtocolSchema]:
     return ProtocolSchema(
         "local_file",
         [
