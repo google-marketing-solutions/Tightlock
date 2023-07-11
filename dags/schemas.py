@@ -19,13 +19,15 @@ from dataclasses import make_dataclass
 
 from airflow.decorators import dag, task
 from pydantic import BaseModel
-from utils import DagUtils, ProtocolSchema
+from utils import DagUtils
+
+from typing import Any
 
 start_date = datetime.datetime(2023, 1, 1, 0, 0, 0)
 dag_utils = DagUtils()
 
 
-def reduce_schemas(schemas: list[ProtocolSchema], final_schema=None):
+def reduce_schemas(schemas: list[Any], final_schema=None):
   """Combine schemas into a single Union type."""
   if schemas:
     head = schemas[0]
