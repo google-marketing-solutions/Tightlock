@@ -18,9 +18,7 @@ limitations under the License."""
 
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
-from utils import RunResult, ValidationResult
-
-from pydantic import BaseModel
+from utils import ProtocolSchema, RunResult, ValidationResult
 
 
 class Destination:
@@ -38,7 +36,7 @@ class Destination:
     return ["foo", "bar", "qux", "zap"]
 
   @staticmethod
-  def schema() -> BaseModel:
+  def schema() -> Optional[ProtocolSchema]:
     return None
 
   def batch_size(self) -> int:

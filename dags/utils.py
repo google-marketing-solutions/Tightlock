@@ -16,7 +16,6 @@ limitations under the License."""
 """Utility functions for DAGs."""
 
 import importlib
-import io
 import os
 import pathlib
 import sys
@@ -27,6 +26,14 @@ from typing import Any, List, Mapping, Sequence, Tuple
 from airflow.providers.apache.drill.hooks.drill import DrillHook
 
 _TABLE_ALIAS = "t"
+
+
+@dataclass
+class ProtocolSchema:
+  """Class that defines the schema of a source or destination protocol."""
+
+  class_name: str
+  fields: Sequence[Tuple[str, type] | Tuple[str, type, field]]
 
 
 @dataclass

@@ -14,16 +14,10 @@
  limitations under the License.
  """
 
-from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence
+from typing import Any, Dict, List, Mapping, Optional, Sequence
 
-from pydantic import BaseModel
-from utils import DrillMixin
+from utils import DrillMixin, ProtocolSchema
 from utils import ValidationResult
-
-
-class LocalFile(BaseModel):
-  type: Literal['local_file'] = 'local_file'
-  location: str
 
 
 class Source(DrillMixin):
@@ -31,9 +25,9 @@ class Source(DrillMixin):
 
   def __init__(self, config: Dict[str, Any]):
     self.config = config
-    self.location = self.config['location']
-    self.conn_name = 'dfs'
-    self.path = f'{self.conn_name}.`data/{self.location}`'
+    self.location = self.config["location"]
+    self.conn_name = "dfs"
+    self.path = f"{self.conn_name}.`data/{self.location}`"
 
   def get_data(
       self,
@@ -45,8 +39,13 @@ class Source(DrillMixin):
     return self.get_drill_data(self.path, fields, offset, limit)
 
   @staticmethod
-  def schema() -> BaseModel:
-    return LocalFile
+  def schema() -> ProtocolSchema:
+    return ProtocolSchema(
+        "local_file",
+        [
+            ("location", str)
+        ]
+    )
 
   def validate(self) -> ValidationResult:
     return self.validate_drill(self.path)
