@@ -41,7 +41,7 @@ def reduce_schemas(schemas: list[Any], final_schema=None):
 
 
 @dag(
-    dag_id="schema_validation",
+    dag_id="retrieve_schemas",
     is_paused_upon_creation=False,
     start_date=start_date,
     schedule_interval=None,
