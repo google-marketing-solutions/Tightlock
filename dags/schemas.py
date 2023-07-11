@@ -15,8 +15,7 @@
  """
 
 import datetime
-from dataclasses import field, make_dataclass
-from typing import Sequence
+from dataclasses import make_dataclass
 
 from airflow.decorators import dag, task
 from pydantic import BaseModel
