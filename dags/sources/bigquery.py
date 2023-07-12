@@ -16,19 +16,13 @@
 
 import json
 import tempfile
+from dataclasses import field
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from google.auth.exceptions import RefreshError
 from google.cloud import bigquery
 from google.cloud.exceptions import NotFound
-from pydantic import BaseModel
-from utils import ValidationResult
-
-
-class BigQueryConnection(BaseModel):
-  credentials: Optional[Mapping[str, str]] = None
-  dataset: str
-  table: str
+from utils import ProtocolSchema, ValidationResult
 
 
 class Source:
@@ -41,17 +35,16 @@ class Source:
     except (ValueError, TypeError):
       # json.loads fails if credentials are not a valid JSON object
       config["credentials"] = None
-    self.bq_connection = BigQueryConnection.parse_obj(config)
-    if self.bq_connection.credentials:
+    if config.get("credentials"):
       with tempfile.NamedTemporaryFile(
           mode="w", encoding="utf-8", delete=False
       ) as credentials_file:
-        json.dump(self.bq_connection.credentials, credentials_file)
+        json.dump(config.get("credentials"), credentials_file)
         credentials_path = credentials_file.name
       self.client = bigquery.Client.from_service_account_json(credentials_path)
     else:
       self.client = bigquery.Client()
-    self.location = f"{self.bq_connection.dataset}.{self.bq_connection.table}"
+    self.location = f"{config.get('dataset')}.{config.get('table')}"
 
   def get_data(
       self,
@@ -72,15 +65,23 @@ class Source:
     for element in query_job.result():
       # create dict to hold results and respect the return type
       row = {}
-      for field in fields:
-        if field in element.keys():
-          row[field] = element.get(field)
+      for f in fields:
+        if f in element.keys():
+          row[f] = element.get(f)
       rows.append(row)
 
     return rows
 
-  def schema(self) -> Dict[str, Any]:
-    return BigQueryConnection.schema_json()
+  @staticmethod
+  def schema() -> Optional[ProtocolSchema]:
+    return ProtocolSchema(
+        "bigquery",
+        [
+            ("dataset", str),
+            ("table", str),
+            ("credentials", Optional[Mapping[str, str]], field(default=None)),
+        ]
+    )
 
   def validate(self) -> ValidationResult:
     try:

@@ -22,7 +22,7 @@ from typing import Annotated, Any
 from clients import AirflowClient
 from db import get_session
 from fastapi import Body, Depends, FastAPI, HTTPException, Query
-from fastapi.responses import Response
+from fastapi.responses import Response, JSONResponse
 from models import (Config, ConfigValue, Connection, RunLogsResponse,
                     ValidationResult)
 from security import check_authentication_header
@@ -194,17 +194,20 @@ async def get_connections(session: AsyncSession = Depends(get_session)):
   return connections
 
 
-@v1.get("/schemas", response_model=dict[str, Any])
-async def get_schemas():
+@v1.get("/schemas")
+async def get_schemas(airflow_client=Depends(AirflowClient)):
   """Retrieves available schemas for Connections.
+
+  Args:
+    airflow_client: Airflow Client dependency injection.
   
   Returns:
     A JSONSchema representing all sources and destinations schemas available.
   """
-  # TODO(b/270748315): Implement actual call to schemas DAG once available.
-  f = open("schemas_sample.json")
-  data = json.load(f)
-  return data
+  response = await airflow_client.get_schemas()
+  if not response:
+    return JSONResponse(status_code=404)
+  return JSONResponse(content=response)
 
 
 @v1.post("/sources/{source_name}:validate", response_model=ValidationResult)

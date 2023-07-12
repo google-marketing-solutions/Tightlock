@@ -13,7 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License."""
 
-"""API clients used by TIghtlock routes."""
 import ast
 import datetime
 import json
@@ -168,3 +167,21 @@ class AirflowClient:
     return await self._validate_target(
         "Destination", destination_name, destination_config
     )
+
+  async def get_schemas(self) -> Optional[str]:
+    # Trigger schema DAG
+    dag_id = "retrieve_schemas"
+    task_id = dag_id  # this task has the same name as the dag
+    trigger_result = await self.trigger(dag_id, "")
+    content = json.loads(trigger_result.content)
+
+    # Get result of schemas DAG
+    dag_run_id = content["dag_run_id"]
+    url = f"{self.base_url}/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/xcomEntries/return_value"
+    xcom_response = await self._get_request(url)
+    if xcom_response.status_code != 200:
+      return None
+    parsed_xcom_response = json.loads(xcom_response.content)
+    schemas_result = parsed_xcom_response["value"]
+    return schemas_result
+

@@ -18,7 +18,7 @@ limitations under the License."""
 
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
-from utils import RunResult, ValidationResult
+from utils import ProtocolSchema, RunResult, ValidationResult
 
 
 class Destination:
@@ -35,8 +35,9 @@ class Destination:
   def fields(self) -> Sequence[str]:
     return ["foo", "bar", "qux", "zap"]
 
-  def schema(self) -> Dict[str, Any]:
-    return {"foo": "bar"}
+  @staticmethod
+  def schema() -> Optional[ProtocolSchema]:
+    return None
 
   def batch_size(self) -> int:
     return 42
