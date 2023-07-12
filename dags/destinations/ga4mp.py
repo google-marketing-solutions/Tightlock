@@ -21,13 +21,12 @@ import datetime
 import enum
 import json
 import logging
-from dataclasses import field
 from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence, Tuple
 
 import errors
 import immutabledict
 import requests
-from pydantic import BaseModel
+from pydantic import Field
 from utils import ProtocolSchema, RunResult, ValidationResult
 
 _GA_EVENT_POST_URL = "https://www.google-analytics.com/mp/collect"
@@ -350,13 +349,13 @@ class Destination:
     return ProtocolSchema(
         "GA4MP",
         [
-            ("api_secret", str),
-            ("event_type", Literal["gtag"] | Literal["firebase"]),
-            ("non_personalized_ads", Optional[bool], field(default=False)),
-            ("debug", Optional[bool], field(default=False)),
-            ("user_properties", Optional[dict[str, str]], field(default=None)),
-            ("measurement_id", Optional[str], field(default=None)),
-            ("firebase_app_id", Optional[str], field(default=None))
+            ("api_secret", str, Field(description="An API SECRET generated in the Google Analytics UI.")),
+            ("event_type", Literal["gtag"] | Literal["firebase"], Field(description="GA4 client type.")),
+            ("measurement_id", str, Field(condition="event_type==gtag", description="The measurement ID associated with a stream. Found in the Google Analytics UI.")),
+            ("firebase_app_id", str, Field(condition="event_type==firebase", description="The Firebase App ID. The identifier for a Firebase app. Found in the Firebase console.")),
+            ("non_personalized_ads", Optional[bool], Field(default=False, description="Set to true to indicate these events should not be used for personalized ads.")),
+            ("debug", Optional[bool], Field(default=False, description="Dry-run (validation mode).")),
+            ("user_properties", Optional[dict[str, str]], Field(default=None, description="The user properties for the measurement.")),
         ]
     )
 
