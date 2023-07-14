@@ -16,12 +16,12 @@
 
 import json
 import tempfile
-from dataclasses import field
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from google.auth.exceptions import RefreshError
 from google.cloud import bigquery
 from google.cloud.exceptions import NotFound
+from pydantic import Field
 from utils import ProtocolSchema, ValidationResult
 
 
@@ -77,9 +77,12 @@ class Source:
     return ProtocolSchema(
         "bigquery",
         [
-            ("dataset", str),
-            ("table", str),
-            ("credentials", Optional[Mapping[str, str]], field(default=None)),
+            ("dataset", str,
+             Field(description="The name of your BigQuery dataset.")),
+            ("table", str,
+             Field(description="The name of your BigQuery table.")),
+            ("credentials", Optional[Mapping[str, str]],
+             Field(default=None, description="The full credentials service-account JSON string. Not needed if your backend is located in the same GCP project as the BigQuery table.")),
         ]
     )
 

@@ -16,6 +16,7 @@
 
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
+from pydantic import Field
 from utils import DrillMixin, ProtocolSchema, ValidationResult
 
 
@@ -42,7 +43,7 @@ class Source(DrillMixin):
     return ProtocolSchema(
         "local_file",
         [
-            ("location", str)
+            ("location", str, Field(description="The path to your local file, relative to the container 'data' folder."))
         ]
     )
 
