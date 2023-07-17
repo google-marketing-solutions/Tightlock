@@ -50,11 +50,11 @@ data "google_compute_default_service_account" "default" {
 
 resource "google_compute_network" "tightlock-network" {
   project = var.project_id
-  name = "tightlock-network"
+  name = [format("tightlock-%s-network", random_string.backend_name.result)]
 }
 
 resource "google_compute_firewall" "tightlock-firewall" {
-  name = "tightlock-firewall"
+  name = [format("tightlock-%s-firewall", random_string.backend_name.result)]
   network = google_compute_network.tightlock-network.name
 
   source_ranges = ["0.0.0.0/0"]
@@ -64,7 +64,7 @@ resource "google_compute_firewall" "tightlock-firewall" {
     ports    = ["80"]
   }
 
-  source_tags = ["tightlock-tag"]
+  source_tags = [format("tightlock-%s-tag", random_string.backend_name.result)]
 }
 
 resource "google_compute_disk" "tightlock-storage" {
