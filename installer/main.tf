@@ -95,7 +95,7 @@ resource "google_compute_instance" "tightlock-backend" {
   machine_type              = "e2-standard-4"
   zone                      = var.compute_engine_zone
   project                   = var.project_id
-  tags                      = ["tightlock-tag"]
+  tags = [format("tightlock-%s-tag", random_string.backend_name.result)]
   allow_stopping_for_update = true
   deletion_protection       = false
 
