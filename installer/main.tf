@@ -63,7 +63,7 @@ resource "google_compute_firewall" "tightlock-firewall" {
     ports    = ["80"]
   }
 
-  source_tags = "tightlock-tag"
+  source_tags = ["tightlock-tag"]
 }
 
 resource "google_compute_disk" "tightlock-storage" {
