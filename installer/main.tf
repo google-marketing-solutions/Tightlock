@@ -49,6 +49,7 @@ data "google_compute_default_service_account" "default" {
 }
 
 resource "google_compute_network" "tightlock-network" {
+  project = var.project_id
   name = "tightlock-network"
 }
 
