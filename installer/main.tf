@@ -95,7 +95,7 @@ resource "google_compute_instance" "tightlock-backend" {
   machine_type              = "e2-standard-4"
   zone                      = var.compute_engine_zone
   project                   = var.project_id
-  tags = [format("tightlock-%s-tag", random_string.backend_name.result)]
+  tags                      = [format("tightlock-%s-tag", random_string.backend_name.result)]
   allow_stopping_for_update = true
   deletion_protection       = false
 
@@ -111,7 +111,7 @@ resource "google_compute_instance" "tightlock-backend" {
   }
 
   network_interface {
-    network = "default"
+    network = google_compute_network.tightlock-network.name
     access_config {
       nat_ip = google_compute_address.vm-static-ip.address
     }
