@@ -50,11 +50,11 @@ data "google_compute_default_service_account" "default" {
 
 resource "google_compute_network" "tightlock-network" {
   project = var.project_id
-  name = [format("tightlock-%s-network", random_string.backend_name.result)]
+  name = format("tightlock-%s-network", random_string.backend_name.result)
 }
 
 resource "google_compute_firewall" "tightlock-firewall" {
-  name = [format("tightlock-%s-firewall", random_string.backend_name.result)]
+  name = format("tightlock-%s-firewall", random_string.backend_name.result)
   network = google_compute_network.tightlock-network.name
 
   source_ranges = ["0.0.0.0/0"]
