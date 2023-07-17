@@ -54,6 +54,7 @@ resource "google_compute_network" "tightlock-network" {
 }
 
 resource "google_compute_firewall" "tightlock-firewall" {
+  project = var.project_id
   name = format("tightlock-%s-firewall", random_string.backend_name.result)
   network = google_compute_network.tightlock-network.name
 
