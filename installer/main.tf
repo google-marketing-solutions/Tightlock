@@ -48,6 +48,24 @@ data "google_compute_default_service_account" "default" {
   ]
 }
 
+resource "google_compute_network" "tightlock-network" {
+  name = "tightlock-network"
+}
+
+resource "google_compute_firewall" "tightlock-firewall" {
+  name = "tightlock-firewall"
+  network = google_compute_network.tightlock-network.name
+
+  source_ranges = ["0.0.0.0/0"]
+
+  allow {
+    protocol = "tcp"
+    ports    = ["80"]
+  }
+
+  source_tags = "tightlock-tag"
+}
+
 resource "google_compute_disk" "tightlock-storage" {
   project = var.project_id
   name    = format("tightlock-%s-storage", random_string.backend_name.result)
@@ -75,7 +93,7 @@ resource "google_compute_instance" "tightlock-backend" {
   machine_type              = "e2-standard-4"
   zone                      = var.compute_engine_zone
   project                   = var.project_id
-  tags                      = ["http-server"]
+  tags                      = ["tightlock-tag"]
   allow_stopping_for_update = true
   deletion_protection       = false
 
