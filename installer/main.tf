@@ -58,7 +58,7 @@ resource "google_compute_firewall" "tightlock-firewall" {
   count   = var.create_tightlock_network ? 1 : 0
   project = var.project_id
   name    = "tightlock-firewall"
-  network = local.network_name
+  network = var.create_tightlock_network ? google_compute_network.tightlock_network[0].name : local.network_name
 
   source_ranges = ["0.0.0.0/0"]
 
@@ -113,7 +113,7 @@ resource "google_compute_instance" "tightlock-backend" {
   }
 
   network_interface {
-    network = local.network_name
+    network = var.create_tightlock_network ? google_compute_network.tightlock_network[0].name : local.network_name
     access_config {
       nat_ip = google_compute_address.vm-static-ip.address
     }
