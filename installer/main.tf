@@ -51,16 +51,14 @@ data "google_compute_default_service_account" "default" {
 resource "google_compute_network" "tightlock-network" {
   count   = var.create_tightlock_network ? 1 : 0
   project = var.project_id
-  name    = "tightlock-network"
-  // name = format("tightlock-%s-network", random_string.backend_name.result)
+  name    = local.network_name
 }
 
 resource "google_compute_firewall" "tightlock-firewall" {
   count   = var.create_tightlock_network ? 1 : 0
   project = var.project_id
   name    = "tightlock-firewall"
-  network = google_compute_network.tightlock-network[0].name
-  // name = format("tightlock-%s-firewall", random_string.backend_name.result)
+  network = local.network_name
 
   source_ranges = ["0.0.0.0/0"]
 
@@ -69,7 +67,6 @@ resource "google_compute_firewall" "tightlock-firewall" {
     ports    = ["80"]
   }
 
-  // source_tags = [format("tightlock-%s-tag", random_string.backend_name.result)]
   source_tags = ["tightlock-tag"]
 }
 
@@ -100,7 +97,6 @@ resource "google_compute_instance" "tightlock-backend" {
   machine_type              = "e2-standard-4"
   zone                      = var.compute_engine_zone
   project                   = var.project_id
-  // tags                      = [format("tightlock-%s-tag", random_string.backend_name.result)]
   tags                      = ["tightlock-tag"]
   allow_stopping_for_update = true
   deletion_protection       = false
@@ -117,7 +113,7 @@ resource "google_compute_instance" "tightlock-backend" {
   }
 
   network_interface {
-    network = google_compute_network.tightlock-network[0].name
+    network = local.network_name
     access_config {
       nat_ip = google_compute_address.vm-static-ip.address
     }
