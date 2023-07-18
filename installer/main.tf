@@ -49,16 +49,18 @@ data "google_compute_default_service_account" "default" {
 }
 
 resource "google_compute_network" "tightlock-network" {
+  count   = var.create_tightlock_network ? 1 : 0
   project = var.project_id
+  name    = "tightlock-network"
   // name = format("tightlock-%s-network", random_string.backend_name.result)
-  name = "tightlock-network"
 }
 
 resource "google_compute_firewall" "tightlock-firewall" {
+  count   = var.create_tightlock_network ? 1 : 0
   project = var.project_id
-  name = "tightlock-firewall"
-  // name = format("tightlock-%s-firewall", random_string.backend_name.result)
+  name    = "tightlock-firewall"
   network = google_compute_network.tightlock-network.name
+  // name = format("tightlock-%s-firewall", random_string.backend_name.result)
 
   source_ranges = ["0.0.0.0/0"]
 

@@ -14,6 +14,11 @@ variable "create_bq_sample_data" {
   description = "If set to true a BigQuery dataset and tables will be created with sample data uploaded via a Cloud Bucket."
 }
 
+variable "create_tightlock_network" {
+  type        = bool
+  description = "If set to true, the default Tightlock network and firewall will be created. Set it to false if deploying on a cloud project that already has a Tightlock deployment."
+}
+
 variable "compute_engine_zone" {
   type        = string
   description = "The zone that the machine should be created in."
