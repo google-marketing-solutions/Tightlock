@@ -24,6 +24,9 @@ PY3=$ENV_NAME/bin/python
 
 $PY3 -m pip install -r integration_tests/test_requirements.txt
 
+# installing pytest-docker-compose separately to handle incompatibility described here: https://stackoverflow.com/questions/76708329/docker-compose-no-longer-building-image-attributeerror-cython-sources
+$PY3 -m pip install --no-build-isolation pytest-docker-compose==3.2.1
+
 # Create env
 ./create_env.sh non-interactive test 
 
