@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # update pip version
-python3 -m pip install --user --upgrade pip
+python3 -m pip install --user pip==22.3
 
 # Create test venv
 ENV_NAME=".tightlock_integration_test_venv"
