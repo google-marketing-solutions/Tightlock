@@ -22,7 +22,7 @@ python3 -m venv $ENV_NAME
 # point PY3 variable to venv python path
 PY3=$ENV_NAME/bin/python
 
-$PY3 -m pip install --no-binary :all -r integration_tests/test_requirements.txt
+$PY3 -m pip install --no-build-isolation --no-binary :all: -r integration_tests/test_requirements.txt
 
 # Create env
 ./create_env.sh non-interactive test 
