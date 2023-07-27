@@ -60,7 +60,8 @@ resource "google_compute_firewall" "tightlock-firewall" {
   name    = "tightlock-firewall"
   network = var.create_tightlock_network ? google_compute_network.tightlock-network[0].name : local.network_name
 
-  source_ranges = ["0.0.0.0/0"]
+  # Allow connections coming from 1pd-scheduler.dev only
+  source_ranges = ["35.199.32.68"]
 
   allow {
     protocol = "tcp"
