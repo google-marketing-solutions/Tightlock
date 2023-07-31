@@ -21,13 +21,13 @@ import datetime
 import enum
 import json
 import logging
-from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 import errors
 import immutabledict
 import requests
 from pydantic import Field
-from utils import ProtocolSchema, RunResult, ValidationResult
+from utils import ProtocolSchema, RunResult, SchemaUtils, ValidationResult
 
 _GA_EVENT_POST_URL = "https://www.google-analytics.com/mp/collect"
 _GA_EVENT_VALIDATION_URL = "https://www.google-analytics.com/debug/mp/collect"
@@ -85,9 +85,11 @@ _GA_REFERENCE_PARAMS = [
   "session_id"
 ]
 
+_KEY_VALUE_TYPE = SchemaUtils.key_value_type()
+
 
 class PayloadTypes(enum.Enum):
-  """GA4 Measurememt Protocol supported payload types."""
+  """GA4 Measurement Protocol supported payload types."""
 
   FIREBASE = "firebase"
   GTAG = "gtag"
@@ -105,12 +107,26 @@ class Destination:
     elif self.payload_type == PayloadTypes.GTAG.value:
       self.measurement_id = config.get("measurement_id")
     self.non_personalized_ads = config.get("non_personalized_ads") or False
-    self.user_properties = config.get("user_properties") or None
+    self.user_properties = self._parse_user_properties(config)
     self.debug = config.get("debug") or False
 
     self._validate_credentials()
     self.post_url = self._build_api_url(True)
     self.validate_url = self._build_api_url(False)
+
+  def _parse_user_properties(self, config):
+    user_properties_list = config.get("user_properties")
+    if user_properties_list is None:
+      return None
+    result = {}
+    try:
+      for up in user_properties_list:
+        kv = _KEY_VALUE_TYPE(**up)
+        result[kv.key] = {"value": kv.value}
+    except TypeError as e:
+      print(f"Invalid user_properties format: {e}")
+    return result or None
+
 
   def _get_valid_and_invalid_events(
       self, events: List[Dict[str, Any]]
@@ -369,7 +385,7 @@ class Destination:
             ("debug", Optional[bool], Field(
                 default=False,
                 description="Dry-run (validation mode).")),
-            ("user_properties", Optional[dict[str, str]], Field(
+            ("user_properties", Optional[List[_KEY_VALUE_TYPE]], Field(
                 default=None,
                 description="The user properties for the measurement.")),
         ]
@@ -460,4 +476,5 @@ class Destination:
       built_url = f"{_GA_EVENT_POST_URL}?{query_url}"
     else:
       built_url = f"{_GA_EVENT_VALIDATION_URL}?{query_url}"
+    return built_url
     return built_url

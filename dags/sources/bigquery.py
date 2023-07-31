@@ -22,7 +22,7 @@ from google.auth.exceptions import RefreshError
 from google.cloud import bigquery
 from google.cloud.exceptions import NotFound
 from pydantic import Field
-from utils import ProtocolSchema, ValidationResult
+from utils import ProtocolSchema, SchemaUtils, ValidationResult
 
 
 class Source:
@@ -31,7 +31,9 @@ class Source:
   def __init__(self, config: Dict[str, Any]):
     try:
       creds = json.loads(config.get("credentials"))
-      config["credentials"] = creds
+      # TODO(b/293903486): Remove compatibility check below once Frontend new format is implemented.
+      creds_value = creds.get("value") or creds
+      config["credentials"] = creds_value
     except (ValueError, TypeError):
       # json.loads fails if credentials are not a valid JSON object
       config["credentials"] = None
@@ -82,7 +84,8 @@ class Source:
                 validation="^[a-zA-Z0-9_]{1,1024}$")),
             ("table", str, Field(
                 description="The name of your BigQuery table.",)),
-            ("credentials", Optional[Mapping[str, str]], Field(
+            
+            ("credentials", Optional[SchemaUtils.raw_json_type()], Field(
                 default=None,
                 description="The full credentials service-account JSON string. Not needed if your backend is located in the same GCP project as the BigQuery table.")),
         ]

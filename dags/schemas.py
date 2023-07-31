@@ -27,6 +27,10 @@ start_date = datetime.datetime(2023, 1, 1, 0, 0, 0)
 dag_utils = DagUtils()
 
 
+class BaseSchema(BaseModel):
+  class Config:
+    arbitrary_types_allowed = True
+
 def reduce_schemas(schemas: list[Any], final_schema=None):
   """Combine schemas into a single Union type."""
   if schemas:
@@ -68,7 +72,7 @@ def schema_dag():
         module_schemas[folder_name].append(
             make_dataclass(schema.class_name, schema.fields))
 
-    Schemas = make_dataclass("Schemas", bases=(BaseModel,), fields=[  # pylint: disable=invalid-name
+    Schemas = make_dataclass("Schemas", bases=(BaseSchema,), fields=[  # pylint: disable=invalid-name
         ("source", reduce_schemas(module_schemas[sources_folder])),
         ("destination", reduce_schemas(module_schemas[destinations_folder]))
     ])
