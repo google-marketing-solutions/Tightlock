@@ -351,8 +351,8 @@ class Destination:
         [
             ("api_secret", str, Field(description="An API SECRET generated in the Google Analytics UI.")),
             ("event_type", Literal["gtag"] | Literal["firebase"], Field(description="GA4 client type.")),
-            ("measurement_id", str, Field(condition="event_type==gtag", description="The measurement ID associated with a stream. Found in the Google Analytics UI.")),
-            ("firebase_app_id", str, Field(condition="event_type==firebase", description="The Firebase App ID. The identifier for a Firebase app. Found in the Firebase console.")),
+            ("measurement_id", str, Field(condition_field="event_type", condition_target="gtag", description="The measurement ID associated with a stream. Found in the Google Analytics UI.")),
+            ("firebase_app_id", str, Field(condition_field="event_type", condition_target="firebase", description="The Firebase App ID. The identifier for a Firebase app. Found in the Firebase console.")),
             ("non_personalized_ads", Optional[bool], Field(default=False, description="Set to true to indicate these events should not be used for personalized ads.")),
             ("debug", Optional[bool], Field(default=False, description="Dry-run (validation mode).")),
             ("user_properties", Optional[dict[str, str]], Field(default=None, description="The user properties for the measurement.")),
