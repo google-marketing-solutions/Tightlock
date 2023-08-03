@@ -48,6 +48,29 @@ data "google_compute_default_service_account" "default" {
   ]
 }
 
+resource "google_compute_network" "tightlock-network" {
+  count   = var.create_tightlock_network ? 1 : 0
+  project = var.project_id
+  name    = local.network_name
+}
+
+resource "google_compute_firewall" "tightlock-firewall" {
+  count   = var.create_tightlock_network ? 1 : 0
+  project = var.project_id
+  name    = "tightlock-firewall"
+  network = var.create_tightlock_network ? google_compute_network.tightlock-network[0].name : local.network_name
+
+  # Allow connections coming from 1pd-scheduler.dev only
+  source_ranges = ["35.199.32.68"]
+
+  allow {
+    protocol = "tcp"
+    ports    = ["80"]
+  }
+
+  source_tags = ["tightlock-tag"]
+}
+
 resource "google_compute_disk" "tightlock-storage" {
   project = var.project_id
   name    = format("tightlock-%s-storage", random_string.backend_name.result)
@@ -75,7 +98,7 @@ resource "google_compute_instance" "tightlock-backend" {
   machine_type              = "e2-standard-4"
   zone                      = var.compute_engine_zone
   project                   = var.project_id
-  tags                      = ["http-server"]
+  tags                      = ["tightlock-tag"]
   allow_stopping_for_update = true
   deletion_protection       = false
 
@@ -91,7 +114,7 @@ resource "google_compute_instance" "tightlock-backend" {
   }
 
   network_interface {
-    network = "default"
+    network = var.create_tightlock_network ? google_compute_network.tightlock-network[0].name : local.network_name
     access_config {
       nat_ip = google_compute_address.vm-static-ip.address
     }
