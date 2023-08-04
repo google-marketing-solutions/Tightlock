@@ -367,7 +367,7 @@ class Destination:
         [
             ("api_secret", str, Field(
                 description="An API SECRET generated in the Google Analytics UI.")),
-            ("event_type", Literal["gtag"] | Literal["firebase"], Field(
+            ("event_type", PayloadTypes, Field(
                 description="GA4 client type.",
                 validation="gtag|firebase")),
             ("measurement_id", str, Field(
