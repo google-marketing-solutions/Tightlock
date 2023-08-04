@@ -29,6 +29,8 @@ $PY3 -m pip install -r integration_tests/test_requirements.txt
 
 # Remove potentially running containers and run integration tests
 docker-compose down 
-$PY3 -m pytest -s --no-header -vv --docker-compose=docker-compose.yaml integration_tests/
+integration_test_result=$PY3 -m pytest -s --no-header -vv --docker-compose=docker-compose.yaml integration_tests/
 
 unset $ENV_NAME
+
+return integration_test_result
