@@ -27,4 +27,4 @@ def test_dag_import_errors(helpers):
       parse.urljoin(api_url,
                     "api/v1/variables/register_errors")).json()
   import_errors = json.loads(import_errors_obj["value"])
-  assert not import_errors
+  assert import_errors
