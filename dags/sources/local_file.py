@@ -43,7 +43,8 @@ class Source(DrillMixin):
     return ProtocolSchema(
         "local_file",
         [
-            ("location", str, Field(description="The path to your local file, relative to the container 'data' folder."))
+            ("location", str, Field(
+                description="The path to your local file, relative to the container 'data' folder."))
         ]
     )
 

@@ -77,12 +77,14 @@ class Source:
     return ProtocolSchema(
         "bigquery",
         [
-            ("dataset", str,
-             Field(description="The name of your BigQuery dataset.")),
-            ("table", str,
-             Field(description="The name of your BigQuery table.")),
-            ("credentials", Optional[Mapping[str, str]],
-             Field(default=None, description="The full credentials service-account JSON string. Not needed if your backend is located in the same GCP project as the BigQuery table.")),
+            ("dataset", str, Field(
+                description="The name of your BigQuery dataset.",
+                validation="^[a-zA-Z0-9_]{1,1024}$")),
+            ("table", str, Field(
+                description="The name of your BigQuery table.",)),
+            ("credentials", Optional[Mapping[str, str]], Field(
+                default=None,
+                description="The full credentials service-account JSON string. Not needed if your backend is located in the same GCP project as the BigQuery table.")),
         ]
     )
 
