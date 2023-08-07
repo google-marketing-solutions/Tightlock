@@ -29,6 +29,9 @@ if ! [ -f $ENV ]; then
   fi
   echo -e "API_PORT=$API_PORT" >> $ENV
 
+  # get latest git tag and save it to a variable
+  echo -e "LATEST_TAG=$(git describe --tags --abbrev=0)" >> $ENV
+
   # generate or read API key
   PSEUDORANDOM_API_KEY=$( dd bs=512 if=/dev/urandom count=1 2>/dev/null | tr -dc '[:alpha:]' | fold -w20 | head -n 1 )
   if ! [ $INTERACTIVE_FLAG == "non-interactive" ]; then

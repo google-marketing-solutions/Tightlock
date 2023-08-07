@@ -24,6 +24,11 @@ from sqlalchemy_json import mutable_json_type
 from sqlmodel import Column, DateTime, Field, SQLModel
 
 
+class ConnectResponse(SQLModel):
+  """Connect endpoint response."""
+
+  version: str
+
 class RunResult(SQLModel):
   """Result of a connection run."""
 
