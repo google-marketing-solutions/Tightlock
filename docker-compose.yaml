@@ -106,6 +106,7 @@ services:
       MAX_WORKERS: 5 # needed to limit the number of DB connections
       CONFIG_DB_CONN: postgresql+asyncpg://tightlock:tightlock@postgres/tightlock 
       TIGHTLOCK_API_KEY: ${TIGHTLOCK_API_KEY}
+      LATEST_TAG: ${LATEST_TAG}
     depends_on:
       postgres:
         condition: service_healthy

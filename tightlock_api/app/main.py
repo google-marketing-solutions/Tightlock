@@ -15,6 +15,7 @@ limitations under the License.
 """
 
 """Entrypoint for FastAPI application."""
+import os
 import contextlib
 import json
 from typing import Annotated, Any
@@ -23,7 +24,7 @@ from clients import AirflowClient
 from db import get_session
 from fastapi import Body, Depends, FastAPI, HTTPException, Query
 from fastapi.responses import Response, JSONResponse
-from models import (Config, ConfigValue, Connection, RunLogsResponse,
+from models import (Config, ConfigValue, Connection, ConnectResponse, RunLogsResponse,
                     ValidationResult)
 from security import check_authentication_header
 from sqlalchemy.exc import IntegrityError, NoResultFound
@@ -50,10 +51,11 @@ async def create_initial_config():
       pass  # Ignore workers trying to recreate initial config
 
 
-@v1.post("/connect")
+@v1.post("/connect", response_model=ConnectResponse)
 async def connect():
   """Validates API connection with a client."""
-  return Response(status_code=status.HTTP_200_OK)
+  latest_tag = os.environ.get("LATEST_TAG")
+  return ConnectResponse(version=latest_tag)
 
 # TODO(b/290388517): Remove mentions to activation once UI is ready
 @v1.post("/connections/{connection_name}:trigger")
