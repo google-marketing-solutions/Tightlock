@@ -31,4 +31,9 @@ $PY3 -m pip install -r integration_tests/test_requirements.txt
 docker-compose down 
 $PY3 -m pytest -s --no-header -vv --docker-compose=docker-compose.yaml integration_tests/
 
+# get return value of integration tests run
+TESTS_RESULT=$?
+
 unset $ENV_NAME
+
+exit $TESTS_RESULT
