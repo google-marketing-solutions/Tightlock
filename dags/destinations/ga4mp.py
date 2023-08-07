@@ -119,12 +119,12 @@ class Destination:
     if user_properties_list is None:
       return None
     result = {}
-    try:
-      for up in user_properties_list:
+    for up in user_properties_list:
+      try:
         kv = _KEY_VALUE_TYPE(**up)
         result[kv.key] = {"value": kv.value}
-    except TypeError as e:
-      print(f"Invalid user_properties format: {e}")
+      except TypeError as e:
+        print(f"Invalid format for user property {up} with error: {e}")
     return result or None
 
 
