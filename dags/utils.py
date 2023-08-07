@@ -24,6 +24,7 @@ from dataclasses import dataclass, field
 from typing import Any, List, Mapping, Sequence, Tuple
 
 from airflow.providers.apache.drill.hooks.drill import DrillHook
+from pydantic import BaseModel
 
 _TABLE_ALIAS = "t"
 
@@ -59,6 +60,24 @@ class RunResult:
     em = self.error_messages + other.error_messages
     dr = self.dry_run or other.dry_run
     return RunResult(sh, fh, em, dr)
+
+
+class SchemaUtils:
+  """A set of utility functions for defining schemas."""
+
+  @staticmethod
+  def key_value_type():
+    class KeyValue(BaseModel):
+      key: str
+      value: str
+    return KeyValue
+
+
+  @staticmethod
+  def raw_json_type():
+    class RawJSON(BaseModel):
+      value: str
+    return RawJSON
 
 
 class DagUtils:
