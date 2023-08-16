@@ -29,7 +29,9 @@ dag_utils = DagUtils()
 def build_schema_type(schema: ProtocolSchema, class_name: str) -> type:
   """Build dataclass from schema, adding default fields."""
   default_fields = [
-      ("name", str, Field(description=f"Name of the {class_name.lower()}."))]
+      ("name", str, Field(
+          description=f"Name of the {class_name.lower()}.",
+          immutable=True))]
   default_fields_names = [f[0] for f in default_fields]
   fields = list(default_fields)
   # filter out fields that match default fields

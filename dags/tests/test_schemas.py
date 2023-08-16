@@ -16,7 +16,8 @@
  """
 
 import pytest
-from schemas import reduce_schemas
+from pydantic import Field
+from schemas import build_schema_type, reduce_schemas
 from utils import ProtocolSchema
 
 
@@ -29,3 +30,18 @@ from utils import ProtocolSchema
 )
 def test_reduce_schemas(test_schemas, expected_result):
   assert reduce_schemas(test_schemas) == expected_result
+
+@pytest.mark.parametrize(
+  "test_schema",
+  [
+      (ProtocolSchema("test", [("name", str, Field(description="Should not show up."))])),
+      (ProtocolSchema("test", [("Name", str, Field(description="Should not show up."))])),
+  ]
+)
+def test_build_schema_type(test_schema):
+  fake_schema_type = "fake_entity"
+  schema_type = build_schema_type(test_schema, fake_schema_type)
+  schema = schema_type.schema()
+  # asserts that the name Field is overriden by the default one and has the "immutable" property.
+  immutable_property = schema["properties"]["name"]["immutable"]
+  assert immutable_property
