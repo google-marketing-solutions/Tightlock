@@ -16,15 +16,29 @@
 
 import datetime
 from dataclasses import make_dataclass
+from typing import Any
 
 from airflow.decorators import dag, task
-from pydantic import BaseModel
-from utils import DagUtils
-
-from typing import Any
+from pydantic import BaseModel, Field
+from utils import DagUtils, ProtocolSchema
 
 start_date = datetime.datetime(2023, 1, 1, 0, 0, 0)
 dag_utils = DagUtils()
+
+
+def build_schema_type(schema: ProtocolSchema, class_name: str) -> type:
+  """Build dataclass from schema, adding default fields."""
+  default_fields = [
+      ("name", str, Field(
+          description=f"Name of the {class_name.lower()}.",
+          immutable=True))]
+  default_fields_names = [f[0] for f in default_fields]
+  fields = list(default_fields)
+  # filter out fields that match default fields
+  fields.extend([f for f in schema.fields
+                 if f[0].lower() not in default_fields_names])
+  schema_type = make_dataclass(schema.class_name, bases=(BaseModel,), fields=fields)
+  return schema_type
 
 
 def reduce_schemas(schemas: list[Any], final_schema=None):
@@ -65,8 +79,8 @@ def schema_dag():
         implementation = getattr(module, class_name)
         if (schema := implementation.schema()) is None:
           continue  # ignore instances that do not implement schema()
-        module_schemas[folder_name].append(
-            make_dataclass(schema.class_name, schema.fields))
+        module_schema = build_schema_type(schema, class_name)
+        module_schemas[folder_name].append(module_schema)
 
     Schemas = make_dataclass("Schemas", bases=(BaseModel,), fields=[  # pylint: disable=invalid-name
         ("source", reduce_schemas(module_schemas[sources_folder])),
