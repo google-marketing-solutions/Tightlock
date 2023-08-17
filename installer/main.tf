@@ -52,6 +52,11 @@ resource "google_compute_network" "tightlock-network" {
   count   = var.create_tightlock_network ? 1 : 0
   project = var.project_id
   name    = local.network_name
+  depends_on = [
+    google_project_service.cloudresourcemanager,
+    google_project_service.compute,
+    google_project_service.iam
+  ]
 }
 
 resource "google_compute_firewall" "tightlock-firewall" {
@@ -59,16 +64,18 @@ resource "google_compute_firewall" "tightlock-firewall" {
   project = var.project_id
   name    = "tightlock-firewall"
   network = var.create_tightlock_network ? google_compute_network.tightlock-network[0].name : local.network_name
-
   # Allow connections coming from 1pd-scheduler.dev only
   source_ranges = ["35.199.32.68"]
-
   allow {
     protocol = "tcp"
     ports    = ["80"]
   }
-
   source_tags = ["tightlock-tag"]
+  depends_on = [
+    google_project_service.cloudresourcemanager,
+    google_project_service.compute,
+    google_project_service.iam
+  ]
 }
 
 resource "google_compute_disk" "tightlock-storage" {
