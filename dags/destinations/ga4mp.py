@@ -377,8 +377,7 @@ class Destination:
             ("firebase_app_id", str, Field(
                 condition_field="event_type",
                 condition_target="firebase",
-                description="The Firebase App ID. The identifier for a Firebase app. Found in the Firebase console.",
-                validation="^[0-9a-fA-F]{32}$")),
+                description="The Firebase App ID. The identifier for a Firebase app. Found in the Firebase console.")),
             ("non_personalized_ads", Optional[bool], Field(
                 default=False,
                 description="Set to true to indicate these events should not be used for personalized ads.")),
