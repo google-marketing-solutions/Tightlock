@@ -16,7 +16,7 @@ Update the `variables.tfvars` file and provide the following two values. If you 
 | api_key                  | API Key for generating the front end connection key.                                                      |
 | project_id               | Google Cloud Project ID                                                                                   |
 | create_bq_sample_data    | If set to true a BigQuery dataset and tables will be created with sample data uploaded via a Cloud Bucket |
-| create_tightlock_network | If set to true will create a VPC Network and Firewall rules used by the backend instance. Set it to false when deploying multiple Tightlock instances to the same cloud project. |
+| create_tightlock_network | If set to true this will create a VPC Network and Firewall rules used by the backend instance. Set it to false when deploying multiple Tightlock instances to the same cloud project. |
 
 ## Deploy
 
