@@ -78,13 +78,13 @@ class Destination:
     )
 
     # TODO: Batch here? Or will Tightlock do batching to this method?
-    # TODO: How to handle partial failures?
-
     if not dry_run:
-      for valid_event in valid_events:
+      for customer_id, conversion_data in valid_conversions.items():
         try:
-          event = valid_event[1]
-          self._send_payload(event)
+          # TODO: Conversion data is a list of conversions for this customer ID
+          indices = [data[0] for data in conversion_data]
+          conversions = [data[1] for data in conversion_data]
+          self._send_request(customer_id, conversions)
         except (
             errors.DataOutConnectorSendUnsuccessfulError,
             errors.DataOutConnectorValueError,
@@ -93,26 +93,24 @@ class Destination:
           invalid_indices_and_errors.append((index, error.error_num))
     else:
       print(
-          "Dry-Run: Events will be validated agains the debug endpoint and will not be actually sent."
+          "Dry-Run: Events will not be sent to the API."
       )
 
-    print(f"Valid events: {valid_events}")
+    print(f"Valid conversions: {valid_conversions}")
     print(f"Invalid events: {invalid_indices_and_errors}")
 
-    for invalid_event in invalid_indices_and_errors:
-      event_index = invalid_event[0]
-      error_num = invalid_event[1]
+    for invalid_conversion in invalid_indices_and_errors:
+      event_index = invalid_conversion[0]
+      error_num = invalid_conversion[1]
       # TODO(b/272258038): TBD What to do with invalid events data.
       print(f"event_index: {event_index}; error_num: {error_num}")
 
-    run_result = RunResult(
+    return RunResult(
         successful_hits=len(valid_events),
         failed_hits=len(invalid_indices_and_errors),
         error_messages=[str(error[1]) for error in invalid_indices_and_errors],
         dry_run=dry_run,
     )
-
-    return run_result
 
   def _get_valid_and_invalid_conversions(
       self, offline_conversions: List[Dict[str, Any]]
@@ -147,7 +145,7 @@ class Destination:
         conversion.get(key, "") for key in _ID_FIELDS if conversion.get(key, "")]
 
       if len(target_ids) != 1:
-        invalid_indices_and_errors.append((i, errors.ErrorNameIDMap.ADS_OC_HOOK_ERROR_MISSING_MANDATORY_FIELDS))
+        invalid_indices_and_errors.append((i, errors.ErrorNameIDMap.ADS_OC_HOOK_ERROR_INVALID_ID_CONFIG))
         valid = False
 
       if not valid:
@@ -184,6 +182,7 @@ class Destination:
       conversion_customer_variable_id = conversion.get("conversion_custom_variable_id", "")
       conversion_custom_variable_value = conversion.get("conversion_custom_variable_value", "")
 
+      # Adds custom variable ID and value if set.
       if conversion_custom_variable_id and conversion_custom_variable_value:
         conversion_custom_variable = self._client.get_type("CustomVariable")
         conversion_custom_variable.conversion_custom_variable = conversion_upload_service.conversion_custom_variable_path(
@@ -195,6 +194,26 @@ class Destination:
       valid_conversions[customer_id].append((i, click_conversion))
 
     return valid_conversions, invalid_indices_and_errors
+
+  def _send_request(self, customer_id: str, conversions: List[Any]) -> None:
+    """Sends conversions to the offline conversion import API.
+
+    Args:
+      customer_id: The customer ID for these conversions.
+      conversions: A list of click conversions.
+    """
+    request = self._client.get_type("UploadClickConversionsRequest")
+    request.customer_id = customer_id
+    request.conversions.extend(conversions)
+    request.partial_failure = True
+    conversion_upload_response = conversion_upload_service.upload_click_conversions(
+      request=request,
+    )
+
+    uploaded_conversion = conversion_upload_response.results[0]
+
+    # TODO: Check and handle errors.
+    # TODO: How to handle partial failures?
 
   @staticmethod
   def schema() -> Optional[ProtocolSchema]:
