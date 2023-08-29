@@ -26,6 +26,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 import errors
 import immutabledict
 import requests
+import utils
 from pydantic import Field
 from utils import DagUtils, ProtocolSchema, RunResult, SchemaUtils, ValidationResult
 
@@ -163,22 +164,15 @@ class Destination:
     Returns:
       A ValidationResult for the provided config.
     """
-    timestamp_micros = int(datetime.datetime.now().timestamp() * 1e6)
-    payload = {
-        "timestamp_micros": timestamp_micros,
-        "non_personalized_ads": False,
-        "events": [],
-        "validationBehavior": "ENFORCE_RECOMMENDATIONS",
-    }
-    if self.payload_type == PayloadTypes.GTAG.value:
-      payload["client_id"] = "validation_client_id"
-    else:
-      payload[
-          "app_instance_id"
-      ] = "cccccccccccccccccccccccccccccccc"  # 32 digit app_instance_id
-    validation_response = self._send_validate_request(payload).json()
-    validation_messages = validation_response["validationMessages"]
-    if len(validation_messages) < 1:
-      return ValidationResult(True, [])
-    else:
-      return ValidationResult(False, validation_messages)
+    missing_fields = []
+    for credential in utils.REQUIRED_GOOGLE_ADS_CREDENTIALS:
+      if not self._config.get(credential, ""):
+        missing_fields.append(credential)
+
+    if missing_fields:
+      error_msg = (
+        "Config requires the following fields to be set: "
+        f"{', '.join(missing_fields)}")
+      return ValidationResult(False, [error_msg])
+
+    return ValidationResult(True, [])

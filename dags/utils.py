@@ -31,7 +31,8 @@ from google.cloud.secretmanager import SecretManagerServiceClient
 
 _TABLE_ALIAS = "t"
 _DEFAULT_GOOGLE_ADS_API_VERSION = "v14"
-_REQUIRED_CREDENTIALS = frozenset([
+
+REQUIRED_GOOGLE_ADS_CREDENTIALS = frozenset([
   "client_id",
   "client_secret",
   "developer_token",
@@ -129,7 +130,7 @@ class DagUtils:
     """
     credentials = {}
 
-    for credential in _REQUIRED_CREDENTIALS:
+    for credential in _REQUIRED_GOOGLE_ADS_CREDENTIALS:
       credentials[credential] = self._config.get("client_id", "")
 
     credentials["use_proto_plus"] = True
