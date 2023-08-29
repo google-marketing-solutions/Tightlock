@@ -31,10 +31,10 @@ from google.cloud.secretmanager import SecretManagerServiceClient
 
 _TABLE_ALIAS = "t"
 _DEFAULT_GOOGLE_ADS_API_VERSION = "v14"
-_REQUIRED_GOOGLE_ADS_SECRETS = frozenset([
-  "client_id", 
-  "client_secret", 
-  "developer_token", 
+_REQUIRED_CREDENTIALS = frozenset([
+  "client_id",
+  "client_secret",
+  "developer_token",
   "login_customer_id",
   "refresh_token"])
 
@@ -109,52 +109,33 @@ class DagUtils:
         modules.append(module)
     return modules
 
-  def build_google_ads_client(gcp_project_id: str, version: str=_DEFAULT_GOOGLE_ADS_API_VERSION) -> GoogleAdsClient:
-    """Generate Google Ads Client from Secrets Manager. 
+  def build_google_ads_client(
+    config: dict[str, Any],
+    version: str=_DEFAULT_GOOGLE_ADS_API_VERSION) -> GoogleAdsClient:
+    """Generate Google Ads Client.
 
-    Requires the following secrets to be configured in Secrets Manager:
-    client_id 
-    client_secret
-    developer_token
-    login_customer_id
-    refresh_token
-    
+    Requires the following to be stored in config:
+    - client_id
+    - client_secret
+    - developer_token
+    - login_customer_id
+    - refresh_token
+
     Args:
-      gcp_project_id: Project ID for GCP project.
+      config: The Tightlock config file.
       version: (Optional) Version number for Google Ads API prefixed with v.
-    
+
     Returns: Instance of GoogleAdsClient
     """
-    credentials = _get_google_ads_credentials(gcp_project_id)
-
-    # TODO(jcryan): confirm error handling method
-    return GoogleAdsClient.load_from_dict(config_dict=credentials, version=version)
-
-  def _get_google_ads_credentials(self, gcp_project_id: str) -> dict[str, str]:
-    """Gets Google Ads API credentials from Cloud Secret Manager.
-
-    Args:
-      gcp_project_id: Project ID for GCP project.
-
-    Returns:
-      A dictionary containing API credentials.
-    """
-    logging.info('Building credentials...')
-
-    secret_manager_client = SecretManagerServiceClient()
     credentials = {}
 
-    for secret_key in _REQUIRED_GOOGLE_ADS_SECRETS:
-      full_secret_name = (
-          f'projects/{gcp_project_id}/secrets/{secret_key}/versions/'
-          'latest')
-      secret_response = secret_manager_client.access_secret_version(
-          full_secret_name
-      )
-      credentials[
-          secret_key] = secret_response.payload.data.decode('UTF-8').strip()
+    for credential in _REQUIRED_CREDENTIALS:
+      credentials[credential] = self._config.get("client_id", "")
 
-    return credentials
+    credentials["use_proto_plus"] = True
+
+    return GoogleAdsClient.load_from_dict(
+      config_dict=credentials, version=version)
 
 
 class DrillMixin:

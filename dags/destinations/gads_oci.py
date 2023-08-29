@@ -27,42 +27,33 @@ import errors
 import immutabledict
 import requests
 from pydantic import Field
-from utils import ProtocolSchema, RunResult, SchemaUtils, ValidationResult
+from utils import DagUtils, ProtocolSchema, RunResult, SchemaUtils, ValidationResult
 
-_OAUTH2_TOKEN_URL = 'https://www.googleapis.com/oauth2/v3/token'
-_REQUIRED_CREDENTIALS = ["client_id", "client_secret", "refresh_token", "developer_token", "login_customer_id"]
+_BATCH_SIZE = 10000
 
-_GOOGLE_ADS_API_BASE_URL = 'https://googleads.googleapis.com'
+_REQUIRED_FIELDS = [
+  "customer_id",
+  "conversion_action_id",
+  "conversion_date_time",
+  "conversion_value",
+]
 
-_API_VERSION = '14'
-
-_OCI_ENDPOINT = (
-    GOOGLE_ADS_API_BASE_URL
-    + '/{api_version}/customers/{customer_id}:uploadClickConversions'
-)
 
 class Destination:
   """Implements DestinationProto protocol for Google Ads OCI."""
 
   def __init__(self, config: Dict[str, Any]) -> None:
-    """ Initializes Google Ads OCI Destination Class. 
+    """ Initializes Google Ads OCI Destination Class.
 
     Args:
       config: Configuration object to hold environment variables
     """
-
     self._config = config  # Keeping a reference for convenience.
-    self._client_id = config.get("client_id", "")
-    self._client_secret = config.get("client_secret", "")
-    self._refresh_token = config.get("refresh_token", "")
-    self._developer_token = config.get("developer_token", "")
-    self._login_customer_id = config.get("login_customer_id", "")
-    self._access_token = None
-
+    self.google_ads_client = DagUtils().build_google_ads_client(self._config)
     self._debug = config.get("debug", False)
-    self._validate_credentials()
+
     print("Initialized Google Ads OCI Destination class.")
-  
+
   def send_data(
       self, input_data: List[Mapping[str, Any]], dry_run: bool
   ) -> Optional[RunResult]:
@@ -107,50 +98,71 @@ class Destination:
 
   @staticmethod
   def schema() -> Optional[ProtocolSchema]:
+    """Returns the required metadata for this destination config.
+
+    Returns:
+      An optional ProtocolSchema object that defines the
+      required and optional metadata used by the implementation
+      of this protocol.
+    """
     return ProtocolSchema(
-        "GA4MP",
-        [
-            ("api_secret", str, Field(
-                description="An API SECRET generated in the Google Analytics UI.")),
-            ("event_type", PayloadTypes, Field(
-                description="GA4 client type.",
-                validation="gtag|firebase")),
-            ("measurement_id", str, Field(
-                condition_field="event_type",
-                condition_target="gtag",
-                description="The measurement ID associated with a stream. Found in the Google Analytics UI.")),
-            ("firebase_app_id", str, Field(
-                condition_field="event_type",
-                condition_target="firebase",
-                description="The Firebase App ID. The identifier for a Firebase app. Found in the Firebase console.",
-                validation="^[0-9a-fA-F]{32}$")),
-            ("non_personalized_ads", Optional[bool], Field(
-                default=False,
-                description="Set to true to indicate these events should not be used for personalized ads.")),
-            ("debug", Optional[bool], Field(
-                default=False,
-                description="Dry-run (validation mode).")),
-            ("user_properties", Optional[List[_KEY_VALUE_TYPE]], Field(
-                default=None,
-                description="The user properties for the measurement.")),
-        ]
+      "GADS_OCI",
+      [
+        ("customer_id", str, Field(description="The Google Ads customer ID.")),
+        ("conversion_action_id", str, Field(
+          description="The conversion action ID.")),
+        ("conversion_date_time", str, Field(description=(
+          "The date and time of the conversion (should be after the click "
+          "time). The format is 'yyyy-mm-dd hh:mm:ss+|-hh:mm, e.g. "
+          "'2019-01-01 12:32:45-08:00'"))),
+        ("conversion_value", str, Field(description="The conversion value.")),
+        ("conversion_custom_variable_id", Optional[str], Field(default=None,
+        description=("The ID of the conversion custom variable to associate "
+        "with the upload."))),
+        ("conversion_custom_variable_value", Optional[str], Field(
+          default=None, description=("The value of the conversion custom "
+          "variable to associate with the upload."))),
+        ("gclid", Optional[str], default=None, Field(description=(
+          "The Google Click Identifier (gclid) which should be newer than "
+          "the number of days set on the conversion window of the conversion "
+          "action. Only one of either a gclid, WBRAID, or GBRAID identifier can "
+          "be passed into this example. See the following for more details: "
+          "https://developers.google.com/google-ads/api/docs/conversions/upload-clicks"))),
+        ("gbraid", Optional[str], default=None, Field(description=(
+          "The GBRAID identifier for an iOS app conversion. Only one of "
+          "either a gclid, WBRAID, or GBRAID identifier can be passed into this "
+          "example. See the following for more details: "
+          "https://developers.google.com/google-ads/api/docs/conversions/upload-clicks"))),
+        ("wbraid", Optional[str], Field(default=None, description=(
+          "The WBRAID identifier for an iOS app conversion. Only one of "
+          "either a gclid, WBRAID, or GBRAID identifier can be passed into this "
+          "example. See the following for more details: "
+          "https://developers.google.com/google-ads/api/docs/conversions/upload-clicks"))),
+      ]
     )
 
   def fields(self) -> Sequence[str]:
-    if self.payload_type == PayloadTypes.FIREBASE.value:
-      id_column_name = _FIREBASE_ID_COLUMN
-    else:
-      id_column_name = _GTAG_ID_COLUMN
-    return [id_column_name] + _GA_REFERENCE_PARAMS + [
-        "user_id",
-        "event_name",
-        "timestamp_micros"
-    ]
+    """Lists required fields for the destination input data.
+
+    Returns:
+      A sequence of fields.
+    """
+    return _REQUIRED_FIELDS
 
   def batch_size(self) -> int:
-    return 10000
+    """Returns the required batch_size for the underlying destination API.
+
+    Returns:
+      An int representing the batch_size.
+    """
+    return _BATCH_SIZE
 
   def validate(self) -> ValidationResult:
+    """Validates the provided config.
+
+    Returns:
+      A ValidationResult for the provided config.
+    """
     timestamp_micros = int(datetime.datetime.now().timestamp() * 1e6)
     payload = {
         "timestamp_micros": timestamp_micros,
@@ -170,48 +182,3 @@ class Destination:
       return ValidationResult(True, [])
     else:
       return ValidationResult(False, validation_messages)
-
-def _validate_credentials(self) -> None:
-    """Validate credentials.
-
-    Raises:
-      DataConnectorValueError: If any credentials are missing from config.
-    """
-    for credential in _REQUIRED_CREDENTIALS:
-      if credential not in self._config:
-        raise errors.DataOutConnectorValueError(
-            f"Missing API secret in config: {credential}"
-        )
-
-def _get_http_header(self) -> dict[str, str]:
-    """Get the Authorization HTTP header.
-
-    Returns:
-      The authorization HTTP header.
-    """
-    if not self.access_token:
-      self.access_token = _refresh_access_token()
-    return {
-        'authorization': f'Bearer {self._access_token}',
-        'developer-token': self._developer_token,
-        'login-customer-id': str(self._login_customer_id),
-    }
-
-def refresh_access_token(self) -> str:
-  """Requests an OAUTH2 access token.
-
-  Returns:
-    An access token string, or empty string if the request failed.
-  """
-  payload = {
-      'grant_type': 'refresh_token',
-      'client_id': self._client_id,
-      'client_secret': self._client_secret,
-      'refresh_token': self._refresh_token,
-  }
-
-  response = requests.post(_OAUTH2_TOKEN_URL, params=payload)
-  response.raise_for_status()
-  data = response.json()
-
-  return data.get('access_token', '')
