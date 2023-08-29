@@ -164,15 +164,4 @@ class Destination:
     Returns:
       A ValidationResult for the provided config.
     """
-    missing_fields = []
-    for credential in utils.REQUIRED_GOOGLE_ADS_CREDENTIALS:
-      if not self._config.get(credential, ""):
-        missing_fields.append(credential)
-
-    if missing_fields:
-      error_msg = (
-        "Config requires the following fields to be set: "
-        f"{', '.join(missing_fields)}")
-      return ValidationResult(False, [error_msg])
-
-    return ValidationResult(True, [])
+    return utils.DagUtils().validate_google_ads_config(self._config)

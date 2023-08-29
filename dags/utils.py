@@ -32,7 +32,7 @@ from google.cloud.secretmanager import SecretManagerServiceClient
 _TABLE_ALIAS = "t"
 _DEFAULT_GOOGLE_ADS_API_VERSION = "v14"
 
-REQUIRED_GOOGLE_ADS_CREDENTIALS = frozenset([
+_REQUIRED_GOOGLE_ADS_CREDENTIALS = frozenset([
   "client_id",
   "client_secret",
   "developer_token",
@@ -109,6 +109,28 @@ class DagUtils:
         spec.loader.exec_module(module)
         modules.append(module)
     return modules
+
+  def validate_google_ads_config(config: dict[str, Any]) -> ValidationResult:
+    """Validates the provided config can build a Google Ads client.
+
+    Args:
+      config: The Tightlock config file.
+
+    Returns:
+      A ValidationResult for the provided config.
+    """
+    missing_fields = []
+    for credential in _REQUIRED_GOOGLE_ADS_CREDENTIALS:
+      if not self._config.get(credential, ""):
+        missing_fields.append(credential)
+
+    if missing_fields:
+      error_msg = (
+        "Config requires the following fields to be set: "
+        f"{', '.join(missing_fields)}")
+      return ValidationResult(False, [error_msg])
+
+    return ValidationResult(True, [])
 
   def build_google_ads_client(
     config: dict[str, Any],
