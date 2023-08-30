@@ -152,7 +152,7 @@ class DagUtils:
     credentials = {}
 
     for credential in _REQUIRED_GOOGLE_ADS_CREDENTIALS:
-      credentials[credential] = config.get("client_id", "")
+      credentials[credential] = config.get(credential, "")
 
     credentials["use_proto_plus"] = True
 

@@ -113,7 +113,7 @@ class Destination:
     )
 
   def _get_valid_and_invalid_conversions(
-      self, offline_conversions: List[Dict[str, Any]]
+      self, offline_conversions: List[Mapping[str, Any]]
   ) -> Tuple[CustomerConversionMap, InvalidConversionIndices]:
     """Prepares the offline conversion data for API upload.
 
@@ -177,7 +177,7 @@ class Destination:
 
       click_conversion.conversion_value = float(conversion.get("conversion_value", ""))
       click_conversion.conversion_date_time = conversion.get("conversion_date_time", "")
-      click_conversion.currency_code = conversion.get("conversion_date_time", _DEFAULT_CURRENCY_CODE)
+      click_conversion.currency_code = conversion.get("currency_code", _DEFAULT_CURRENCY_CODE)
 
       conversion_custom_variable_id = conversion.get("conversion_custom_variable_id", "")
       conversion_custom_variable_value = conversion.get("conversion_custom_variable_value", "")
@@ -210,9 +210,8 @@ class Destination:
       request=request,
     )
 
-    uploaded_conversion = conversion_upload_response.results[0]
-
-    print(uploaded_conversion)
+    for i, result in enumerate(conversion_upload_response.results):
+      print(f"Conversion {i}: {result}")
     # TODO: Check and handle errors.
     # TODO: How to handle partial failures?
 
