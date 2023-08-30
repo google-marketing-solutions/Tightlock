@@ -219,6 +219,7 @@ class Destination:
     request.customer_id = customer_id
     request.conversions.extend(conversions)
     request.partial_failure = True
+
     try:
       conversion_upload_response = self._conversion_upload_service.upload_click_conversions(
         request=request,
@@ -251,6 +252,7 @@ class Destination:
     code = getattr(partial_failure, "code", None)
     if code == 0:
       # No failures.
+      print("No partial failures found.")
       return {}
 
     error_details = getattr(partial_failure, "details", [])
@@ -269,6 +271,8 @@ class Destination:
         index = error.location.field_path_elements[0].index
         message = f'Code: {error.error_code}, Error: {error.message}'
         partial_failures[index] += message  # Can be multiple errors for the same conversion.
+
+    print(f"Partial failures: {partial_failures}")
 
     return partial_failures
 
