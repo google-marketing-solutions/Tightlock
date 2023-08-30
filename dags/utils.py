@@ -26,8 +26,6 @@ from typing import Any, List, Mapping, Sequence, Tuple
 from airflow.providers.apache.drill.hooks.drill import DrillHook
 from pydantic import BaseModel
 from google.ads.googleads.client import GoogleAdsClient
-from google.ads.googleads.errors import GoogleAdsException
-from google.cloud.secretmanager import SecretManagerServiceClient
 
 _TABLE_ALIAS = "t"
 _DEFAULT_GOOGLE_ADS_API_VERSION = "v14"
