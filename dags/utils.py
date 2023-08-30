@@ -110,7 +110,7 @@ class DagUtils:
         modules.append(module)
     return modules
 
-  def validate_google_ads_config(config: dict[str, Any]) -> ValidationResult:
+  def validate_google_ads_config(self, config: dict[str, Any]) -> ValidationResult:
     """Validates the provided config can build a Google Ads client.
 
     Args:
@@ -121,7 +121,7 @@ class DagUtils:
     """
     missing_fields = []
     for credential in _REQUIRED_GOOGLE_ADS_CREDENTIALS:
-      if not self._config.get(credential, ""):
+      if not config.get(credential, ""):
         missing_fields.append(credential)
 
     if missing_fields:
@@ -133,8 +133,9 @@ class DagUtils:
     return ValidationResult(True, [])
 
   def build_google_ads_client(
-    config: dict[str, Any],
-    version: str=_DEFAULT_GOOGLE_ADS_API_VERSION) -> GoogleAdsClient:
+      self,
+      config: dict[str, Any],
+      version: str=_DEFAULT_GOOGLE_ADS_API_VERSION) -> GoogleAdsClient:
     """Generate Google Ads Client.
 
     Requires the following to be stored in config:
@@ -153,7 +154,7 @@ class DagUtils:
     credentials = {}
 
     for credential in _REQUIRED_GOOGLE_ADS_CREDENTIALS:
-      credentials[credential] = self._config.get("client_id", "")
+      credentials[credential] = config.get("client_id", "")
 
     credentials["use_proto_plus"] = True
 

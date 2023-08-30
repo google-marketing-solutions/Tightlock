@@ -15,20 +15,13 @@ limitations under the License."""
 
 """Google Ads OCI destination implementation."""
 
-# pylint: disable=raise-missing-from
-
-import datetime
-import enum
-import json
 import logging
 from collections import defaultdict
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 import errors
-import immutabledict
-import requests
 from pydantic import Field
-from utils import DagUtils, ProtocolSchema, RunResult, SchemaUtils, ValidationResult
+from utils import DagUtils, ProtocolSchema, RunResult, ValidationResult
 
 _BATCH_SIZE = 10000
 
@@ -47,6 +40,10 @@ _ID_FIELDS = [
   "wbraid",
 ]
 
+ConversionIndicesToConversions = List[Tuple[int, Any]]
+CustomerConversionMap = Dict[str, ConversionIndicesToConversions]
+InvalidConversionIndices = List[Tuple[int, errors.ErrorNameIDMap]]
+
 
 class Destination:
   """Implements DestinationProto protocol for Google Ads OCI."""
@@ -59,6 +56,8 @@ class Destination:
     """
     self._config = config  # Keeping a reference for convenience.
     self._client = DagUtils().build_google_ads_client(self._config)
+    self._conversion_upload_service = self._client.get_service(
+      "ConversionUploadService")
     self._debug = config.get("debug", False)
 
     print("Initialized Google Ads OCI Destination class.")
@@ -70,6 +69,7 @@ class Destination:
 
     Args:
       input_data: A list of rows to send to the API endpoint.
+      dry_run: If True, will not send data to API endpoints.
 
     Returns: A RunResult summarizing success / failures, etc.
     """
@@ -89,7 +89,7 @@ class Destination:
             errors.DataOutConnectorSendUnsuccessfulError,
             errors.DataOutConnectorValueError,
         ) as error:
-          index = valid_event[0]
+          index = indices[0]  # TODO: Extract and set correct error indices
           invalid_indices_and_errors.append((index, error.error_num))
     else:
       print(
@@ -100,10 +100,10 @@ class Destination:
     print(f"Invalid events: {invalid_indices_and_errors}")
 
     for invalid_conversion in invalid_indices_and_errors:
-      event_index = invalid_conversion[0]
+      conversion_index = invalid_conversion[0]
       error_num = invalid_conversion[1]
       # TODO(b/272258038): TBD What to do with invalid events data.
-      print(f"event_index: {event_index}; error_num: {error_num}")
+      print(f"conversion_index: {conversion_index}; error_num: {error_num}")
 
     return RunResult(
         successful_hits=len(valid_events),
@@ -114,11 +114,11 @@ class Destination:
 
   def _get_valid_and_invalid_conversions(
       self, offline_conversions: List[Dict[str, Any]]
-  ) -> Dict[str, List[Tuple[int, Any]]], List[Tuple[int, errors.ErrorNameIDMap]]]:
+  ) -> Tuple[CustomerConversionMap, InvalidConversionIndices]:
     """Prepares the offline conversion data for API upload.
 
     Args:
-      offline_conversions: The offline conversion data to upload..
+      offline_conversions: The offline conversion data to upload.
 
     Returns:
       A dictionary of customer IDs mapped to index-conversion tuples for the
@@ -179,13 +179,13 @@ class Destination:
       click_conversion.conversion_date_time = conversion.get("conversion_date_time", "")
       click_conversion.currency_code = conversion.get("conversion_date_time", _DEFAULT_CURRENCY_CODE)
 
-      conversion_customer_variable_id = conversion.get("conversion_custom_variable_id", "")
+      conversion_custom_variable_id = conversion.get("conversion_custom_variable_id", "")
       conversion_custom_variable_value = conversion.get("conversion_custom_variable_value", "")
 
       # Adds custom variable ID and value if set.
       if conversion_custom_variable_id and conversion_custom_variable_value:
         conversion_custom_variable = self._client.get_type("CustomVariable")
-        conversion_custom_variable.conversion_custom_variable = conversion_upload_service.conversion_custom_variable_path(
+        conversion_custom_variable.conversion_custom_variable = self._conversion_upload_service.conversion_custom_variable_path(
           customer_id, conversion_custom_variable_id
         )
         conversion_custom_variable.value = conversion_custom_variable_value
@@ -206,12 +206,13 @@ class Destination:
     request.customer_id = customer_id
     request.conversions.extend(conversions)
     request.partial_failure = True
-    conversion_upload_response = conversion_upload_service.upload_click_conversions(
+    conversion_upload_response = self._conversion_upload_service.upload_click_conversions(
       request=request,
     )
 
     uploaded_conversion = conversion_upload_response.results[0]
 
+    print(uploaded_conversion)
     # TODO: Check and handle errors.
     # TODO: How to handle partial failures?
 
@@ -285,4 +286,4 @@ class Destination:
     Returns:
       A ValidationResult for the provided config.
     """
-    return utils.DagUtils().validate_google_ads_config(self._config)
+    return DagUtils().validate_google_ads_config(self._config)
