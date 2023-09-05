@@ -78,7 +78,6 @@ class Destination:
     )
     successfully_uploaded_conversions = []
 
-    # TODO: Batch here? Or will Tightlock do batching to this method?
     if not dry_run:
       for customer_id, conversion_data in valid_conversions.items():
         conversion_indices = [data[0] for data in conversion_data]
