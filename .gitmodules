@@ -1,0 +1,3 @@
+[submodule "Tightlock.wiki"]
+	path = Tightlock.wiki
+	url = git://github.com/google-marketing-solutions/Tightlock.wiki
