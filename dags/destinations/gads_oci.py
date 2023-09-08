@@ -143,6 +143,7 @@ class Destination:
 
     for i, conversion in enumerate(offline_conversions):
       valid = True
+      print(conversion)
 
       # Checks required fields set.
       for required_field in _REQUIRED_FIELDS:
@@ -152,7 +153,8 @@ class Destination:
 
       # Checks exactly one of gclid, gbraid, or wbraid is set.
       target_ids = [
-        conversion.get(key, "") for key in _ID_FIELDS if conversion.get(key, "")]
+        conversion.get(key) for key in _ID_FIELDS if conversion.get(key, "")]
+      print(target_ids)
 
       if len(target_ids) != 1:
         invalid_indices_and_errors.append((i, errors.ErrorNameIDMap.ADS_OC_HOOK_ERROR_INVALID_ID_CONFIG))
@@ -332,7 +334,7 @@ class Destination:
     Returns:
       A sequence of fields.
     """
-    return _REQUIRED_FIELDS
+    return _REQUIRED_FIELDS + _ID_FIELDS
 
   def batch_size(self) -> int:
     """Returns the required batch_size for the underlying destination API.
