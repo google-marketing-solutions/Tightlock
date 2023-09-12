@@ -108,6 +108,10 @@ class DagUtils:
         modules.append(module)
     return modules
 
+
+class GoogleAdsUtils:
+  """Utility functions for Google Ads connectors."""
+
   def validate_google_ads_config(self, config: dict[str, Any]) -> ValidationResult:
     """Validates the provided config can build a Google Ads client.
 

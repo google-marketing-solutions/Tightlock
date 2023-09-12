@@ -20,7 +20,7 @@ from collections import defaultdict
 from google.ads.googleads.errors import GoogleAdsException
 from pydantic import Field
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
-from utils import DagUtils, ProtocolSchema, RunResult, ValidationResult
+from utils import GoogleAdsUtils, ProtocolSchema, RunResult, ValidationResult
 
 _BATCH_SIZE = 10000
 
@@ -55,7 +55,7 @@ class Destination:
       config: Configuration object to hold environment variables
     """
     self._config = config  # Keeping a reference for convenience.
-    self._client = DagUtils().build_google_ads_client(self._config)
+    self._client = GoogleAdsUtils().build_google_ads_client(self._config)
     self._conversion_upload_service = self._client.get_service(
       "ConversionUploadService")
     self._debug = config.get("debug", False)
@@ -350,4 +350,4 @@ class Destination:
     Returns:
       A ValidationResult for the provided config.
     """
-    return DagUtils().validate_google_ads_config(self._config)
+    return GoogleAdsUtils().validate_google_ads_config(self._config)
