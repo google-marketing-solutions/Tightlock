@@ -6,7 +6,7 @@ Requests==2.31.0
 pydantic==1.10.9
 
 # Data sources requirements
-apache-airflow-providers-apache-drill==2.4.1
+apache-airflow-providers-apache-drill==2.4.3
 google-cloud-bigquery==3.11.3
 google-ads
 

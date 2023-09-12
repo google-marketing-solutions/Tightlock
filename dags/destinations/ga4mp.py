@@ -365,42 +365,28 @@ class Destination:
     return ProtocolSchema(
         "GA4MP",
         [
-          ("customer_id", str, Field(description="The Google Ads customer ID.")),
-          ("conversion_action_id", str, Field(
-            description="The conversion action ID.")),
-          ("conversion_date_time", str, Field(description=(
-            "The date and time of the conversion (should be after the click "
-            "time). The format is 'yyyy-mm-dd hh:mm:ss+|-hh:mm, e.g. "
-            "'2019-01-01 12:32:45-08:00'"))),
-          ("conversion_value", str, Field(description="The conversion value.")),
-          ("conversion_custom_variable_id", Optional[str], Field(
-            default=None, description=("The ID of the conversion custom variable to associate "
-                                      "with the upload."))),
-          ("currency_code", Optional[str], Field(
-            default=_DEFAULT_CURRENCY_CODE, description=("The currency code "
-                                                        "for the value of this conversion."))),
-          ("conversion_custom_variable_value", Optional[str], Field(
-            default=None, description=("The value of the conversion custom "
-                                      "variable to associate with the upload."))),
-          ("gclid", Optional[str], Field(description=(
-            "The Google Click Identifier (gclid) which should be newer than "
-            "the number of days set on the conversion window of the conversion "
-            "action. Only one of either a gclid, WBRAID, or GBRAID identifier can "
-            "be passed into this example. See the following for more details: "
-            "https://developers.google.com/google-ads/api/docs/conversions/upload-clicks"),
-            default=None)),
-          ("gbraid", Optional[str], Field(description=(
-            "The GBRAID identifier for an iOS app conversion. Only one of "
-            "either a gclid, WBRAID, or GBRAID identifier can be passed into this "
-            "example. See the following for more details: "
-            "https://developers.google.com/google-ads/api/docs/conversions/upload-clicks"),
-            default=None)),
-          ("wbraid", Optional[str], Field(description=(
-            "The WBRAID identifier for an iOS app conversion. Only one of "
-            "either a gclid, WBRAID, or GBRAID identifier can be passed into this "
-            "example. See the following for more details: "
-            "https://developers.google.com/google-ads/api/docs/conversions/upload-clicks"),
-            default=None, )),
+            ("api_secret", str, Field(
+                description="An API SECRET generated in the Google Analytics UI.")),
+            ("event_type", PayloadTypes, Field(
+                description="GA4 client type.",
+                validation="gtag|firebase")),
+            ("measurement_id", str, Field(
+                condition_field="event_type",
+                condition_target="gtag",
+                description="The measurement ID associated with a stream. Found in the Google Analytics UI.")),
+            ("firebase_app_id", str, Field(
+                condition_field="event_type",
+                condition_target="firebase",
+                description="The Firebase App ID. The identifier for a Firebase app. Found in the Firebase console.")),
+            ("non_personalized_ads", Optional[bool], Field(
+                default=False,
+                description="Set to true to indicate these events should not be used for personalized ads.")),
+            ("debug", Optional[bool], Field(
+                default=False,
+                description="Dry-run (validation mode).")),
+            ("user_properties", Optional[List[_KEY_VALUE_TYPE]], Field(
+                default=None,
+                description="The user properties for the measurement.")),
         ]
     )
 
