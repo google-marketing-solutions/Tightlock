@@ -48,7 +48,7 @@ PartialFailures = Dict[int, str]
 class Destination:
   """Implements DestinationProto protocol for Google Ads OCI."""
 
-  def __init__(self, config: Dict[str, Any]) -> None:
+  def __init__(self, config: Dict[str, Any]):
     """ Initializes Google Ads OCI Destination Class.
 
     Args:
@@ -143,7 +143,6 @@ class Destination:
 
     for i, conversion in enumerate(offline_conversions):
       valid = True
-      print(conversion)
 
       # Checks required fields set.
       for required_field in _REQUIRED_FIELDS:
@@ -154,7 +153,6 @@ class Destination:
       # Checks exactly one of gclid, gbraid, or wbraid is set.
       target_ids = [
         conversion.get(key) for key in _ID_FIELDS if conversion.get(key, "")]
-      print(target_ids)
 
       if len(target_ids) != 1:
         invalid_indices_and_errors.append((i, errors.ErrorNameIDMap.ADS_OC_HOOK_ERROR_INVALID_ID_CONFIG))
@@ -229,9 +227,6 @@ class Destination:
       print(f"Caught GoogleAdsException: {error}")
       raise
 
-    for i, result in enumerate(conversion_upload_response.results):
-      print(f"Conversion {i}: {result}")
-
     return self._get_partial_failures(conversion_upload_response)
 
   def _get_partial_failures(self, response: Any) -> PartialFailures:
@@ -289,42 +284,11 @@ class Destination:
     return ProtocolSchema(
       "GADS_OCI",
       [
-        ("customer_id", str, Field(description="The Google Ads customer ID.")),
-        ("conversion_action_id", str, Field(
-          description="The conversion action ID.")),
-        ("conversion_date_time", str, Field(description=(
-          "The date and time of the conversion (should be after the click "
-          "time). The format is 'yyyy-mm-dd hh:mm:ss+|-hh:mm, e.g. "
-          "'2019-01-01 12:32:45-08:00'"))),
-        ("conversion_value", str, Field(description="The conversion value.")),
-        ("conversion_custom_variable_id", Optional[str], Field(
-          default=None, description=("The ID of the conversion custom variable to associate "
-                                     "with the upload."))),
-        ("currency_code", Optional[str], Field(
-          default=_DEFAULT_CURRENCY_CODE, description=("The currency code "
-                                                       "for the value of this conversion."))),
-        ("conversion_custom_variable_value", Optional[str], Field(
-          default=None, description=("The value of the conversion custom "
-                                     "variable to associate with the upload."))),
-        ("gclid", Optional[str], Field(description=(
-          "The Google Click Identifier (gclid) which should be newer than "
-          "the number of days set on the conversion window of the conversion "
-          "action. Only one of either a gclid, WBRAID, or GBRAID identifier can "
-          "be passed into this example. See the following for more details: "
-          "https://developers.google.com/google-ads/api/docs/conversions/upload-clicks"),
-          default=None)),
-        ("gbraid", Optional[str], Field(description=(
-          "The GBRAID identifier for an iOS app conversion. Only one of "
-          "either a gclid, WBRAID, or GBRAID identifier can be passed into this "
-          "example. See the following for more details: "
-          "https://developers.google.com/google-ads/api/docs/conversions/upload-clicks"),
-          default=None)),
-        ("wbraid", Optional[str], Field(description=(
-          "The WBRAID identifier for an iOS app conversion. Only one of "
-          "either a gclid, WBRAID, or GBRAID identifier can be passed into this "
-          "example. See the following for more details: "
-          "https://developers.google.com/google-ads/api/docs/conversions/upload-clicks"),
-          default=None, )),
+        ("client_id", str, Field(description="An OAuth2.0 Web Client ID.")),
+        ("client_secret", str, Field(description="An OAuth2.0 Web Client Secret.")),
+        ("developer_token", str, Field(description="A Google Ads Developer Token.")),
+        ("login_customer_id", str, Field(description="A Google Ads Login Customer ID (without hyphens).")),
+        ("refresh_token", str, Field(description="A Google Ads API refresh token.")),
       ]
     )
 
