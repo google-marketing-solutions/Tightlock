@@ -8,5 +8,5 @@ pydantic==1.10.9
 # Data sources requirements
 apache-airflow-providers-apache-drill==2.4.3
 google-cloud-bigquery==3.11.3
-google-ads>=22.0.0
+google-ads>=21.3.0
 
