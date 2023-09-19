@@ -20,7 +20,8 @@ import contextlib
 import json
 from typing import Annotated, Any
 
-from clients import AirflowClient
+from common.airflow_client import AirflowClient
+from common.chat_client import ChatClient
 from db import get_session
 from fastapi import Body, Depends, FastAPI, HTTPException, Query
 from fastapi.responses import Response, JSONResponse
@@ -298,6 +299,24 @@ async def batch_get_connections_runs(
   )
 
   return runs_response
+
+@v1.post("/chat_logs", response_model=str)
+async def get_chat_response(
+  message: str,
+  chat_history: list[dict[str, str]],
+  chat_client=Depends(ChatClient)) -> str:
+  """Gets and a response from the LogChatClient.
+  
+  Args:
+    message: The chat message to send to the LLM.
+    chat_history: Previous messages from the chat.
+    chat_client: The ChatClient class.
+
+  Returns:
+    The chat bot response.
+  """
+  return chat_client.get_chat_response(
+    message=message,chat_history=chat_history)
 
 
 app.mount("/api/v1", v1)
