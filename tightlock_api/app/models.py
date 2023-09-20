@@ -109,3 +109,7 @@ class Config(SQLModel, table=True):
     """
 
     arbitrary_types_allowed = True
+
+
+class Logs(SQLModel):
+  logs: str

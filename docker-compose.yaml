@@ -110,6 +110,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
 
   airflow-webserver:
     <<: *airflow-common

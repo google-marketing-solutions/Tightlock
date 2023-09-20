@@ -21,7 +21,7 @@ import time
 from typing import Any, Optional
 
 import httpx
-from models import (Connection, RunLog, RunLogsResponse, RunResult,
+from models import (Connection, Logs, RunLog, RunLogsResponse, RunResult,
                     ValidationResult)
 
 _AIRFLOW_BASE_URL = "http://airflow-webserver:8080"
@@ -185,3 +185,54 @@ class AirflowClient:
     schemas_result = parsed_xcom_response["value"]
     return schemas_result
 
+  async def get_latest_logs(self):
+    print("Trying to get logs...")
+    path = "/app/logs/"
+
+    log_dir = os.listdir(path)
+
+    dag_log_dirs = [folder for folder in log_dir if folder.endswith("_dag")]
+
+    print(f"Dag log dirs: {dag_log_dirs}")
+
+    latest_log_subdirs = []
+
+    # Gets latest subdir (e.g. 'logs/dag_id=ga4_web_bq_dag/run_id=manual__2023-09-20T14:29:24+00:00)
+    for dag_log_dir in dag_log_dirs:
+        subdir_path = os.path.join(path, dag_log_dir)
+        run_ids = os.listdir(subdir_path)
+        run_ids.sort()
+        run_id_path = os.path.join(path, dag_log_dir, run_ids[-1])
+
+        # Get the task_id subfolder
+        task_subfolders = os.listdir(run_id_path)
+
+        for task_subfolder in task_subfolders:
+            if not task_subfolder.startswith("task_id="):
+                continue
+
+            full_path = os.path.join(run_id_path, task_subfolder)
+
+            latest_log_subdirs.append(full_path)
+
+    print(f"Latest subdirs: {latest_log_subdirs}")
+
+    latest_log_files = []
+
+    # Gets latest files within the subdir
+    for latest_log_subdir in latest_log_subdirs:
+        log_files = os.listdir(latest_log_subdir)
+        log_files.sort()
+        latest_log_files.append(os.path.join(latest_log_subdir, log_files[-1]))
+
+    print(f"Latest log files: {latest_log_files}")
+
+    log_data = []
+
+    for log_file in latest_log_files:
+        with open(log_file, "r") as f:
+            log_data.append(f"{log_file} = {f.read()} \n")
+
+    response = Logs(logs="".join(log_data))
+
+    return response

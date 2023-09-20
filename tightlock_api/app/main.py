@@ -25,7 +25,7 @@ from common.chat_client import ChatClient
 from db import get_session
 from fastapi import Body, Depends, FastAPI, HTTPException, Query
 from fastapi.responses import Response, JSONResponse
-from models import (Config, ConfigValue, Connection, ConnectResponse, RunLogsResponse,
+from models import (Config, ConfigValue, Connection, ConnectResponse, Logs, RunLogsResponse,
                     ValidationResult)
 from security import check_authentication_header
 from sqlalchemy.exc import IntegrityError, NoResultFound
@@ -317,6 +317,20 @@ async def get_chat_response(
   """
   return chat_client.get_chat_response(
     message=message,chat_history=chat_history)
+
+@v1.get("/getLatestLogs", response_model=Logs)
+async def get_latest_logs(
+  airflow_client=Depends(AirflowClient),):
+  """Retrieves the latest logs.
+
+  Args:
+    airflow_client: Airflow Client dependency injection.
+  Returns:
+    A list of logs wrapped in an HTTP JSONResponse.
+  """
+  logs_response = await airflow_client.get_latest_logs()
+
+  return logs_response
 
 
 app.mount("/api/v1", v1)
