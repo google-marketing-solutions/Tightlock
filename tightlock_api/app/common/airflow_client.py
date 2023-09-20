@@ -16,6 +16,7 @@ limitations under the License."""
 import ast
 import datetime
 import json
+import os
 import random
 import time
 from typing import Any, Optional
@@ -227,12 +228,15 @@ class AirflowClient:
 
     print(f"Latest log files: {latest_log_files}")
 
-    log_data = []
+    log_data = {}
 
     for log_file in latest_log_files:
         with open(log_file, "r") as f:
-            log_data.append(f"{log_file} = {f.read()} \n")
+            dag_name = log_file.split("/")[3]
+            dag_name = dag_name.replace("dag_id=", "")
+            print(f"Log file: {dag_name}")
+            log_data[dag_name] = f.read()
 
-    response = Logs(logs="".join(log_data))
+    response = Logs(logs=log_data)
 
     return response

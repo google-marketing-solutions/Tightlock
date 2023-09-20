@@ -112,4 +112,4 @@ class Config(SQLModel, table=True):
 
 
 class Logs(SQLModel):
-  logs: str
+  logs: Dict[str, str]
