@@ -367,15 +367,15 @@ class Destination:
         [
             ("api_secret", str, Field(
                 description="An API SECRET generated in the Google Analytics UI.")),
-            ("event_type", PayloadTypes, Field(
+            ("payload_type", PayloadTypes, Field(
                 description="GA4 client type.",
                 validation="gtag|firebase")),
             ("measurement_id", str, Field(
-                condition_field="event_type",
+                condition_field="payload_type",
                 condition_target="gtag",
                 description="The measurement ID associated with a stream. Found in the Google Analytics UI.")),
             ("firebase_app_id", str, Field(
-                condition_field="event_type",
+                condition_field="payload_type",
                 condition_target="firebase",
                 description="The Firebase App ID. The identifier for a Firebase app. Found in the Firebase console.")),
             ("non_personalized_ads", Optional[bool], Field(
