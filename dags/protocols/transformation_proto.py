@@ -16,13 +16,16 @@
 
 from typing import (Any, Dict, List, Mapping, Optional, Protocol, Sequence,
                     runtime_checkable)
-
+from enum import Enum
 from utils import ProtocolSchema, ValidationResult
-
 
 @runtime_checkable
 class TransformationProto(Protocol):
   """Common set of methods that must be implemented by all sources."""
+
+  class Type(Enum):
+    PRE = 0
+    POST = 1
 
   def __init__(self, config: Dict[str, Any]):
     """Init method for SourceProto.
@@ -30,6 +33,14 @@ class TransformationProto(Protocol):
     Args:
       config: A dictionnary parsed from the connection config, containing
       the metadata required for the the target source.
+    """
+    ...
+
+  def type(self) -> Type:
+    """Returns the type of transformation.
+
+    Returns:
+      The type of transformation.
     """
     ...
 
