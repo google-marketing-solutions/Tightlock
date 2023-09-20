@@ -20,11 +20,10 @@ import datetime
 import importlib.util
 import pathlib
 import re
-from retry import retry
 import traceback
 from dataclasses import asdict
 from functools import partial
-from typing import Any, Callable, Mapping, Optional, Sequence
+from typing import Any, Mapping, Optional, Sequence
 
 from airflow.decorators import dag
 from airflow.hooks.postgres_hook import PostgresHook
@@ -130,20 +129,11 @@ class DAGBuilder:
         data = get_data(offset=offset)
         run_result = RunResult(0, 0, [], dry_run)
         while data:
-          print('Sending data...')
-          run_result += send_data(target_destination.send_data, data, dry_run)
-          print('Probably won''t get here')
+          run_result += target_destination.send_data(data, dry_run)
           offset += batch_size
           data = get_data(offset=offset)
 
         task_instance.xcom_push("run_result", asdict(run_result))
-
-      @retry(Exception, delay=1, backoff=2, tries=3)
-      def send_data(send_data: Callable,
-                              data: Sequence[Mapping[str, Any]],
-                              dry_run: bool) -> RunResult:
-        print('Trying...')
-        return send_data(data, dry_run)
 
       PythonOperator(
           task_id=connection_id,
