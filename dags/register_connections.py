@@ -120,6 +120,7 @@ class DAGBuilder:
         fields = target_destination.fields()
         batch_size = target_destination.batch_size()
         offset = 0
+        # transformations (specific to field mapping)
         get_data = partial(
             target_source.get_data,
             fields=fields,
@@ -127,6 +128,7 @@ class DAGBuilder:
             reusable_credentials=reusable_credentials
         )
         data = get_data(offset=offset)
+        # transformations (specific to updates to fields)
         run_result = RunResult(0, 0, [], dry_run)
         while data:
           run_result += target_destination.send_data(data, dry_run)
@@ -150,9 +152,10 @@ class DAGBuilder:
       # actual implementations of each source and destination
       try:
         target_source = self._config_from_ref(connection["source"])
+        target_transformations = self._config_from_ref(connection["transformations"])
         target_destination = self._config_from_ref(connection["destination"])
         dynamic_dag = self._build_dynamic_dag(
-            connection, target_source, target_destination
+            connection, target_source, target_transformations, target_destination
         )
         # register dag by calling the dag object
         dynamic_dag()
@@ -161,7 +164,7 @@ class DAGBuilder:
         register_errors = Variable.get(self.register_errors_var,
                                        deserialize_json=True)
         register_errors.append({
-            "connection_name": connection["name"], 
+            "connection_name": connection["name"],
             "error": error_traceback
         })
         print(f"{connection['name']} registration error : {error_traceback}")
