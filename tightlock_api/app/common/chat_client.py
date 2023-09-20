@@ -19,6 +19,7 @@ from vertexai.language_models import ChatModel, ChatMessage
 
 _MODEL = 'chat-bison@001'
 
+
 class ChatClient:
   """A client to converse with the VertexAI chat model."""
 
@@ -30,7 +31,7 @@ class ChatClient:
     """
     vertexai.init(project='cse-hack-23-tightlock-nyc')
     self._client = ChatModel.from_pretrained(_MODEL)
-    self._logs = airflow_client_lib.AirflowClient().get_latest_log_per_dag()
+    self._logs = airflow_client_lib.AirflowClient().get_latest_logs()
     self._context = (
       'My name is Tightlock. I\'m assisting users in debugging'
       f'log messages. Here are the log messages:\n\n{self._logs}'
@@ -39,7 +40,7 @@ class ChatClient:
   def get_chat_response(
       self,
       message: str,
-      chat_history: dict[str, str]|None
+      chat_history: list[dict[str, str]]|None
     ) -> str:
     """Gets a response from the the chat model.
     
