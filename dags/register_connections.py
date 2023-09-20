@@ -30,6 +30,7 @@ from airflow.hooks.postgres_hook import PostgresHook
 from airflow.models import Variable
 from airflow.operators.python_operator import PythonOperator
 from protocols.destination_proto import DestinationProto
+from protocols.transformation_proto import TransformationProto
 from protocols.source_proto import SourceProto
 from utils import RunResult
 
@@ -44,7 +45,9 @@ class DAGBuilder:
                  value=[],
                  description="Report of dynamic DAG registering errors.")
 
-  def _config_from_ref(self, ref: Mapping[str, str]) -> SourceProto | DestinationProto:
+  def _config_from_ref(
+      self, ref: Mapping[str, str]
+  ) -> SourceProto | DestinationProto | TransformationProto:
     refs_regex = r"^#\/(sources|destinations)\/(.*)"
     ref_str = ref["$ref"]
     match = re.search(refs_regex, ref_str)
@@ -54,11 +57,21 @@ class DAGBuilder:
     target_type = target_config.get("type")
     if not target_type:
       raise ValueError("Missing config attribute `type`.")
+
+    entity = self._import_entity(target_type, target_folder)
     if target_folder == "sources":
-      return self._import_entity(target_type, target_folder).Source(target_config)
+      return entity.Source(target_config)
+    elif target_folder == "transformations":
+      return entity.Transformation(target_config)
     elif target_folder == "destinations":
-      return self._import_entity(target_type, target_folder).Destination(target_config)
+      return entity.Destination(target_config)
+
     raise ValueError(f"Not supported folder: {target_folder}")
+
+  def _configs_from_refs(
+      self, refs: Sequence[Mapping[str, str]]
+  ) -> Sequence[TransformationProto]:
+    return [self._config_from_ref(ref) for ref in refs]
 
   def _parse_dry_run(self, connection_id: str, dry_run_str: str) -> bool:
     try:
@@ -72,7 +85,7 @@ class DAGBuilder:
 
   def _import_entity(
       self, source_name: str, folder_name: str
-  ) -> SourceProto | DestinationProto:
+  ) -> SourceProto | DestinationProto | TransformationProto:
     module_name = "".join(x.title() for x in source_name.split("_") if not x.isspace())
 
     lower_source_name = source_name.lower()
@@ -96,6 +109,7 @@ class DAGBuilder:
       self,
       connection: Mapping[str, Any],
       target_source: SourceProto,
+      target_transformations: Sequence[TransformationProto],
       target_destination: DestinationProto,
       reusable_credentials: Optional[Sequence[Any]] = None,
   ):
@@ -120,20 +134,25 @@ class DAGBuilder:
         fields = target_destination.fields()
         batch_size = target_destination.batch_size()
         offset = 0
-        # transformations (specific to field mapping)
+
+        for transformation in target_transformations:
+          fields = transformation.pre_transform(fields)
+
         get_data = partial(
             target_source.get_data,
             fields=fields,
             limit=batch_size,
             reusable_credentials=reusable_credentials
         )
-        data = get_data(offset=offset)
-        # transformations (specific to updates to fields)
         run_result = RunResult(0, 0, [], dry_run)
-        while data:
+        while True:
+          data = get_data(offset=offset)
+          if not data:
+            break
+          for transformation in target_transformations:
+            data = transformation.post_transform(data)
           run_result += target_destination.send_data(data, dry_run)
           offset += batch_size
-          data = get_data(offset=offset)
 
         task_instance.xcom_push("run_result", asdict(run_result))
 
@@ -149,10 +168,10 @@ class DAGBuilder:
     """Loops over all configured connections and create an Airflow DAG for each one of them."""
     # TODO(b/290388517): Remove mentions to activation once UI is ready
     for connection in self.latest_config["activations"]:
-      # actual implementations of each source and destination
+      # actual implementations of each source, transformation, and destination
       try:
         target_source = self._config_from_ref(connection["source"])
-        target_transformations = self._config_from_ref(connection["transformations"])
+        target_transformations = self._configs_from_refs(connection['transformations'])
         target_destination = self._config_from_ref(connection["destination"])
         dynamic_dag = self._build_dynamic_dag(
             connection, target_source, target_transformations, target_destination
