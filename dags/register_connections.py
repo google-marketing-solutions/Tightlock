@@ -171,7 +171,9 @@ class DAGBuilder:
       # actual implementations of each source, transformation, and destination
       try:
         target_source = self._config_from_ref(connection["source"])
-        target_transformations = self._configs_from_refs(connection['transformations'])
+        target_transformations = []
+        if 'transformations' in connection:
+          target_transformations = self._configs_from_refs(connection['transformations'])
         target_destination = self._config_from_ref(connection["destination"])
         dynamic_dag = self._build_dynamic_dag(
             connection, target_source, target_transformations, target_destination
