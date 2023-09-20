@@ -21,7 +21,7 @@ from utils import ProtocolSchema, ValidationResult
 
 
 @runtime_checkable
-class SourceProto(Protocol):
+class TransformationProto(Protocol):
   """Common set of methods that must be implemented by all sources."""
 
   def __init__(self, config: Dict[str, Any]):
