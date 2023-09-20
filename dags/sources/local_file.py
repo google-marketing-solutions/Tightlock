@@ -35,7 +35,7 @@ class Source(DrillMixin):
       offset: int,
       limit: int,
       reusable_credentials: Optional[Sequence[Mapping[str, Any]]],
-  ) -> List[Mapping[str, Any]]:
+  ) -> List[Dict[str, Any]]:
     return self.get_drill_data(self.path, fields, offset, limit)
 
   @staticmethod

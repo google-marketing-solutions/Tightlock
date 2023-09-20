@@ -60,7 +60,7 @@ class TransformationProto(Protocol):
 
   def post_transform(
       self,
-      input_data: List[Mapping[str, Any]]
+      input_data: List[Dict[str, Any]]
   ) -> List[Mapping[str, Any]]:
     """Runs post source data pull to transform the values.
 

@@ -46,7 +46,7 @@ class Transfomation:
 
         return input_data
 
-    def _encode_field(self, row_data: Dict[str, Any]) -> None:
+    def _encode_field(self, row_data: Mapping[str, Any]) -> None:
         if self.source_field_name not in row_data:
             raise ValueError(
                 f"Transformation error:  Could not find field '{self.source_field_name}' to SHA encode."

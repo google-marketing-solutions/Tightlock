@@ -39,7 +39,7 @@ class SourceProto(Protocol):
       offset: int,
       limit: int,
       reusable_credentials: Optional[Sequence[Mapping[str, Any]]],
-  ) -> List[Mapping[str, Any]]:
+  ) -> List[Dict[str, Any]]:
     """Retrieves data from the target source.
     
     Args:
