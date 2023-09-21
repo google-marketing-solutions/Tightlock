@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License."""
 
+import logging
 import common.airflow_client as airflow_client_lib
 import google.auth
 import vertexai
@@ -42,6 +43,7 @@ class ChatClient:
       'My name is Tightlock. I\'m assisting users in debugging'
       f'log messages. Here are the log messages:\n\n{self._logs}'
     )
+    logging.info('Context is %s', self._context)
 
   def get_chat_response(
       self,
@@ -59,6 +61,7 @@ class ChatClient:
     """
     message_history = self._build_message_history_from_dict(
       chat_history)
+    logging.info('Message history is %s', message_history)
     chat = self._client.start_chat(
       context=self._context,
       message_history=message_history,
