@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Mapping, Optional
 class Transformation:
   """Implements SHA256 Encoding value transformation."""
   def __init__(self, config: Dict[str, Any]):
-    self.source_field_name = config["source_field_name"]
+    self.field_name = config["field_name"]
 
   def pre_transform(
       self,
@@ -41,22 +41,22 @@ class Transformation:
     return input_data
 
   def _encode_field(self, row_data: Mapping[str, Any]) -> None:
-    if self.source_field_name not in row_data:
+    if self.field_name not in row_data:
       raise ValueError(
-          f"Transformation error:  Could not find field '{self.source_field_name}' to SHA encode."
+          f"Transformation error:  Could not find field '{self.field_name}' to SHA encode."
       )
 
-    value = row_data[self.source_field_name]
+    value = row_data[self.field_name]
     if value:
       hash = sha256(value.encode('utf-8'))
-      row_data[self.source_field_name] = hash.hexdigest()
+      row_data[self.field_name] = hash.hexdigest()
 
   @staticmethod
   def schema() -> Optional[ProtocolSchema]:
     return ProtocolSchema(
         "encode_sha256",
         [
-            ("source_field_name", str, Field(
+            ("field_name", str, Field(
                 description="The name of field in the source dataset to encode.",
                 validation="^[a-zA-Z0-9_]{1,1024}$")),
         ]

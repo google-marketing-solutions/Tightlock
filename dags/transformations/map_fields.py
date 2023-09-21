@@ -21,8 +21,9 @@ from typing import Any, Dict, List, Mapping, Optional
 
 class Transformation:
   """Implements field mappings between the Source and Destination fields."""
+
   def __init__(self, config: Dict[str, Any]):
-    self.field_mappings: Dict[str, str] = config["field_mappings"]
+    self.field_mappings: List[Dict[str, str]] = config["field_mappings"]
 
   def pre_transform(
       self,
@@ -31,37 +32,47 @@ class Transformation:
     self._validate_field_mappings(destination_fields)
     source_fields = []
     for destination_field in destination_fields:
-      if destination_field in self.field_mappings.keys():
-        source_field = self.field_mappings[destination_field]
-      else:
-        source_field = destination_field
-      source_fields.append(source_field)
+      source_fields.append(
+        self._get_source_field(destination_field)
+      )
     return source_fields
 
   def post_transform(
       self,
       input_data: List[Mapping[str, Any]]
   ) -> List[Mapping[str, Any]]:
-    for data in input_data:
-      for destination_field, source_field in self.field_mappings.items():
-        if source_field in data:
-          data[destination_field] = data[source_field]
-          del data[source_field]
+    for item in input_data:
+      self._set_destination_fields(item)
     return input_data
 
+  def _get_source_field(self, field: str) -> str:
+    for mapping in self.field_mappings:
+      if mapping["destination"] == field:
+        return mapping["source"]
+    return field
+
   def _validate_field_mappings(self, destination_fields: List[str]):
-    for destination_field in self.field_mappings.keys():
-      if destination_field not in destination_fields:
+    mapped_destination_fields = [mapping["destination"] for mapping in self.field_mappings]
+    for field in mapped_destination_fields:
+      if field not in destination_fields:
         raise ValueError(
-          f"Destination field {destination_field} in mapping not found in destination fields."
+          f"Destination field {field} in mapping not found in destination fields."
         )
+
+  def _set_destination_fields(self, item: Mapping[str, Any]):
+    for mapping in self.field_mappings:
+      source_field = mapping["source"]
+      destination_field = mapping["destination"]
+      if source_field in item:
+        item[destination_field] = item[source_field]
+        del item[source_field]
 
   @staticmethod
   def schema() -> Optional[ProtocolSchema]:
     return ProtocolSchema(
         "map_fields",
         [
-            ("field_mappings", Dict[str, str], Field(
+            ("field_mappings", List[Dict[str, str]], Field(
                 description="The mappings for destination and source fields",
                 validation="^[a-zA-Z0-9_]{1,1024}$")),
         ]
