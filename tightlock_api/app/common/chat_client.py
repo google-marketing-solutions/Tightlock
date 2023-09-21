@@ -83,11 +83,11 @@ class ChatClient:
       
     """
     message_history = []
-    for _ in chat_history:
+    for item in chat_history:
       message_history.append(
         ChatMessage(
-          content=chat_history['content'],
-          author=chat_history['author'])
+          content=item['content'],
+          author=item['author'])
       )
     return message_history
 
