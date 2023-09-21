@@ -25,37 +25,37 @@ from utils import SchemaUtils
 class Transfomation:
     """Implements field mappings between the Source and Destination fields."""
     def __init__(self, config: Dict[str, Any]):
-        self.source_fields = config["source_fields"]
-        self.dest_fields = config["dest_fields"]
+        self.field_mappings = config["field_mappings"]
 
     def type(self) -> TransformationProto.Type:
        return TransformationProto.Type.POST
 
     def pre_transform(
             self,
-    ) -> List[Dict[str, str]]:
-        pairs = []
-        for i in range(len(self.dest_fields)):
-            pair = self.field_mapping(self.source_fields[i],
-                                      self.dest_fields[i])
-            pairs.append(pair)
-        return pairs
+            dest_fields: List[str]
+    ) -> List[str]:
+        source_fields = []
+        for dest_field in dest_fields:
+            source_field = self.field_mapping(dest_field)
+            source_fields.append(source_field)
+        return source_fields
 
-    def field_mapping(self, source_field: str,
-                      dest_field: str) -> Dict[str, str]:
-        if dest_field is None:
-            raise KeyError("You are assigning ", source_field,
-                           " to an empty destination field. Please create a "
-                           "corresponding destination field "
-                           "or remove source field: ", source_field)
-        if source_field is None:
-            print("You are creating a brand new destination field: ",
-                  dest_field, ". Remember to fill the values in the next steps")
-        return {dest_field: source_field}
+    def field_mapping(self, dest_field: str) -> str:
+        try:
+          return self.field_mappings.get(dest_field)
+        except:
+          raise KeyError(dest_field, " is not found in Config")
 
-    # @staticmethod
-    # def schema() -> Optional[ProtocolSchema]:
-    #     return
+    @staticmethod
+    def schema() -> Optional[ProtocolSchema]:
+      return ProtocolSchema(
+          "field_mapping",
+          [
+              ("field_mappings", Dict[str, str], Field(
+                  description="The mappings for destination and source fields",
+                  validation="^[a-zA-Z0-9_]{1,1024}$")),
+          ]
+      )
 
 
 
