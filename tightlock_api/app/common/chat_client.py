@@ -33,7 +33,7 @@ class ChatClient:
     credentials, _ = google.auth.load_credentials_from_file(
       filename='service_account.json')
     vertexai.init(
-      project='cse-hack-23-tightlock-nyc',
+      project='tightlock-be-deploy-testing',
       credentials=credentials
     )
     self._client = ChatModel.from_pretrained(_MODEL)
