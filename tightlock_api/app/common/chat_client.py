@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License."""
 
 import common.airflow_client as airflow_client_lib
+import google.auth
 import vertexai
 from vertexai.language_models import ChatModel, ChatMessage
 
@@ -29,7 +30,12 @@ class ChatClient:
     Args:
       logs: A dictionary of the last log entries for all available dags.
     """
-    vertexai.init(project='cse-hack-23-tightlock-nyc')
+    credentials, _ = google.auth.load_credentials_from_file(
+      filename='service_account.json')
+    vertexai.init(
+      project='cse-hack-23-tightlock-nyc',
+      credentials=credentials
+    )
     self._client = ChatModel.from_pretrained(_MODEL)
     self._logs = airflow_client_lib.AirflowClient().get_latest_logs()
     self._context = (
