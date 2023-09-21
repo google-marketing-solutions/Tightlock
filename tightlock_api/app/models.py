@@ -113,3 +113,8 @@ class Config(SQLModel, table=True):
 
 class Logs(SQLModel):
   logs: Dict[str, str]
+
+
+class ChatRequest(SQLModel):
+  message: str
+  chat_history: list[dict[str, str]]

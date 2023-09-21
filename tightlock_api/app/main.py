@@ -26,7 +26,7 @@ from db import get_session
 from fastapi import Body, Depends, FastAPI, HTTPException, Query
 from fastapi.responses import Response, JSONResponse
 from models import (Config, ConfigValue, Connection, ConnectResponse, Logs, RunLogsResponse,
-                    ValidationResult)
+                    ValidationResult, ChatRequest)
 from security import check_authentication_header
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlmodel import select
@@ -302,21 +302,21 @@ async def batch_get_connections_runs(
 
 @v1.post("/chat_logs", response_model=str)
 async def get_chat_response(
-  message: str,
-  chat_history: list[dict[str, str]],
+  chat_request: ChatRequest,
   chat_client=Depends(ChatClient)) -> str:
   """Gets and a response from the LogChatClient.
   
   Args:
-    message: The chat message to send to the LLM.
-    chat_history: Previous messages from the chat.
+    chat_request: A ChatRequest object.
     chat_client: The ChatClient class.
 
   Returns:
     The chat bot response.
   """
   return chat_client.get_chat_response(
-    message=message,chat_history=chat_history)
+    message=chat_request.message,
+    chat_history=chat_request.chat_history
+  )
 
 @v1.get("/getLatestLogs", response_model=Logs)
 async def get_latest_logs(
