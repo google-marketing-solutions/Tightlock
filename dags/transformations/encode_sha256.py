@@ -15,8 +15,8 @@ limitations under the License."""
 
 import hashlib
 
-from dags.protocols.transformation_proto import TransformationProto
-from dags.schemas import ProtocolSchema
+from protocols.transformation_proto import TransformationProto
+from schemas import ProtocolSchema
 
 from pydantic import Field
 from typing import Any, Dict, List, Mapping, Optional

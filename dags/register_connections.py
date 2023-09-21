@@ -48,7 +48,7 @@ class DAGBuilder:
   def _config_from_ref(
       self, ref: Mapping[str, str]
   ) -> SourceProto | DestinationProto | TransformationProto:
-    refs_regex = r"^#\/(sources|destinations)\/(.*)"
+    refs_regex = r"^#\/(sources|destinations|transformations)\/(.*)"
     ref_str = ref["$ref"]
     match = re.search(refs_regex, ref_str)
     target_folder = match.group(1)
