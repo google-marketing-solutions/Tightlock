@@ -66,7 +66,7 @@ class ChatClient:
       top_p=0.95,
       top_k=40
     )
-    return chat.send_message(message)
+    return chat.send_message(message).text
   
   def _build_message_history_from_dict(
       self,
