@@ -186,7 +186,7 @@ class AirflowClient:
     schemas_result = parsed_xcom_response["value"]
     return schemas_result
 
-  async def get_latest_logs(self):
+  def get_latest_logs(self):
     print("Trying to get logs...")
     path = "/app/logs/"
 
