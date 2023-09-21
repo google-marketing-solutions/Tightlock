@@ -23,7 +23,7 @@ from typing import Any, Dict, List, Mapping, Optional
 from utils import SchemaUtils
 
 
-class Transfomation:
+class Transformation:
     """Implements SHA256 Encoding value transformation."""
     def __init__(self, config: Dict[str, Any]):
         self.source_field_name = config["source_field_name"]
