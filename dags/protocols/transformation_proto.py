@@ -60,7 +60,7 @@ class TransformationProto(Protocol):
 
   def post_transform(
       self,
-      input_data: List[Dict[str, Any]]
+      input_data: List[Mapping[str, Any]]
   ) -> List[Mapping[str, Any]]:
     """Runs post source data pull to transform the values.
 
@@ -82,12 +82,3 @@ class TransformationProto(Protocol):
       of this protocol.
     """
     ...
-
-# Might or might not need.
-#   def validate(self) -> ValidationResult:
-#     """Validates the provided config.
-
-#     Returns:
-#       A ValidationResult for the provided config.
-#     """
-#     ...

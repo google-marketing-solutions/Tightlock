@@ -26,7 +26,7 @@ class SourceProto(Protocol):
 
   def __init__(self, config: Dict[str, Any]):
     """Init method for SourceProto.
-    
+
     Args:
       config: A dictionnary parsed from the connection config, containing
       the metadata required for the the target source.
@@ -39,11 +39,11 @@ class SourceProto(Protocol):
       offset: int,
       limit: int,
       reusable_credentials: Optional[Sequence[Mapping[str, Any]]],
-  ) -> List[Dict[str, Any]]:
+  ) -> List[Mapping[str, Any]]:
     """Retrieves data from the target source.
-    
+
     Args:
-      fields: A list of fields to be retrieved from the 
+      fields: A list of fields to be retrieved from the
         underlying source.
       offset: The offset for the query.
       limit: The maximum number of records to return.
@@ -57,9 +57,9 @@ class SourceProto(Protocol):
   @staticmethod
   def schema() -> Optional[ProtocolSchema]:
     """Returns the required metadata for this source config.
-    
+
     Returns:
-      An optional ProtocolSchema object that defines the 
+      An optional ProtocolSchema object that defines the
       required and optional metadata used by the implementation
       of this protocol.
     """
@@ -67,7 +67,7 @@ class SourceProto(Protocol):
 
   def validate(self) -> ValidationResult:
     """Validates the provided config.
-    
+
     Returns:
       A ValidationResult for the provided config.
     """

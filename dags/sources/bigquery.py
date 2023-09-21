@@ -54,7 +54,7 @@ class Source:
       offset: int,
       limit: int,
       reusable_credentials: Optional[Sequence[Mapping[str, Any]]],
-  ) -> List[Dict[str, Any]]:
+  ) -> List[Mapping[str, Any]]:
     """get_data implemention for BigQuery source."""
     query = (
         f"SELECT *"
@@ -84,7 +84,7 @@ class Source:
                 validation="^[a-zA-Z0-9_]{1,1024}$")),
             ("table", str, Field(
                 description="The name of your BigQuery table.",)),
-            
+
             ("credentials", Optional[SchemaUtils.raw_json_type()], Field(
                 default=None,
                 description="The full credentials service-account JSON string. Not needed if your backend is located in the same GCP project as the BigQuery table.")),
