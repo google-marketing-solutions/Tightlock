@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License."""
 
-import hashlib
+from hashlib import sha256
 
 from protocols.transformation_proto import TransformationProto
 from schemas import ProtocolSchema
@@ -52,9 +52,10 @@ class Transformation:
                 f"Transformation error:  Could not find field '{self.source_field_name}' to SHA encode."
             )
 
-        raw_value = row_data[self.source_field_name]
-        encoded_value = hashlib.sha256(raw_value).hexdigest()
-        row_data[self.source_field_name] = encoded_value
+        value = row_data[self.source_field_name]
+        if value:
+            hash = sha256(value.encode('utf-8'))
+            row_data[self.source_field_name] = hash.hexdigest()
 
     @staticmethod
     def schema() -> Optional[ProtocolSchema]:
