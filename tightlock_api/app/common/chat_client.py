@@ -40,8 +40,8 @@ class ChatClient:
     self._client = ChatModel.from_pretrained(_MODEL)
     self._logs = airflow_client_lib.AirflowClient().get_latest_logs()
     self._context = (
-      'My name is Tightlock. I\'m assisting users in debugging'
-      f'log messages. Here are the log messages:\n\n{self._logs}'
+      'My name is Tightlock. I\'m assisting users in debugging '
+      f'log messages. Here are the log messages:\n\n{self._logs.logs}'
     )
     print(f'Context is {self._context}')
 
@@ -61,7 +61,7 @@ class ChatClient:
     """
     message_history = self._build_message_history_from_dict(
       chat_history)
-    print('Message history is {message_history}')
+    print(f'Message history is {message_history}')
     chat = self._client.start_chat(
       context=self._context,
       message_history=message_history,
@@ -69,6 +69,7 @@ class ChatClient:
       top_p=0.95,
       top_k=40
     )
+    print(f'Getting answer for message: {message}')
     return chat.send_message(message).text
   
   def _build_message_history_from_dict(
