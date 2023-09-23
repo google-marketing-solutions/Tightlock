@@ -327,6 +327,7 @@ class Destination:
     )
 
     if not dry_run:
+      retriable_events: Sequence[Mapping[str, Any]] = list()
       for valid_event in valid_events:
         try:
           event = valid_event[1]
@@ -337,6 +338,8 @@ class Destination:
         ) as error:
           index = valid_event[0]
           invalid_indices_and_errors.append((index, error.error_num))
+          if error.error_num in errors.ERROR_GROUP[errors.ErrorGroupNameMap.RETRIABLE_ERROR]:
+            retriable_events.append(event)
     else:
       print(
           "Dry-Run: Events will be validated agains the debug endpoint and will not be actually sent."
@@ -355,6 +358,7 @@ class Destination:
         successful_hits=len(valid_events),
         failed_hits=len(invalid_indices_and_errors),
         error_messages=[str(error[1]) for error in invalid_indices_and_errors],
+        retriable_events=retriable_events,
         dry_run=dry_run,
     )
 

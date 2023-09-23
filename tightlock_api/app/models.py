@@ -109,3 +109,29 @@ class Config(SQLModel, table=True):
     """
 
     arbitrary_types_allowed = True
+
+
+class Retries(SQLModel, table=True):
+  """ Table of events to be retried.
+
+  For now, all retry events lives in a JSON 'data' field.
+  """
+
+  __table_args__ = (UniqueConstraint("uuid"),)
+
+  id: Optional[int] = Field(default=None, primary_key=True)
+  connection_id: str = Field(default=None, primary_key=False)
+  uuid: str = Field(default=None, primary_key=False)
+  data: Dict[str, Any] = Field(default={},
+                               sa_column=Column(
+                                   mutable_json_type(dbtype=JSONB,
+                                                     nested=True))),
+
+  # Needed for Column(JSON)
+  class Config:
+    """Inner `Config` class is needed by sqlmodel.
+
+    Same name as the parant class is a coincidence.
+    """
+
+    arbitrary_types_allowed = True

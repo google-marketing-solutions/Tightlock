@@ -22,9 +22,18 @@ limitations under the License."""
 All exceptions defined by the library should be in this file.
 """
 import enum
-from typing import Optional
+from typing import Mapping, Optional, Tuple
 
 import immutabledict
+
+# Groups of errors for easier handling
+ERROR_GROUP: Mapping[str, Tuple[int]] = {
+    'RETRIABLE_ERROR': (10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22)}
+
+class ErrorGroupNameMap(enum.StrEnum):
+  """An enum maps error groups names to strings."""
+  RETRIABLE_ERROR = "RETRIABLE_ERROR"
+
 
 # A dictionary with error numbers and error descriptions to use for consistent
 # logging and error handling across TCRM.
