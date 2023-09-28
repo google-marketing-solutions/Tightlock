@@ -61,6 +61,7 @@ class RunResult:
   successful_hits: int = 0
   failed_hits: int = 0
   error_messages: Sequence[str] = field(default_factory=lambda: [])
+  retriable_events: Sequence[Mapping[str, Any]] = field(default_factory=lambda: [])
   dry_run: bool = False
 
   def __add__(self, other: "RunResult") -> "RunResult":
