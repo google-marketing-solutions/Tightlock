@@ -36,9 +36,9 @@ class Source(SourceProto):
   IS_RETRY_SOURCE = True
 
   def __init__(self, config: Mapping[str, Any]):
-    self.connection_id=config['connection_id']
-    self.retry_count=config['retry_count']
-    self.batch_size=config['batch_size']
+    self.connection_id = config['connection_id']
+    self.retry_count = config['retry_count']
+    self.batch_size = config['batch_size']
 
     self.data = self._get_retry_data(config['connection_id'], config['uuid'])
 
@@ -68,14 +68,11 @@ class Source(SourceProto):
 
   @staticmethod
   def schema() -> Optional[ProtocolSchema]:
-    return ProtocolSchema(
-        "retry",
-        [
-            ("connection_id", str, Field(description="Connection id.",)),
-            ("uuid", str, Field(description="Universally unique id.",)),
-            ("retry_count", int, Field(description="Retry count.",)),
-        ]
-    )
+    return ProtocolSchema("retry", [
+        ("connection_id", str, Field(description="Connection id.",)),
+        ("uuid", str, Field(description="Universally unique id.",)),
+        ("retry_count", int, Field(description="Retry count.",)),
+    ])
 
   def validate(self) -> ValidationResult:
     return ValidationResult(True, [])

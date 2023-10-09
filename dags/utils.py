@@ -209,3 +209,25 @@ class DrillMixin:
       print(f"Drill validation error: {traceback.format_exc()}")
       return ValidationResult(False, [f"Invalid location: {path}"])
     return ValidationResult(True, [])
+
+
+# TODO(blevitan): DRY. (Stole this from `tightlock_api/db.py``)
+from sqlalchemy.orm import sessionmaker
+from sqlmodel import create_engine
+from sqlmodel.ext.asyncio.session import AsyncEngine
+from sqlmodel.ext.asyncio.session import AsyncSession
+
+engine = AsyncEngine(
+    create_engine(
+        # TODO(blevitan): Definitely need to change this hardcoding.
+        'postgresql+asyncpg://tightlock:tightlock@postgres/tightlock',
+        echo=True,
+        future=True))
+
+
+async def get_session() -> AsyncSession:
+  async_session = sessionmaker(engine,
+                               class_=AsyncSession,
+                               expire_on_commit=False)
+  async with async_session() as session:
+    yield session

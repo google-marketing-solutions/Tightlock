@@ -31,14 +31,13 @@ from airflow.decorators import dag
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.models import Variable
 from airflow.operators.python_operator import PythonOperator
-from dags import sources
-from fastapi import Depends, HTTPException
+import sources
+# from fastapi import Depends, HTTPException
 from protocols.destination_proto import DestinationProto
 from protocols.source_proto import SourceProto
 from sqlalchemy.exc import IntegrityError
 from sqlmodel.ext.asyncio.session import AsyncSession
-from tightlock_api import db
-from utils import RunResult
+from utils import RunResult, get_session
 
 MAX_TRIES = 3
 
