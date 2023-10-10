@@ -123,6 +123,7 @@ class DAGBuilder:
     def dynamic_generated_dag():
 
       def process(task_instance, dry_run_str: str) -> None:
+        print('=================================PROCESSING')
         dry_run = self._parse_dry_run(connection_id, dry_run_str)
         fields = target_destination.fields()
         batch_size = target_destination.batch_size()

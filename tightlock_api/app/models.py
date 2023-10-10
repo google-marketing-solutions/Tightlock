@@ -125,6 +125,7 @@ class Retries(SQLModel, table=True):
   id: Optional[int] = Field(default=None, primary_key=True)
   connection_id: str  #= Field(default=None, primary_key=False)
   uuid: str  #=  Field(default=None, primary_key=False)
+<<<<<<< HEAD
   data: Dict[str, Any] = Field(default={},
                                 sa_column=Column(
                                     mutable_json_type(dbtype=JSONB,
@@ -133,5 +134,18 @@ class Retries(SQLModel, table=True):
   # Needed for Column(JSON)
   class Config:
     """Inner `Config` class is needed by sqlmodel."""
+=======
+  # defined as below to avoid
+  # https://amercader.net/blog/beware-of-json-fields-in-sqlalchemy/
+  data: Dict[str, Any] = Field(default={},
+                               sa_column=Column(
+                                   mutable_json_type(dbtype=JSONB,
+                                                     nested=True)))
+
+  # Needed for Column(JSON)
+  class Config:
+    """Inner `Config` class is needed by sqlmodel.
+    """
+>>>>>>> 9cf3a0e (Retries actually runs now. But, doesn't work.)
 
     arbitrary_types_allowed = True
