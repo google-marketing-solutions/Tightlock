@@ -26,7 +26,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 # All models that needs to be migrated should be added
-from app.models import Config
+from app.models import Config, Retries
 
 from alembic import context
 

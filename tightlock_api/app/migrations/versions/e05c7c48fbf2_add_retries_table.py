@@ -20,14 +20,14 @@ depends_on = None
 def upgrade() -> None:
   op.create_table(
       'retries',
-      # sa.Column('data', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
       sa.Column('id', sa.Integer(), nullable=False),
       sa.Column('connection_id',
                 sqlmodel.sql.sqltypes.AutoString(),
                 nullable=False),
       sa.Column('uuid', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+      sa.Column('data', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
       sa.PrimaryKeyConstraint('id'))
-  op.create_unique_constraint(None, 'reties', ['uuid'])
+  op.create_unique_constraint(None, 'retries', ['uuid'])
   pass
 
 

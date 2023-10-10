@@ -108,7 +108,7 @@ class Config(SQLModel, table=True):
   class Config:
     """Inner `Config` class is needed by sqlmodel.
 
-    Same name as the parant class is a coincidence.
+    Same name as the parent class is a coincidence.
     """
 
     arbitrary_types_allowed = True
@@ -125,17 +125,13 @@ class Retries(SQLModel, table=True):
   id: Optional[int] = Field(default=None, primary_key=True)
   connection_id: str  #= Field(default=None, primary_key=False)
   uuid: str  #=  Field(default=None, primary_key=False)
-
   data: Dict[str, Any] = Field(default={},
-                               sa_column=Column(
-                                   mutable_json_type(dbtype=JSONB,
-                                                     nested=True))),
+                                sa_column=Column(
+                                    mutable_json_type(dbtype=JSONB,
+                                                      nested=True)))
 
   # Needed for Column(JSON)
   class Config:
-    """Inner `Config` class is needed by sqlmodel.
-
-    Same name as the parant class is a coincidence.
-    """
+    """Inner `Config` class is needed by sqlmodel."""
 
     arbitrary_types_allowed = True
