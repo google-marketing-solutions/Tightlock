@@ -15,13 +15,14 @@ limitations under the License."""
 
 """Utility functions for DAGs."""
 
+from collections import defaultdict
 import importlib
 import os
 import pathlib
 import sys
 import traceback
 from dataclasses import dataclass, field
-from typing import Any, List, Mapping, Sequence, Tuple
+from typing import Any, List, Dict, Mapping, Sequence, Tuple
 
 from airflow.providers.apache.drill.hooks.drill import DrillHook
 from pydantic import BaseModel
@@ -111,6 +112,7 @@ class DagUtils:
 
 class GoogleAdsUtils:
   """Utility functions for Google Ads connectors."""
+  PartialFailures = Dict[int, str]
 
   def validate_google_ads_config(self, config: dict[str, Any]) -> ValidationResult:
     """Validates the provided config can build a Google Ads client.
@@ -162,6 +164,49 @@ class GoogleAdsUtils:
 
     return GoogleAdsClient.load_from_dict(
       config_dict=credentials, version=version)
+
+  def get_partial_failures(self, client: GoogleAdsClient, response: Any) -> PartialFailures:
+    """Checks whether a response message has a partial failure error.
+
+    In Python the partial_failure_error attr is always present on a response
+    message and is represented by a google.rpc.Status message. So we can't
+    simply check whether the field is present, we must check that the code is
+    non-zero. Error codes are represented by the google.rpc.Code proto Enum:
+    https://github.com/googleapis/googleapis/blob/master/google/rpc/code.proto
+
+    Args:
+        response:  A MutateAdGroupsResponse message instance.
+
+    Returns: An empty dict if no partial failures exist, or a dict of the index
+      index mapped to the error message.
+    """
+    partial_failure = getattr(response, "partial_failure_error", None)
+    code = getattr(partial_failure, "code", None)
+    if code == 0:
+      # No failures.
+      print("No partial failures found.")
+      return {}
+
+    error_details = getattr(partial_failure, "details", [])
+
+    partial_failures = defaultdict(str)
+
+    for error_detail in error_details:
+      # Retrieve an instance of the GoogleAdsFailure class from the client
+      failure_message = client.get_type("GoogleAdsFailure")
+      # Parse the string into a GoogleAdsFailure message instance.
+      # To access class-only methods on the message we retrieve its type.
+      GoogleAdsFailure = type(failure_message)
+      failure_object = GoogleAdsFailure.deserialize(error_detail.value)
+
+      for error in failure_object.errors:
+        index = error.location.field_path_elements[0].index
+        message = f'Code: {error.error_code}, Error: {error.message}'
+        partial_failures[index] += message  # Can be multiple errors for the same conversion.
+
+    print(f"Partial failures: {partial_failures}")
+
+    return partial_failures
 
 
 class DrillMixin:
