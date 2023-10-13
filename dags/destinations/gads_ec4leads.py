@@ -247,7 +247,7 @@ class Destination:
       print(f"Caught GoogleAdsException: {error}")
       raise
 
-    return GoogleAdsUtils.get_partial_failures(self._client, conversion_upload_response)
+    return GoogleAdsUtils().get_partial_failures(self._client, conversion_upload_response)
 
 
   @staticmethod
