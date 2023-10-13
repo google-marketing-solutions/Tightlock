@@ -19,7 +19,7 @@ import datetime
 import importlib.util
 import json
 import pathlib
-from random import random
+import random
 import re
 import traceback
 from dataclasses import asdict
@@ -27,17 +27,18 @@ from functools import partial
 from typing import Any, Mapping, Optional, Sequence
 import uuid
 
+from airflow.api.common.delete_dag import delete_dag
 from airflow.decorators import dag
 from airflow.hooks.postgres_hook import PostgresHook
-from airflow.models import Variable
+from airflow.models import DAG, Variable
 from airflow.operators.python_operator import PythonOperator
-import sources
+from sources import retry
 # from fastapi import Depends, HTTPException
 from protocols.destination_proto import DestinationProto
 from protocols.source_proto import SourceProto
 from sqlalchemy.exc import IntegrityError
 from sqlmodel.ext.asyncio.session import AsyncSession
-from utils import RunResult, get_session
+from utils import RunResult, DagUtils
 
 MAX_TRIES = 3
 
@@ -110,9 +111,7 @@ class DAGBuilder:
   ):
     """Dynamically creates a DAG based on a given connection."""
     connection_id = f"{connection['name']}_dag"
-    schedule = connection["schedule"]
-    schedule_interval = schedule if schedule else None
-
+    schedule_interval = connection.get('schedule')
     start_date = datetime.datetime(2023, 1, 1, 0, 0, 0)
 
     @dag(dag_id=connection_id,
@@ -123,7 +122,6 @@ class DAGBuilder:
     def dynamic_generated_dag():
 
       def process(task_instance, dry_run_str: str) -> None:
-        print('=================================PROCESSING')
         dry_run = self._parse_dry_run(connection_id, dry_run_str)
         fields = target_destination.fields()
         batch_size = target_destination.batch_size()
@@ -132,16 +130,24 @@ class DAGBuilder:
                            fields=fields,
                            limit=batch_size,
                            reusable_credentials=reusable_credentials)
+        data = get_data(offset=offset)
 
         run_result = RunResult(0, 0, [], dry_run)
         while data:
           run_result += target_destination.send_data(data, dry_run)
           offset += batch_size
+          ## TESTING ONLY ######################################################
+          # TODO(blevitan): REMOVE this line before merging BLEVITAN_DEV branch into MAIN.
+          run_result.retriable_events = data
+          ######################################################################
           data = get_data(offset=offset)
 
         if run_result.retriable_events:
           self._schedule_retry(connection_id, run_result, target_source,
                                target_destination)
+
+        if getattr(target_source, 'IS_RETRY_SOURCE', False):
+          delete_dag(connection_id)
 
         task_instance.xcom_push("run_result", asdict(run_result))
 
@@ -153,9 +159,11 @@ class DAGBuilder:
 
     return dynamic_generated_dag
 
-  async def _schedule_retry(self, connection_id: str, run_result: RunResult,
-                            target_source: SourceProto,
-                            target_destination: DestinationProto):
+  # TODO(blevitan): uncomment if I can figure out the async stuff.
+  # async def _schedule_retry(self, connection_id: str, run_result: RunResult,
+  def _schedule_retry(self, connection_id: str, run_result: RunResult,
+                      target_source: SourceProto,
+                      target_destination: DestinationProto):
     """Schedules a retry for the retriable events.
 
     Schedules up to `MAX_TRIES` tries. Otherwise, logs the failure.
@@ -167,65 +175,63 @@ class DAGBuilder:
       target_destination: The target destination.
     """
     if (not run_result.successful_hits):
-      retry_count = target_source.retry_count + 1
-      print(f'DAG "{connection_id}" had {run_result.failed_hits} retriable '
-            f'failures without any successful.')
+      retry_count = getattr(target_source, 'retry_count', 0) + 1
+      print(f'DAG "{connection_id}" had no successes and '
+            f'{len(run_result.retriable_events)} retriable failures.'
+            f' Incrementing retry count to {retry_count}.')
     else:
-      print(f'DAG "{connection_id}" had {run_result.failed_hits} retriable '
-            f'failures with some successful. Resetting retry count.')
+      print(f'DAG "{connection_id}" had some successes and '
+            f' {len(run_result.retriable_events)} retriable failures.'
+            f' Resetting retry count to 0.')
       retry_count = 0
 
     if retry_count < MAX_TRIES:
-      print(f'Retrying DAG "{connection_id}" ({retry_count+1} of {MAX_TRIES}).')
-      await self._add_retry_db_row(connection_id, target_source.uuid,
-                                   run_result)
-      self._add_retry_dag(connection_id, target_destination, retry_count)
+      print(f'Retrying DAG "{connection_id}" ({retry_count+1} of {MAX_TRIES}))')
+      # TODO(blevitan): uncomment if I can figure out the async stuff.
+      # await self._add_retry_db_row(connection_id, target_source.uuid,
+      new_uuid = str(uuid.uuid4())
+      self._add_retry_db_row(connection_id, new_uuid,
+                             getattr(target_source, 'uuid', False), run_result)
+      self._add_retry_dag(connection_id, new_uuid, target_destination,
+                          retry_count)
     else:
       print(f'DAG run "{connection_id}" had {run_result.failed_hits} failures.'
             f'Not rescheduling due to max tries ({MAX_TRIES}).')
 
-  async def _add_retry_db_row(self, connection_id, prev_uuid, run_result):
-    unique_id = uuid.uuid4()
-    retry_data = {
-        'connection_id': connection_id,
-        'uuid': unique_id,
-        'data': json.dumps(run_result.retriable_events)
-    }
-
-    # TODO(caiotomazelli): Make sure this is done properly for async, if possible.
-    session: AsyncSession = db.get_session()
-    session.add(retry_data)
-    await session.commit()
+  # TODO(blevitan): uncomment if I can figure out the async stuff.
+  # async def _add_retry_db_row(self, connection_id, prev_uuid, run_result):
+  def _add_retry_db_row(self, connection_id, new_uuid, prev_uuid, run_result):
+    sql = 'INSERT INTO Retries(connection_id, uuid, data) VALUES (%s, %s, %s)'
+    data = json.dumps(run_result.retriable_events)
+    DagUtils.exec_postgres_command(sql, (connection_id, new_uuid, data), True)
+    # TODO(blevitan): Get async below working and remove.
+    # session: AsyncSession = get_session()
+    # session.add(retry_data)
+    # session.commit()
 
     # TODO(caiotomazelli): Implement below with `session.delete()`, if possible.
-    sql = f'''DELETE FROM Retry WHERE connection_id = %s AND uuid = %s'''
-    pg_hook = PostgresHook(postgres_conn_id="tightlock_retry",)
-    cursor = pg_hook.get_conn().cursor()
-    cursor.execute(sql, (connection_id, prev_uuid))
+    if prev_uuid:
+      sql = f'DELETE FROM Retry WHERE connection_id = %s AND uuid = %s'
+      DagUtils.exec_postgres_command(sql, (connection_id, prev_uuid), True)
 
-  def _add_retry_dag(self, connection_id, target_destination, retry_count):
-    target_source = sources.retry.Source({
+  def _add_retry_dag(self, connection_id, new_uuid, destination, retry_count):
+    source = retry.Source({
         'connection_id': connection_id,
         'retry_count': retry_count,
-        'uuid': uuid.uuid4()
+        'uuid': new_uuid,
+        'batch_size': destination.batch_size(),
     })
-    wait_minutes = 10**(retry_count - 1) + random.uniform(
-        0, 10**(retry_count - 2))
+    wait = int(
+        round(10**(retry_count - 1) + random.uniform(0, 10**(retry_count - 2)),
+              0))
     now = datetime.datetime.now()
-    schedule = f'{now.minute + wait_minutes} {now.hour} {now.day} {now.month} {now.weekday()}'
-    activation = {
-        'name': f"{connection_id[:-3]}_retry_{retry_count}",
-        'source': target_source,
-        'destination': target_destination.ref(),
+    schedule = f'{now.minute + wait} {now.hour} {now.day} {now.month} {now.weekday()}'
+    connection = {
+        'name': f'{connection_id[:-4]}_retry_{retry_count}',
         'schedule': schedule
     }
-    retry_dag = self._build_dynamic_dag(activation, target_source,
-                                        target_destination)
+    retry_dag = self._build_dynamic_dag(connection, source, destination)
     retry_dag()
-
-    # TODO(caiotomazelli): Is this how you delete the dag?
-    self.delete()
-
 
   def register_dags(self):
     """Loops over all configured connections and create an Airflow DAG for each one of them."""
@@ -233,10 +239,9 @@ class DAGBuilder:
     for connection in self.latest_config["activations"]:
       # actual implementations of each source and destination
       try:
-        target_source = self._config_from_ref(connection["source"])
-        target_destination = self._config_from_ref(connection["destination"])
-        dynamic_dag = self._build_dynamic_dag(connection, target_source,
-                                              target_destination)
+        source = self._config_from_ref(connection["source"])
+        destination = self._config_from_ref(connection["destination"])
+        dynamic_dag = self._build_dynamic_dag(connection, source, destination)
         # register dag by calling the dag object
         dynamic_dag()
       except Exception:  # pylint: disable=broad-except

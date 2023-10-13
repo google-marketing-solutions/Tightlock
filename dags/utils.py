@@ -12,10 +12,10 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License."""
-
 """Utility functions for DAGs."""
 
 import importlib
+import json
 import os
 import pathlib
 import sys
@@ -23,7 +23,9 @@ import traceback
 from dataclasses import dataclass, field
 from typing import Any, List, Mapping, Sequence, Tuple
 
+from airflow.hooks.postgres_hook import PostgresHook
 from airflow.providers.apache.drill.hooks.drill import DrillHook
+import psycopg2
 from pydantic import BaseModel
 from google.ads.googleads.client import GoogleAdsClient
 
@@ -31,11 +33,9 @@ _TABLE_ALIAS = "t"
 _DEFAULT_GOOGLE_ADS_API_VERSION = "v14"
 
 _REQUIRED_GOOGLE_ADS_CREDENTIALS = frozenset([
-  "client_id",
-  "client_secret",
-  "developer_token",
-  "login_customer_id",
-  "refresh_token"])
+    "client_id", "client_secret", "developer_token", "login_customer_id",
+    "refresh_token"
+])
 
 
 @dataclass
@@ -61,7 +61,8 @@ class RunResult:
   successful_hits: int = 0
   failed_hits: int = 0
   error_messages: Sequence[str] = field(default_factory=lambda: [])
-  retriable_events: Sequence[Mapping[str, Any]] = field(default_factory=lambda: [])
+  retriable_events: Sequence[Mapping[str,
+                                     Any]] = field(default_factory=lambda: [])
   dry_run: bool = False
 
   def __add__(self, other: "RunResult") -> "RunResult":
@@ -77,23 +78,27 @@ class SchemaUtils:
 
   @staticmethod
   def key_value_type():
+
     class KeyValue(BaseModel):
       key: str
       value: str
-    return KeyValue
 
+    return KeyValue
 
   @staticmethod
   def raw_json_type():
+
     class RawJSON(BaseModel):
       value: str
+
     return RawJSON
 
 
 class DagUtils:
   """A set of utility functions for DAGs."""
 
-  def import_modules_from_folder(self, folder_name: str):
+  @classmethod
+  def import_modules_from_folder(cls, folder_name: str):
     """Import all modules from a given folder."""
     modules = []
     dags_path = f"airflow/dags/{folder_name}"
@@ -109,11 +114,46 @@ class DagUtils:
         modules.append(module)
     return modules
 
+  @classmethod
+  def exec_postgres_command(
+      cls,
+      command: str,
+      parameters: Sequence,
+      autocommit: bool = False) -> psycopg2.extensions.cursor:
+    """Execute a postgres command.
+
+    Args:
+        command (str): Command to execute.
+        parameters (Sequence): Parameters for the command.
+        autocommit (bool, optional): Whether to autocommit the command.
+                                     Defaults to False.
+
+    Raises:
+        e: Exception raised by the command.
+
+    Returns:
+        psycopg2.extensions.cursor: Cursor for the command.
+    """
+    pg_hook: PostgresHook = PostgresHook(postgres_conn_id='tightlock_config',)
+    conn: psycopg2.extensions.connection = pg_hook.get_conn()
+    cursor: psycopg2.extensions.cursor = conn.cursor()
+    try:
+      cursor.execute(command, parameters)
+      if autocommit:
+        conn.commit()
+    except Exception as e:
+      if autocommit:
+        conn.rollback()
+      print(e)
+      raise e
+    return cursor
+
 
 class GoogleAdsUtils:
   """Utility functions for Google Ads connectors."""
 
-  def validate_google_ads_config(self, config: dict[str, Any]) -> ValidationResult:
+  def validate_google_ads_config(self, config: dict[str,
+                                                    Any]) -> ValidationResult:
     """Validates the provided config can build a Google Ads client.
 
     Args:
@@ -128,9 +168,8 @@ class GoogleAdsUtils:
         missing_fields.append(credential)
 
     if missing_fields:
-      error_msg = (
-        "Config requires the following fields to be set: "
-        f"{', '.join(missing_fields)}")
+      error_msg = ("Config requires the following fields to be set: "
+                   f"{', '.join(missing_fields)}")
       return ValidationResult(False, [error_msg])
 
     return ValidationResult(True, [])
@@ -138,7 +177,7 @@ class GoogleAdsUtils:
   def build_google_ads_client(
       self,
       config: dict[str, Any],
-      version: str=_DEFAULT_GOOGLE_ADS_API_VERSION) -> GoogleAdsClient:
+      version: str = _DEFAULT_GOOGLE_ADS_API_VERSION) -> GoogleAdsClient:
     """Generate Google Ads Client.
 
     Requires the following to be stored in config:
@@ -161,14 +200,15 @@ class GoogleAdsUtils:
 
     credentials["use_proto_plus"] = True
 
-    return GoogleAdsClient.load_from_dict(
-      config_dict=credentials, version=version)
+    return GoogleAdsClient.load_from_dict(config_dict=credentials,
+                                          version=version)
 
 
 class DrillMixin:
   """A Drill mixin that provides a get_drill_data wrapper for other classes that use drill."""
 
-  def _parse_data(self, fields, rows: List[Tuple[str, ...]]) -> List[Mapping[str, Any]]:
+  def _parse_data(self, fields,
+                  rows: List[Tuple[str, ...]]) -> List[Mapping[str, Any]]:
     """Parses data and transforms it into a list of dictionaries."""
     events = []
     for event in rows:
@@ -179,18 +219,15 @@ class DrillMixin:
       events.append(event_dict)
     return events
 
-  def get_drill_data(
-      self, from_target: Sequence[str], fields: Sequence[str], offset: int, limit: int
-  ) -> List[Mapping[str, Any]]:
+  def get_drill_data(self, from_target: Sequence[str], fields: Sequence[str],
+                     offset: int, limit: int) -> List[Mapping[str, Any]]:
     drill_conn = DrillHook().get_conn()
     cursor = drill_conn.cursor()
     table_alias = _TABLE_ALIAS
     fields_str = ",".join([f"{table_alias}.{field}" for field in fields])
-    query = (
-        f"SELECT {fields_str}"
-        f" FROM {from_target} as {table_alias}"
-        f" LIMIT {limit} OFFSET {offset}"
-    )
+    query = (f"SELECT {fields_str}"
+             f" FROM {from_target} as {table_alias}"
+             f" LIMIT {limit} OFFSET {offset}")
     try:
       cursor.execute(query)
       results = self._parse_data(fields, cursor.fetchall())
@@ -211,23 +248,23 @@ class DrillMixin:
     return ValidationResult(True, [])
 
 
-# TODO(blevitan): DRY. (Stole this from `tightlock_api/db.py``)
-from sqlalchemy.orm import sessionmaker
-from sqlmodel import create_engine
-from sqlmodel.ext.asyncio.session import AsyncEngine
-from sqlmodel.ext.asyncio.session import AsyncSession
+# TODO(blevitan): Uncomment if I can get async working.
+# # TODO(blevitan): DRY. (Stole this from `tightlock_api/db.py``)
+# from sqlalchemy.orm import sessionmaker
+# from sqlmodel import create_engine
+# from sqlmodel.ext.asyncio.session import AsyncEngine
+# from sqlmodel.ext.asyncio.session import AsyncSession
 
-engine = AsyncEngine(
-    create_engine(
-        # TODO(blevitan): Definitely need to change this hardcoding.
-        'postgresql+asyncpg://tightlock:tightlock@postgres/tightlock',
-        echo=True,
-        future=True))
+# engine = AsyncEngine(
+#     create_engine(
+#         # TODO(blevitan): Definitely need to change this hardcoding.
+#         'postgresql+asyncpg://tightlock:tightlock@postgres/tightlock',
+#         echo=True,
+#         future=True))
 
-
-async def get_session() -> AsyncSession:
-  async_session = sessionmaker(engine,
-                               class_=AsyncSession,
-                               expire_on_commit=False)
-  async with async_session() as session:
-    yield session
+# async def get_session() -> AsyncSession:
+#   async_session = sessionmaker(engine,
+#                                class_=AsyncSession,
+#                                expire_on_commit=False)
+#   async with async_session() as session:
+#     yield session

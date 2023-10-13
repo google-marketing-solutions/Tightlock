@@ -21,7 +21,6 @@ import json
 from typing import Annotated, Any
 
 from clients import AirflowClient
-from db import get_session
 from fastapi import Body, Depends, FastAPI, HTTPException, Query
 from fastapi.responses import Response, JSONResponse
 from models import (Config, ConfigValue, Connection, ConnectResponse, RunLogsResponse,
@@ -31,6 +30,7 @@ from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from starlette import status
+from db import get_session
 
 # Creates base app and v1 API objects
 app = FastAPI()
@@ -67,7 +67,7 @@ async def trigger_connection(
     airflow_client=Depends(AirflowClient),
 ) -> Response:
   """Triggers a connection identified by name.
-  
+
   Args:
     activation_name: The name of the target connection to trigger (legacy)
     connection_name: The name of the target connection to trigger.
@@ -90,7 +90,7 @@ async def trigger_connection(
 @v1.get("/configs", response_model=list[Config])
 async def get_configs(session: AsyncSession = Depends(get_session)):
   """Retrieves stored configs.
-  
+
   Args:
     session: Postgres DB session dependency injection.
   Returns:
@@ -112,7 +112,7 @@ async def get_configs(session: AsyncSession = Depends(get_session)):
 @v1.get("/configs:getLatest", response_model=Config)
 async def get_latest_config(session: AsyncSession = Depends(get_session)):
   """Retrieves the most recent config.
-  
+
   Args:
     session: Postgres DB session dependency injection.
   Returns:
@@ -133,12 +133,14 @@ async def get_latest_config(session: AsyncSession = Depends(get_session)):
 
 
 @v1.get("/configs/{config_id}", response_model=Config)
-async def get_config(config_id: int,
+async def get_config(config
+
+                     _id: int,
                      session: AsyncSession = Depends(get_session)):
   """Retrieves a config with the provided id.
-  
+
   Args:
-    config_id: integer that uniquely identifies a config 
+    config_id: integer that uniquely identifies a config
     session: Postgres DB session dependency injection.
   Returns:
     The target config wrapped in an HTTP JSONResponse.
@@ -161,22 +163,22 @@ async def get_config(config_id: int,
 async def create_config(config: Config,
                         session: AsyncSession = Depends(get_session)):
   """Creates a new config using the provided config object.
-  
+
   Args:
-    config: config object to be stored. 
+    config: config object to be stored.
     session: Postgres DB session dependency injection.
   Returns:
     The stored config wrapped in an HTTP JSONResponse.
   Raises:
-    HTTPException: A 409 error when the provided config label already exists. 
+    HTTPException: A 409 error when the provided config label already exists.
   """
   session.add(config)
   try:
     await session.commit()
   except IntegrityError as exc:  # Raised when label uniqueness is violated.
     raise HTTPException(
-        status_code=409, detail=f"Config label {config.label} already exists."
-    ) from exc
+        status_code=409,
+        detail=f"Config label {config.label} already exists.") from exc
   return config
 
 
@@ -185,7 +187,7 @@ async def create_config(config: Config,
 @v1.get("/activations", response_model=list[Connection])
 async def get_connections(session: AsyncSession = Depends(get_session)):
   """Queries latest config and query connections field from config json.
-  
+
   Args:
     session: Postgres DB session dependency injection.
   Returns:
@@ -202,7 +204,7 @@ async def get_schemas(airflow_client=Depends(AirflowClient)):
 
   Args:
     airflow_client: Airflow Client dependency injection.
-  
+
   Returns:
     A JSONSchema representing all sources and destinations schemas available.
   """
@@ -219,7 +221,7 @@ async def validate_source(
     airflow_client=Depends(AirflowClient),
 ):
   """Validates the provided source config.
-  
+
   Args:
     source_name: The name of the source type to validate.
     source_config: The ConfigValue object to be validated.
@@ -240,7 +242,7 @@ async def validate_destination(
     airflow_client=Depends(AirflowClient),
 ):
   """Validates the provided destination config.
-  
+
   Args:
     destination_name: The name of the destination type to validate.
     destination_config: The ConfigValue object to be validated.
@@ -248,9 +250,8 @@ async def validate_destination(
   Returns:
     The ValidationResult object wrapped in an HTTP JSONResponse.
   """
-  response = await airflow_client.validate_destination(
-      destination_name.lower(), destination_config.value
-  )
+  response = await airflow_client.validate_destination(destination_name.lower(),
+                                                       destination_config.value)
   return response
 
 
@@ -260,13 +261,14 @@ async def validate_destination(
 async def batch_get_connections_runs(
     session: AsyncSession = Depends(get_session),
     airflow_client=Depends(AirflowClient),
-    final_connection_names: Annotated[list[str] | None, Query()] = None,
+    final_connection_names: Annotated[list[str] | None,
+                                      Query()] = None,
     connection_names: Annotated[list[str] | None, Query()] = None,
     page: int = 0,
     page_size: int = 20,
 ):
   """Retrieves run logs for all connections.
-  
+
   Args:
     session: Postgres DB session dependency injection.
     airflow_client: Airflow Client dependency injection.
@@ -274,10 +276,10 @@ async def batch_get_connections_runs(
       Defaults to None, when logs from all connections are retrieved (legacy).
     connection_names: List of interested connections to retrieve logs from.
       Defaults to None, when logs from all connections are retrieved.
-    page: Page number to be used by paginating clients. 
+    page: Page number to be used by paginating clients.
       Defaults to zero, when no offset is applied.
     page_size: Size of page to be used by paginating clients.
-      Defaults to 20. 
+      Defaults to 20.
   Returns:
     The RunLogsResponse object wrapped in an HTTP JSONResponse.
   """

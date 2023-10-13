@@ -19,12 +19,8 @@ depends_on = None
 
 def upgrade() -> None:
   op.create_table(
-<<<<<<< HEAD
-      'retries',
+      'retries',\
       sa.Column('id', sa.Integer(), nullable=False),
-=======
-      'retries', sa.Column('id', sa.Integer(), nullable=False),
->>>>>>> 9cf3a0e (Retries actually runs now. But, doesn't work.)
       sa.Column('connection_id',
                 sqlmodel.sql.sqltypes.AutoString(),
                 nullable=False),

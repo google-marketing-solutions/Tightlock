@@ -1,6 +1,5 @@
 # coding=utf-8
 # python3
-
 """
 Copyright 2023 Google LLC
 
@@ -15,8 +14,6 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License."""
-
-
 """Errors file for this data connector component.
 
 All exceptions defined by the library should be in this file.
@@ -26,9 +23,6 @@ from typing import Mapping, Optional, Tuple
 
 import immutabledict
 
-# Groups of errors for easier handling
-ERROR_GROUP: Mapping[str, Tuple[int]] = {
-    'RETRIABLE_ERROR': (10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22)}
 
 class ErrorGroupNameMap(enum.StrEnum):
   """An enum maps error groups names to strings."""
@@ -38,72 +32,138 @@ class ErrorGroupNameMap(enum.StrEnum):
 # A dictionary with error numbers and error descriptions to use for consistent
 # logging and error handling across TCRM.
 _ERROR_ID_DESCRIPTION_MAP = immutabledict.immutabledict({
-    10: 'General error occurred.',
-    11: 'Event not sent due to authentication error. Event is due for retry.',
-    12: 'Event not sent. Event is due for retry.',
-    13: "Event not sent to Google Ads. Couldn't get service from Google Adwords API",
-    14: 'Error in sending event to Google Ads. Failed to create user list with response error.',
-    15: 'Error in sending event to Google Ads. Failed to add members to the user list.',
-    16: 'Event not sent to Google Ads UAC. Fail to get airflow connection.',
-    17: 'Event not sent to Google Ads UAC. Missing dev token in connection password.',
-    18: 'Error in loading events from BigQuery. Http error.',
-    19: 'Error in loading events from BigQuery. Unable to get total rows.',
-    20: 'Error in sending event to Google Analytics. Http error.',
-    21: 'Error in loading events from Google Cloud Storage. Http error.',
-    22: 'Error in sending event to Google Analytics 4. Http error.',
-    50: 'Event not sent. Event will not be retried.',
-    51: 'Error in sending event to Ads Customer Match. Hashed values in the payload do not match SHA256 format.',
-    52: 'Error in sending event to Ads Customer Match. HashedEmail field does not meet SHA256 format.',
-    53: 'Error in sending event to Ads Customer Match. HashedPhoneNumber field does not meet SHA256 format.',
-    54: 'Error in sending event to Ads Customer Match. Email and phone number field are invalid.',
-    55: 'Error in sending event to Ads Customer Match. UserId does not exist in crm_id event.',
-    56: 'Error in sending event to Ads Customer Match. MobileId does not exist in the event.',
-    57: 'Error in sending event to Ads Customer Match. User list name is empty.',
-    58: 'Error in sending event to Ads Customer Match. Membership lifespan is not between 0 and 10,000.',
-    59: 'Error in sending event to Ads Customer Match. Invalid upload key type. Refer to ads_hook.UploadKeyType for details.',
-    60: 'Error in sending event to Ads Customer Match. app_id needs to be specified for MOBILE_ADVERTISING_ID when create_list is True.',
-    61: 'Error in sending event to Ads Customer Match. Not creating list when user list name does not exist.',
-    62: 'Error in sending event to Ads API. Failed to get user list ID.',
-    63: 'Error in sending event to Ads Offline Conversion. Event is missing at least one mandatory field(s).',
-    64: 'Error in sending event to Ads Offline Conversion. Length of conversionName should be <= 100.',
-    65: 'Error in sending event to Ads Offline Conversion. ConversionTime should be formatted: yyyymmdd hhmmss [tz]',
-    66: 'Error in sending event to Ads Offline Conversion. ConversionValue should be greater than or equal to 0.',
-    67: 'Error in sending event to Ads Offline Conversion. Length of googleClickId should be between 1 and 512.',
-    68: 'Error in sending event to Ads UAC. Event is missing at least one mandatory field(s).',
-    69: 'Error in sending event to Ads UAC. Unsupported app event type in payload. Example: "first_open", "session_start", "in_app_purchase", "view_item_list", "view_item", "view_search_results", "add_to_cart", "ecommerce_purchase", "custom".',
-    70: "Error in sending event to Ads UAC. App event type must be 'custom' when app event name exists.",
-    71: 'Error in sending event to Ads UAC. Wrong raw device id format in payload. Should be compatible with RFC4122.',
-    72: "Error in sending event to Ads UAC. Wrong raw device id type in payload. Example: 'advertisingid', 'idfa'.",
-    73: 'Error in sending event to Ads UAC. Wrong limit-ad-tracking status in payload. Example: 0, 1.',
-    74: 'Error in loading events from BigQuery. Unable to get any blobs.',
-    75: 'Error in sending event to Campaign Manager. Event is missing at least one mandatory field(s).',
-    76: 'Error in sending event to Campaign Manager. Value in customVariables list is invalid.',
-    77: 'Error in sending event to Campaign Manager. Invalid conversion event.',
-    78: 'Error in sending event to Google Analytics. Unsupported hit type.',
-    79: 'Error in sending event to Google Analytics. Hit must have cid or uid.',
-    80: 'Error in sending event to Google Analytics. Batch hits must be under 20.',
-    81: 'Error in sending event to Google Analytics. Hit size exceeds limitation.',
-    82: 'Error in sending event to Google Analytics. Invalid Tracking ID Format. The expected format is `UA-XXXXX-Y`.',
-    83: 'Error in sending event to Google Analytics. Wrong send type.',
-    84: 'Error in loading events from Google Cloud Storage. Invalid GCS blob content type.',
-    85: 'Error in loading events from Google Cloud Storage. Failed to download the blob.',
-    86: 'Error in loading events from Google Cloud Storage. Failed to parse the blob as JSON.',
-    87: 'Error in loading events from Google Cloud Storage. Failed to parse the blob as CSV.',
-    88: 'Error in loading events from Google Cloud Storage. Failed to parse CSV, not all lines have same length.',
-    89: 'Missing or empty monitoring parameters although monitoring is enabled.',
-    90: 'Error in sending event to Google Analytics 4. Payload is not valid JSON.',
-    91: 'Error in sending event to Google Analytics 4. Invalid event value(s).',
-    92: 'Error in sending event to Google Analytics 4. client_id is required.',
-    93: 'Error in sending event to Google Analytics 4. timestamp_micros should be int64 or between 72 hours in the past and 15 minutes in the future.',
-    94: 'Error in sending event to Google Analytics 4. non_personalized_ads should be bool.',
-    95: 'Error in sending event to Google Analytics 4. user_id should be string.',
-    96: 'Error in sending event to Google Analytics 4. user_properties contain invalid value.',
-    97: 'Error in sending event to Google Analytics 4. events contain invalid value.',
-    98: 'Error in sending event to Google Analytics 4. event params contain invalid value.',
-    99: 'Error in sending event to Google Analytics 4. event params items contain invalid value.',
-    100: 'Error in sending event to Google Analytics 4. payload is missing in event.',
-    101: 'Error in sending event to Google Ads API. Bad format of Ads credential YAML.',
-    102: 'Error in sending event to Ads Offline Conversion. Only 1 of gclid, gbraid, or wbraid should be set.',
+    10:
+        'General error occurred.',
+    11:
+        'Event not sent due to authentication error. Event is due for retry.',
+    12:
+        'Event not sent. Event is due for retry.',
+    13:
+        "Event not sent to Google Ads. Couldn't get service from Google Adwords API",
+    14:
+        'Error in sending event to Google Ads. Failed to create user list with response error.',
+    15:
+        'Error in sending event to Google Ads. Failed to add members to the user list.',
+    16:
+        'Event not sent to Google Ads UAC. Fail to get airflow connection.',
+    17:
+        'Event not sent to Google Ads UAC. Missing dev token in connection password.',
+    18:
+        'Error in loading events from BigQuery. Http error.',
+    19:
+        'Error in loading events from BigQuery. Unable to get total rows.',
+    20:
+        'Error in sending event to Google Analytics. Http error.',
+    21:
+        'Error in loading events from Google Cloud Storage. Http error.',
+    22:
+        'Error in sending event to Google Analytics 4. Http error.',
+    50:
+        'Event not sent. Event will not be retried.',
+    51:
+        'Error in sending event to Ads Customer Match. Hashed values in the payload do not match SHA256 format.',
+    52:
+        'Error in sending event to Ads Customer Match. HashedEmail field does not meet SHA256 format.',
+    53:
+        'Error in sending event to Ads Customer Match. HashedPhoneNumber field does not meet SHA256 format.',
+    54:
+        'Error in sending event to Ads Customer Match. Email and phone number field are invalid.',
+    55:
+        'Error in sending event to Ads Customer Match. UserId does not exist in crm_id event.',
+    56:
+        'Error in sending event to Ads Customer Match. MobileId does not exist in the event.',
+    57:
+        'Error in sending event to Ads Customer Match. User list name is empty.',
+    58:
+        'Error in sending event to Ads Customer Match. Membership lifespan is not between 0 and 10,000.',
+    59:
+        'Error in sending event to Ads Customer Match. Invalid upload key type. Refer to ads_hook.UploadKeyType for details.',
+    60:
+        'Error in sending event to Ads Customer Match. app_id needs to be specified for MOBILE_ADVERTISING_ID when create_list is True.',
+    61:
+        'Error in sending event to Ads Customer Match. Not creating list when user list name does not exist.',
+    62:
+        'Error in sending event to Ads API. Failed to get user list ID.',
+    63:
+        'Error in sending event to Ads Offline Conversion. Event is missing at least one mandatory field(s).',
+    64:
+        'Error in sending event to Ads Offline Conversion. Length of conversionName should be <= 100.',
+    65:
+        'Error in sending event to Ads Offline Conversion. ConversionTime should be formatted: yyyymmdd hhmmss [tz]',
+    66:
+        'Error in sending event to Ads Offline Conversion. ConversionValue should be greater than or equal to 0.',
+    67:
+        'Error in sending event to Ads Offline Conversion. Length of googleClickId should be between 1 and 512.',
+    68:
+        'Error in sending event to Ads UAC. Event is missing at least one mandatory field(s).',
+    69:
+        'Error in sending event to Ads UAC. Unsupported app event type in payload. Example: "first_open", "session_start", "in_app_purchase", "view_item_list", "view_item", "view_search_results", "add_to_cart", "ecommerce_purchase", "custom".',
+    70:
+        "Error in sending event to Ads UAC. App event type must be 'custom' when app event name exists.",
+    71:
+        'Error in sending event to Ads UAC. Wrong raw device id format in payload. Should be compatible with RFC4122.',
+    72:
+        "Error in sending event to Ads UAC. Wrong raw device id type in payload. Example: 'advertisingid', 'idfa'.",
+    73:
+        'Error in sending event to Ads UAC. Wrong limit-ad-tracking status in payload. Example: 0, 1.',
+    74:
+        'Error in loading events from BigQuery. Unable to get any blobs.',
+    75:
+        'Error in sending event to Campaign Manager. Event is missing at least one mandatory field(s).',
+    76:
+        'Error in sending event to Campaign Manager. Value in customVariables list is invalid.',
+    77:
+        'Error in sending event to Campaign Manager. Invalid conversion event.',
+    78:
+        'Error in sending event to Google Analytics. Unsupported hit type.',
+    79:
+        'Error in sending event to Google Analytics. Hit must have cid or uid.',
+    80:
+        'Error in sending event to Google Analytics. Batch hits must be under 20.',
+    81:
+        'Error in sending event to Google Analytics. Hit size exceeds limitation.',
+    82:
+        'Error in sending event to Google Analytics. Invalid Tracking ID Format. The expected format is `UA-XXXXX-Y`.',
+    83:
+        'Error in sending event to Google Analytics. Wrong send type.',
+    84:
+        'Error in loading events from Google Cloud Storage. Invalid GCS blob content type.',
+    85:
+        'Error in loading events from Google Cloud Storage. Failed to download the blob.',
+    86:
+        'Error in loading events from Google Cloud Storage. Failed to parse the blob as JSON.',
+    87:
+        'Error in loading events from Google Cloud Storage. Failed to parse the blob as CSV.',
+    88:
+        'Error in loading events from Google Cloud Storage. Failed to parse CSV, not all lines have same length.',
+    89:
+        'Missing or empty monitoring parameters although monitoring is enabled.',
+    90:
+        'Error in sending event to Google Analytics 4. Payload is not valid JSON.',
+    91:
+        'Error in sending event to Google Analytics 4. Invalid event value(s).',
+    92:
+        'Error in sending event to Google Analytics 4. client_id is required.',
+    93:
+        'Error in sending event to Google Analytics 4. timestamp_micros should be int64 or between 72 hours in the past and 15 minutes in the future.',
+    94:
+        'Error in sending event to Google Analytics 4. non_personalized_ads should be bool.',
+    95:
+        'Error in sending event to Google Analytics 4. user_id should be string.',
+    96:
+        'Error in sending event to Google Analytics 4. user_properties contain invalid value.',
+    97:
+        'Error in sending event to Google Analytics 4. events contain invalid value.',
+    98:
+        'Error in sending event to Google Analytics 4. event params contain invalid value.',
+    99:
+        'Error in sending event to Google Analytics 4. event params items contain invalid value.',
+    100:
+        'Error in sending event to Google Analytics 4. payload is missing in event.',
+    101:
+        'Error in sending event to Google Ads API. Bad format of Ads credential YAML.',
+    102:
+        'Error in sending event to Ads Offline Conversion. Only 1 of gclid, gbraid, or wbraid should be set.',
 })
 
 
@@ -181,6 +241,27 @@ class ErrorNameIDMap(enum.Enum):
   GA4_HOOK_ERROR_MISSING_PAYLOAD_IN_EVENT = 100
   ADS_HOOK_ERROR_BAD_YAML_FORMAT = 101
   ADS_OC_HOOK_ERROR_INVALID_ID_CONFIG = 102
+
+
+# Groups of errors for easier handling
+_enim = ErrorNameIDMap
+ERROR_GROUP: Mapping[str, Tuple[int]] = {
+    'RETRIABLE_ERROR': (
+        _enim.ERROR,
+        _enim.RETRIABLE_ERROR_OUTPUT_AUTHENTICATION_FAILED,
+        _enim.RETRIABLE_ERROR_EVENT_NOT_SENT,
+        _enim.RETRIABLE_ADS_HOOK_ERROR_UNAVAILABLE_ADS_SERVICE,
+        _enim.RETRIABLE_ADS_HOOK_ERROR_FAIL_CREATING_USER_LIST,
+        _enim.RETRIABLE_ADS_HOOK_ERROR_FAIL_ADDING_MEMBERS_TO_USER_LIST,
+        _enim.RETRIABLE_ADS_UAC_HOOK_ERROR_FAIL_TO_GET_AIRFLOW_CONNECTION,
+        _enim.RETRIABLE_ADS_UAC_HOOK_ERROR_MISSING_DEV_TOKEN,
+        _enim.RETRIABLE_BQ_HOOK_ERROR_HTTP_ERROR,
+        _enim.RETRIABLE_BQ_HOOK_ERROR_NO_TOTAL_ROWS,
+        _enim.RETRIABLE_GA_HOOK_ERROR_HTTP_ERROR,
+        _enim.RETRIABLE_GCS_HOOK_ERROR_HTTP_ERROR,
+        _enim.RETRIABLE_GA4_HOOK_ERROR_HTTP_ERROR,
+    )
+}
 
 
 class Error(Exception):

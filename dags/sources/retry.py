@@ -23,12 +23,8 @@ from google.auth.exceptions import RefreshError
 from google.cloud import bigquery
 from google.cloud.exceptions import NotFound
 from pydantic import Field
-from dags.protocols.source_proto import SourceProto
-from utils import ProtocolSchema, SchemaUtils, ValidationResult
-
-DATA_FIELD_OFFSET = 1
-RETRY_FIELD_OFFSET = 2
-
+from protocols.source_proto import SourceProto
+from utils import ProtocolSchema, SchemaUtils, ValidationResult, DagUtils
 
 # TODO(caiotomazelli): Hide this from the UI.
 class Source(SourceProto):
@@ -45,15 +41,12 @@ class Source(SourceProto):
   def _get_retry_data(self, connection_id, uuid) -> List[Mapping[str, Any]]:
     """Gets retry data from the database."""
     sql = f'''SELECT data
-              FROM Retry
+              FROM Retries
               WHERE connection_id = %s AND uuid = %s
-              ORDER BY next_try ASC
+              ORDER BY id ASC
               LIMIT 1'''
-    pg_hook = PostgresHook(postgres_conn_id="tightlock_retry",)
-    cursor = pg_hook.get_conn().cursor()
-    cursor.execute(sql, (connection_id, uuid))
-    raw = cursor.fetchone()[DATA_FIELD_OFFSET]
-    data = json.loads(raw)
+    cursor = DagUtils.exec_postgres_command(sql, (connection_id, uuid))
+    data = cursor.fetchone()[0]
     return data
 
   def get_data(
