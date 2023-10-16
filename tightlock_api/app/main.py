@@ -136,7 +136,8 @@ async def get_latest_config(session: AsyncSession = Depends(get_session),
     for fc in failed_connections:
       if conn["name"] == fc["connection_name"]:
         conn["error"] = fc["error"]
-        break
+        continue 
+
     augmented_connections.append(conn)
 
   # Overwrite existing config
