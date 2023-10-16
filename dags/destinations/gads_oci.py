@@ -37,12 +37,14 @@ _ID_FIELDS = [
   "gclid",
   "gbraid",
   "wbraid",
+  "currency_code",
+  "conversion_custom_variable_id",
+  "conversion_custom_variable_value",
 ]
 
 ConversionIndicesToConversions = List[Tuple[int, Any]]
 CustomerConversionMap = Dict[str, ConversionIndicesToConversions]
 InvalidConversionIndices = List[Tuple[int, errors.ErrorNameIDMap]]
-PartialFailures = Dict[int, str]
 
 
 class Destination:
@@ -204,7 +206,7 @@ class Destination:
 
     return valid_conversions, invalid_indices_and_errors
 
-  def _send_request(self, customer_id: str, conversions: List[Any]) -> PartialFailures:
+  def _send_request(self, customer_id: str, conversions: List[Any]) -> GoogleAdsUtils.PartialFailures:
     """Sends conversions to the offline conversion import API.
 
     Args:
@@ -227,50 +229,8 @@ class Destination:
       print(f"Caught GoogleAdsException: {error}")
       raise
 
-    return self._get_partial_failures(conversion_upload_response)
+    return GoogleAdsUtils().get_partial_failures(conversion_upload_response)
 
-  def _get_partial_failures(self, response: Any) -> PartialFailures:
-    """Checks whether a response message has a partial failure error.
-
-    In Python the partial_failure_error attr is always present on a response
-    message and is represented by a google.rpc.Status message. So we can't
-    simply check whether the field is present, we must check that the code is
-    non-zero. Error codes are represented by the google.rpc.Code proto Enum:
-    https://github.com/googleapis/googleapis/blob/master/google/rpc/code.proto
-
-    Args:
-        response:  A MutateAdGroupsResponse message instance.
-
-    Returns: An empty dict if no partial failures exist, or a dict of the index
-      index mapped to the error message.
-    """
-    partial_failure = getattr(response, "partial_failure_error", None)
-    code = getattr(partial_failure, "code", None)
-    if code == 0:
-      # No failures.
-      print("No partial failures found.")
-      return {}
-
-    error_details = getattr(partial_failure, "details", [])
-
-    partial_failures = defaultdict(str)
-
-    for error_detail in error_details:
-      # Retrieve an instance of the GoogleAdsFailure class from the client
-      failure_message = self._client.get_type("GoogleAdsFailure")
-      # Parse the string into a GoogleAdsFailure message instance.
-      # To access class-only methods on the message we retrieve its type.
-      GoogleAdsFailure = type(failure_message)
-      failure_object = GoogleAdsFailure.deserialize(error_detail.value)
-
-      for error in failure_object.errors:
-        index = error.location.field_path_elements[0].index
-        message = f'Code: {error.error_code}, Error: {error.message}'
-        partial_failures[index] += message  # Can be multiple errors for the same conversion.
-
-    print(f"Partial failures: {partial_failures}")
-
-    return partial_failures
 
   @staticmethod
   def schema() -> Optional[ProtocolSchema]:
