@@ -188,7 +188,7 @@ class Destination:
 
       click_conversion.conversion_value = float(conversion.get("conversion_value", ""))
       click_conversion.conversion_date_time = conversion.get("conversion_date_time", "")
-      click_conversion.currency_code = conversion.get("currency_code", _DEFAULT_CURRENCY_CODE)
+      click_conversion.currency_code = conversion.get("currency_code", False) or _DEFAULT_CURRENCY_CODE
 
       conversion_custom_variable_id = conversion.get("conversion_custom_variable_id", "")
       conversion_custom_variable_value = conversion.get("conversion_custom_variable_value", "")
@@ -229,7 +229,7 @@ class Destination:
       print(f"Caught GoogleAdsException: {error}")
       raise
 
-    return GoogleAdsUtils().get_partial_failures(conversion_upload_response)
+    return GoogleAdsUtils().get_partial_failures(self._client, conversion_upload_response)
 
 
   @staticmethod
