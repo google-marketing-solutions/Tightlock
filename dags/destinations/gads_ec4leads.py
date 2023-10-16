@@ -39,6 +39,9 @@ _ID_FIELDS = [
   "hashed_email",
   "hashed_phone_number",
   "order_id",
+  "currency_code",
+  "conversion_custom_variable_id",
+  "conversion_custom_variable_value",
 ]
 
 ConversionIndicesToConversions = List[Tuple[int, Any]]
@@ -185,7 +188,6 @@ class Destination:
 
       # Populates user_identifier fields
       user_identifier = self._client.get_type("UserIdentifier")
-      # TODO(caiotomazelli): Validate hash for already provided hashes
       if hashed_email:
         user_identifier.hashed_email = hashed_email
       elif email:
@@ -194,7 +196,7 @@ class Destination:
       if hashed_phone_number:
         user_identifier.hashed_phone_number = hashed_phone_number
       elif phone_number:
-        user_identifier.hashed_phone_number = GoogleAdsUtils.normalize_and_hash_phone_number(phone_number)
+        user_identifier.hashed_phone_number = GoogleAdsUtils.normalize_and_hash(phone_number)
 
       # Specifies the user identifier source.
       user_identifier.user_identifier_source = (
@@ -206,7 +208,6 @@ class Destination:
       click_conversion.conversion_date_time = conversion.get("conversion_date_time", "")
       click_conversion.currency_code = conversion.get("currency_code", _DEFAULT_CURRENCY_CODE)
 
-      #TODO(caiotomazelli): Add custom variables to IDs list
       conversion_custom_variable_id = conversion.get("conversion_custom_variable_id", "")
       conversion_custom_variable_value = conversion.get("conversion_custom_variable_value", "")
 
@@ -260,7 +261,7 @@ class Destination:
       of this protocol.
     """
     return ProtocolSchema(
-      "GADS_OCI",
+      "GADS_EC4LEADS",
       [
         ("client_id", str, Field(description="An OAuth2.0 Web Client ID.")),
         ("client_secret", str, Field(description="An OAuth2.0 Web Client Secret.")),
