@@ -110,7 +110,8 @@ async def get_configs(session: AsyncSession = Depends(get_session)):
 
 
 @v1.get("/configs:getLatest", response_model=Config)
-async def get_latest_config(session: AsyncSession = Depends(get_session)):
+async def get_latest_config(session: AsyncSession = Depends(get_session),
+                            airflow_client=Depends(AirflowClient)):
   """Retrieves the most recent config.
   
   Args:
@@ -124,13 +125,29 @@ async def get_latest_config(session: AsyncSession = Depends(get_session)):
     row = result.one()[0]
   except NoResultFound:
     return Response(status_code=404)
+
+  connections = row.value.get("activations")
+
+  # fetch failed connections
+  failed_connections = await airflow_client.get_register_errors()
+
+  augmented_connections = []
+  for conn in connections:
+    for fc in failed_connections:
+      if conn["name"] == fc["connection_name"]:
+        conn["error"] = fc["error"]
+        break
+    augmented_connections.append(conn)
+
+  # Overwrite existing config
+  row.value["activations"] = augmented_connections
+
   return Config(
       create_date=row.create_date,
       label=row.label,
       value=row.value,
       id=row.id,
   )
-
 
 @v1.get("/configs/{config_id}", response_model=Config)
 async def get_config(config_id: int,
