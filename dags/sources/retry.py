@@ -15,26 +15,24 @@
  """
 
 from airflow.hooks.postgres_hook import PostgresHook
-import json
-import tempfile
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
-from google.auth.exceptions import RefreshError
 from google.cloud import bigquery
 from google.cloud.exceptions import NotFound
 from pydantic import Field
 from protocols.source_proto import SourceProto
-from utils import ProtocolSchema, SchemaUtils, ValidationResult, DagUtils
+from utils.dag_utils import DagUtils
+from utils.protocol_schema import ProtocolSchema
+from utils.validation_result import ValidationResult
+
 
 # TODO(caiotomazelli): Hide this from the UI.
 class Source(SourceProto):
   """Implements SourceProto protocol for Retrying (should not be used directly)."""
-  IS_RETRY_SOURCE = True
 
   def __init__(self, config: Mapping[str, Any]):
     self.connection_id = config['connection_id']
-    self.retry_count = config['retry_count']
-    self.batch_size = config['batch_size']
+    self.retry_num = config['retry_num']
 
     self.data = self._get_retry_data(config['connection_id'], config['uuid'])
 
@@ -64,7 +62,7 @@ class Source(SourceProto):
     return ProtocolSchema("retry", [
         ("connection_id", str, Field(description="Connection id.",)),
         ("uuid", str, Field(description="Universally unique id.",)),
-        ("retry_count", int, Field(description="Retry count.",)),
+        ("retry_num", int, Field(description="Retry count.",)),
     ])
 
   def validate(self) -> ValidationResult:

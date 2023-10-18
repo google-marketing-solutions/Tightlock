@@ -123,8 +123,21 @@ class Retries(SQLModel, table=True):
   __table_args__ = (UniqueConstraint("uuid"),)
 
   id: Optional[int] = Field(default=None, primary_key=True)
-  connection_id: str  #= Field(default=None, primary_key=False)
-  uuid: str  #=  Field(default=None, primary_key=False)
+  connection_id: str
+  uuid: str
+  destination_type: str
+  destination_folder: str
+  destination_config: Dict[str,
+                           Any] = Field(default={},
+                                        sa_column=Column(
+                                            mutable_json_type(dbtype=JSONB,
+                                                              nested=True)))
+  next_run: datetime.datetime = Field(
+      sa_column=Column(DateTime(timezone=True)),
+      default_factory=datetime.datetime.now,
+      nullable=False,
+  )
+  retry_num: int
   # defined as below to avoid
   # https://amercader.net/blog/beware-of-json-fields-in-sqlalchemy/
   data: Dict[str, Any] = Field(default={},

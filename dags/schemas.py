@@ -20,7 +20,8 @@ from typing import Any
 
 from airflow.decorators import dag, task
 from pydantic import BaseModel, Field
-from utils import DagUtils, ProtocolSchema
+from utils.dag_utils import DagUtils
+from utils.protocol_schema import ProtocolSchema
 
 start_date = datetime.datetime(2023, 1, 1, 0, 0, 0)
 

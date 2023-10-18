@@ -133,9 +133,7 @@ async def get_latest_config(session: AsyncSession = Depends(get_session)):
 
 
 @v1.get("/configs/{config_id}", response_model=Config)
-async def get_config(config
-
-                     _id: int,
+async def get_config(config_id: int,
                      session: AsyncSession = Depends(get_session)):
   """Retrieves a config with the provided id.
 

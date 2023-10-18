@@ -25,6 +25,11 @@ def upgrade() -> None:
                 sqlmodel.sql.sqltypes.AutoString(),
                 nullable=False),
       sa.Column('uuid', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+      sa.Column('destination_type', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+      sa.Column('destination_folder', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+      sa.Column('destination_config', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+      sa.Column('next_run', sa.DateTime(timezone=True), nullable=True),
+      sa.Column('retry_num', sa.Integer(), nullable=False),
       sa.Column('data', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
       sa.PrimaryKeyConstraint('id'))
   op.create_unique_constraint(None, 'retries', ['uuid'])

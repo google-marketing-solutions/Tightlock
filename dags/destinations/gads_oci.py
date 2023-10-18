@@ -14,13 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License."""
 
 """Google Ads OCI destination implementation."""
-import errors
+import utils.errors as errors
 
 from collections import defaultdict
 from google.ads.googleads.errors import GoogleAdsException
 from pydantic import Field
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
-from utils import GoogleAdsUtils, ProtocolSchema, RunResult, ValidationResult
+from utils.google_ads_utils import GoogleAdsUtils
+from utils.protocol_schema import ProtocolSchema
+from utils.run_result import  RunResult
+from utils.validation_result import ValidationResult
 
 _BATCH_SIZE = 10000
 

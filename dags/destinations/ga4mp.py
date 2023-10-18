@@ -22,11 +22,14 @@ import json
 import logging
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
-import errors
+import utils.errors as errors
 import immutabledict
 import requests
 from pydantic import Field
-from utils import ProtocolSchema, RunResult, SchemaUtils, ValidationResult
+from utils.protocol_schema import ProtocolSchema
+from utils.run_result import RunResult
+from utils.schema_utils import SchemaUtils
+from utils.validation_result import ValidationResult
 
 _GA_EVENT_POST_URL = "https://www.google-analytics.com/mp/collect"
 _GA_EVENT_VALIDATION_URL = "https://www.google-analytics.com/debug/mp/collect"
