@@ -172,9 +172,9 @@ class Destination:
       )
 
       email = conversion.get("email", "")
-      phone_number = conversion.get("phone_numer", "")
+      phone_number = conversion.get("phone_number", "")
       hashed_email = conversion.get("hashed_email", "")
-      hashed_phone_number = conversion.get("hashed_phone_numer", "")
+      hashed_phone_number = conversion.get("hashed_phone_number", "")
       order_id = conversion.get("order_id", "")
 
       # Sets the order ID if provided.
