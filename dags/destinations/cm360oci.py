@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License."""
 
-"""GA4 MP destination implementation."""
+"""CM 360 OCI destination implementation."""
 
 # pylint: disable=raise-missing-from
 
@@ -35,9 +35,6 @@ import requests
 from pydantic import Field
 from utils import ProtocolSchema, RunResult, SchemaUtils, ValidationResult
 
-_CM360_CONVERSION_POST_URL_PREFIX = 'https://dfareporting.googleapis.com/dfareporting/v4/userprofiles/'
-_CM360_CONVERSION_POST_URL_POSTFIX = '/conversions/batchinsert'
-
 # Filename used for the credential store.
 CREDENTIAL_STORE_FILE = 'auth-file.dat'
 
@@ -55,7 +52,6 @@ CM_CONVERSIONS_FIELDS = [
   "ordinal",
   "limitAdTracking",
   "childDirectedTreatment",
-  "encryptedUserIdCandidates",
   "gclid",
   "nonPersonalizedAd",
   "treatmentForUnderage",
@@ -138,10 +134,10 @@ class Destination:
 
     Returns:
       results: Includes request body, status_code, error_msg, response body and
-      debugg flag.
-      The response refers to the definition of conversion tracking response in
-      https://developers.google.com/analytics/devguides/collection/protocol/ga4/reference?client_type=firebase
+      debug flag.
     """
+
+    authenticate_using_user_account(self.path_to_client_secrets_file)
 
     # Construct a service object via the discovery service.
     service = discovery.build('dfareporting', 'v4', http=http)
@@ -177,6 +173,8 @@ class Destination:
           timestamp_micros = self._parse_timestamp_micros(entry)
           if timestamp_micros:
             conversion[conversion_field] = timestamp_micros
+          else:
+            conversion[conversion_field] = ""
         elif conversion_field == "conversion_kind":
           conversion["kind"] = str(entry.get(conversion_field, ""))
         else:
@@ -193,7 +191,6 @@ class Destination:
         self._send_payload(payload)
       except (
           errors.DataOutConnectorSendUnsuccessfulError,
-          errors.DataOutConnectorValueError,
       )
     else:
       print(
@@ -221,7 +218,7 @@ class Destination:
     )
 
   def fields(self) -> Sequence[str]:
-    return CM_CONVERSIONS_FIELDS + CM_ENCRYPTION_FIELDS
+    return CM_CONVERSIONS_FIELDS
 
   def batch_size(self) -> int:
     return 10000
