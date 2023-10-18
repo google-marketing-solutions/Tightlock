@@ -210,8 +210,7 @@ class GoogleAdsUtils:
 
     return partial_failures
 
-
-  def normalize_and_hash_email_address(self, email_address):
+  def normalize_and_hash_email_address(self, email_address: str) -> str:
     """Returns the result of normalizing and hashing an email address.
 
     For this use case, Google Ads requires removal of any '.' characters
@@ -241,7 +240,7 @@ class GoogleAdsUtils:
     return self.normalize_and_hash(normalized_email)
 
 
-def normalize_and_hash(self, s):
+  def normalize_and_hash(self, s: str) -> str:
     """Normalizes and hashes a string with SHA-256.
 
     Private customer data must be hashed during upload, as described at:

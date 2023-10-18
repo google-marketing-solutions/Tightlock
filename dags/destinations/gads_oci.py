@@ -37,6 +37,9 @@ _ID_FIELDS = [
   "gclid",
   "gbraid",
   "wbraid",
+]
+
+_OTHER_FIELDS = [
   "currency_code",
   "conversion_custom_variable_id",
   "conversion_custom_variable_value",
@@ -188,6 +191,7 @@ class Destination:
 
       click_conversion.conversion_value = float(conversion.get("conversion_value", ""))
       click_conversion.conversion_date_time = conversion.get("conversion_date_time", "")
+      # Make sure that "falsy" values still default to _DEFAULT_CURRENCY_CODE
       click_conversion.currency_code = conversion.get("currency_code", False) or _DEFAULT_CURRENCY_CODE
 
       conversion_custom_variable_id = conversion.get("conversion_custom_variable_id", "")
@@ -258,7 +262,7 @@ class Destination:
     Returns:
       A sequence of fields.
     """
-    return _REQUIRED_FIELDS + _ID_FIELDS
+    return _REQUIRED_FIELDS + _ID_FIELDS + _OTHER_FIELDS
 
   def batch_size(self) -> int:
     """Returns the required batch_size for the underlying destination API.
