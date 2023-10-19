@@ -18,7 +18,7 @@ import datetime
 import json
 import random
 import time
-from typing import Any, Optional
+from typing import Any, Dict, List, Optional
 
 import httpx
 from models import (Connection, RunLog, RunLogsResponse, RunResult,
@@ -184,4 +184,16 @@ class AirflowClient:
     parsed_xcom_response = json.loads(xcom_response.content)
     schemas_result = parsed_xcom_response["value"]
     return schemas_result
+
+  async def get_register_errors(self) -> List[Dict[str, Any]]:
+    """Retrieves list of connections that failed during registration."""
+
+    url = f"{self.base_url}/variables/register_errors"
+    errors_response = await self._get_request(url)
+    if errors_response.status_code != 200:
+      return None
+    parsed_errors = json.loads(errors_response.content)
+    errors_result = parsed_errors["value"]
+    
+    return json.loads(errors_result)
 
