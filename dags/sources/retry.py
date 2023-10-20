@@ -33,6 +33,7 @@ class Source(SourceProto):
   def __init__(self, config: Mapping[str, Any]):
     self.connection_id = config['connection_id']
     self.retry_num = config['retry_num']
+    self.uuid = config['uuid']
 
     self.data = self._get_retry_data(config['connection_id'], config['uuid'])
 

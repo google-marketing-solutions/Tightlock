@@ -74,7 +74,7 @@ class DAGBuilder:
         (destination, dest_type, dest_folder,
          dest_config) = self._config_from_ref(connection["destination"])
         dynamic_dag = DagUtils.build_dynamic_dag(
-            connection_name=connection['name'],
+            new_dag_name=connection['name'],
             schedule=connection['schedule'],
             target_source=source,
             target_destination=destination,
@@ -84,18 +84,11 @@ class DAGBuilder:
         # register dag by calling the dag object
         dynamic_dag()
       except Exception:  # pylint: disable=broad-except
-        error_traceback = traceback.format_exc()
-        register_errors = Variable.get(self.register_errors_var,
-                                       deserialize_json=True)
-        register_errors.append({
-            "connection_name": connection["name"],
-            "error": error_traceback
-        })
-        print(f"{connection['name']} registration error : {error_traceback}")
-
-        Variable.update(self.register_errors_var,
-                        register_errors,
-                        serialize_json=True)
+        DagUtils.handle_errors(
+            error_var=self.register_errors_var,
+            connection_id=connection['name'],
+            log_msg=f"{connection['name']} registration error",
+            error_traceback=traceback.format_exc())
 
 
 builder = DAGBuilder()

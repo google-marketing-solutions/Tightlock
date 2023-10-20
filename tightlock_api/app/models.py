@@ -138,6 +138,7 @@ class Retries(SQLModel, table=True):
       nullable=False,
   )
   retry_num: int
+  delete: bool
   # defined as below to avoid
   # https://amercader.net/blog/beware-of-json-fields-in-sqlalchemy/
   data: Dict[str, Any] = Field(default={},

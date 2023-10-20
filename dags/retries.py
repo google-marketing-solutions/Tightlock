@@ -14,22 +14,27 @@ See the License for the specific language governing permissions and
 limitations under the License."""
 """Registers connections dynamically from config."""
 
-import datetime
+from datetime import datetime
 import enum
 from dataclasses import asdict
+import json
 import traceback
 from typing import Any
 
 from airflow.api.common.delete_dag import delete_dag
 from airflow.decorators import dag
 from airflow.hooks.postgres_hook import PostgresHook
-from airflow.models import DAG, Variable
+from airflow.models import Variable
 from airflow.operators.python_operator import PythonOperator
 
 from sources import retry
 from utils.dag_utils import DagUtils
 
+DAG_FETCH_SIZE = 500
 MAX_TRIES = 3
+SCHEDULE_DAG_ONCE = '@once'
+REGISTER_RETRY_ERRORS = 'register_retry_errors'
+DELETE_RETRY_ERRORS = 'delete_retry_errors'
 
 
 class RetryColumnIndices(enum.Enum):
@@ -41,7 +46,8 @@ class RetryColumnIndices(enum.Enum):
   DESTINATION_CONFIG = 4
   NEXT_RUN = 5
   RETRY_NUM = 6
-  DATA = 7
+  DELETE = 7
+  DATA = 8
 
 
 class RetryDAGBuilder:
@@ -49,67 +55,87 @@ class RetryDAGBuilder:
 
   def __init__(self):
     self.retries = self._get_retries()
-    self.register_errors_var = "register_retry_errors"
+    self.register_errors_var = REGISTER_RETRY_ERRORS
     Variable.set(key=self.register_errors_var,
                  value=[],
-                 description="Report of dynamic retry DAG registering errors.")
+                 description='Report of dynamic retry DAG registration errors.')
+
+    self.delete_errors_var = DELETE_RETRY_ERRORS
+    Variable.set(key=self.delete_errors_var,
+                 value=[],
+                 description='Report of dynamic retry DAG deletion errors.')
 
   def _get_retries(self):
     sql_stmt = 'SELECT connection_id, uuid, destination_type, '\
                '       destination_folder, destination_config, next_run, '\
-               '       retry_num, data '\
+               '       retry_num, delete, data '\
                'FROM Retries WHERE next_run <= %s ORDER BY next_run'
-    pg_hook = PostgresHook(postgres_conn_id="tightlock_config",)
-    pg_conn = pg_hook.get_conn()
-    cursor = pg_conn.cursor()
-    cursor.execute(sql_stmt, (datetime.datetime.now(),))
+    cursor = DagUtils.exec_postgres_command(sql_stmt, (datetime.now(),))
     return cursor
+
+  def create_retry_dag(self, row):
+    connection_id = row[RetryColumnIndices.CONNECTION_ID.value]
+    retry_uuid = row[RetryColumnIndices.UUID.value]
+
+    try:
+      new_dag_name = f'{connection_id}_{retry_uuid}'
+
+      source = retry.Source({
+          'connection_id': connection_id,
+          'retry_num': row[RetryColumnIndices.RETRY_NUM.value],
+          'uuid': retry_uuid
+      })
+
+      dest_config = json.loads(row[RetryColumnIndices.DESTINATION_CONFIG.value])
+      dest_entity = DagUtils.import_entity(
+          row[RetryColumnIndices.DESTINATION_TYPE.value],
+          row[RetryColumnIndices.DESTINATION_FOLDER.value])
+      destination = dest_entity.Destination(dest_config)
+
+      dynamic_dag = DagUtils.build_dynamic_dag(
+          new_dag_name=new_dag_name,
+          schedule=SCHEDULE_DAG_ONCE,
+          target_source=source,
+          target_destination=destination,
+          dest_type=row[RetryColumnIndices.DESTINATION_TYPE.value],
+          dest_folder=row[RetryColumnIndices.DESTINATION_FOLDER.value],
+          dest_config=row[RetryColumnIndices.DESTINATION_CONFIG.value])
+      dynamic_dag()  # register dag by calling the dag object
+    except Exception:  # pylint: disable=broad-except
+      DagUtils.handle_errors(error_var=self.register_errors_var,
+                             connection_id=connection_id,
+                             log_msg=f'{connection_id} registration error',
+                             error_traceback=traceback.format_exc())
+
+  def delete_dag_marked_for_deletion(self, connection_id):
+    try:
+      delete_dag(connection_id)
+    except Exception:
+      DagUtils.handle_errors(error_var=self.register_errors_var,
+                             connection_id=connection_id,
+                             log_msg=f'{connection_id} deletion error',
+                             error_traceback=traceback.format_exc())
 
   def check_for_retries(self):
     """Creates DAGs for retries."""
+    dags_to_remove = ['-1']
+
     while True:
-      rows = self.retries.fetchmany(500)
+      rows = self.retries.fetchmany(DAG_FETCH_SIZE)
       if not rows:
         break
 
       for row in rows:
-        # actual implementations of each source and destination
-        try:
-          connection_id = row[RetryColumnIndices.CONNECTION_ID.value]
-          retry_uuid = row[RetryColumnIndices.UUID.value]
-          connection_name = f'{connection_id}_{retry_uuid}'
-          source = retry.Source({
-              'connection_id': connection_id,
-              'retry_num': row[RetryColumnIndices.RETRY_NUM.value],
-              'uuid': retry_uuid
-          })
-          destination = DagUtils.import_entity(
-              row[RetryColumnIndices.DESTINATION_TYPE.value],
-              row[RetryColumnIndices.DESTINATION_FOLDER.value]).Destination(
-                  row[RetryColumnIndices.DESTINATION_CONFIG.value])
+        if row[RetryColumnIndices.DELETE.value]:
+          self.delete_dag_marked_for_deletion(
+              row[RetryColumnIndices.CONNECTION_ID.value])
+          dags_to_remove.append(row[RetryColumnIndices.UUID.value])
+        else:
+          self.create_retry_dag(row)
 
-          dynamic_dag = DagUtils.build_dynamic_dag(
-              connection_name=connection_name,
-              schedule=None,
-              target_source=source,
-              target_destination=destination,
-              dest_type=row[RetryColumnIndices.DESTINATION_TYPE.value],
-              dest_folder=row[RetryColumnIndices.DESTINATION_FOLDER.value],
-              dest_config=row[RetryColumnIndices.DESTINATION_CONFIG.value])
-          dynamic_dag()  # register dag by calling the dag object
-        except Exception:  # pylint: disable=broad-except
-          error_traceback = traceback.format_exc()
-          register_errors = Variable.get(self.register_errors_var,
-                                         deserialize_json=True)
-          register_errors.append({
-              "connection_id": connection_id,
-              "error": error_traceback
-          })
-          print(f"{connection_id} registration error : {error_traceback}")
-
-          Variable.update(self.register_errors_var,
-                          register_errors,
-                          serialize_json=True)
+    removal_list = "'" + "', '".join(dags_to_remove) + "'"
+    DagUtils.exec_postgres_command('DELETE FROM Retries WHERE uuid IN (%s)',
+                                   (removal_list,))
 
 
 builder = RetryDAGBuilder()

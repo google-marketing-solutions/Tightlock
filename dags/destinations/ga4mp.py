@@ -319,8 +319,8 @@ class Destination:
           index = valid_event[0]
           invalid_indices_and_errors.append((index, error.error_num))
 
-          if error.error_num in errors.ERROR_GROUP[errors.ErrorGroupNameMap.RETRIABLE_ERROR]:
-
+          if error.error_num in errors.ERROR_GROUP[
+              errors.ErrorGroupNameMap.RETRIABLE_ERROR]:
             retriable_events.append(event)
     else:
       print(

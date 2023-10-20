@@ -30,6 +30,7 @@ import uuid
 from airflow.api.common.delete_dag import delete_dag
 from airflow.decorators import dag
 from airflow.hooks.postgres_hook import PostgresHook
+from airflow.models import Variable
 from airflow.operators.python_operator import PythonOperator
 import psycopg2
 
@@ -46,7 +47,7 @@ class DagUtils:
   @classmethod
   def build_dynamic_dag(
       cls,
-      connection_name: str,
+      new_dag_name: str,
       schedule: str,
       target_source: SourceProto,
       target_destination: DestinationProto,
@@ -56,7 +57,7 @@ class DagUtils:
       reusable_credentials: Optional[Sequence[Any]] = None,
   ):
     """Dynamically creates a DAG based on a given connection."""
-    connection_id = f'{connection_name}_dag'
+    connection_id = f'{new_dag_name}_dag'
     schedule_interval = schedule if schedule else None
     start_date = datetime.datetime(2023, 1, 1, 0, 0, 0)
 
@@ -100,16 +101,12 @@ class DagUtils:
                              dest_folder=dest_folder,
                              dest_config=dest_config)
 
-        # TODO(blevitan): Replace with this without causing circular import.
-        # if target_source.__module__ == Retry.__module__:
-        if source_uuid:
-          cls.delete_previous_retry_dag(connection_id, source_uuid)
-
         task_instance.xcom_push("run_result", asdict(run_result))
 
-      print(
-          '==========================================================CAN YOU SEE ME?'
-      )
+        if source_uuid:
+          cls.mark_dag_for_deletion(source_uuid)
+
+
       PythonOperator(
           task_id=connection_id,
           op_kwargs={"dry_run_str": "{{dag_run.conf.get('dry_run', False)}}"},
@@ -142,7 +139,6 @@ class DagUtils:
       dest_folder (str): The target destination folder.
       dest_config (str): The target destination type config.
     """
-    print('=====================_schedule_retry')
     if (not run_result.successful_hits):
       retry_num = getattr(target_source, 'retry_num', 0) + 1
       print(f'DAG "{connection_id}" had no successes and '
@@ -169,12 +165,12 @@ class DagUtils:
             f'Not rescheduling due to max tries ({MAX_TRIES}).')
 
   @classmethod
-  def _add_retry_row(cls, new_connection_id, new_uuid, dest_type,
-                     dest_folder, dest_config, retry_num, retriable_events):
+  def _add_retry_row(cls, new_connection_id, new_uuid, dest_type, dest_folder,
+                     dest_config, retry_num, retriable_events):
     sql = 'INSERT INTO Retries(connection_id, uuid, destination_type, '\
           '                    destination_folder, destination_config, next_run, '\
-          '                    retry_num, data) '\
-          'VALUES (%s, %s, %s, %s, %s, %s, %s, %s)'
+          '                    retry_num, delete, data) '\
+          'VALUES (%s, %s, %s, %s, %s, %s, %s, false, %s)'
     wait_seconds = 60 * (int(
         round(10**(retry_num - 1) + random.uniform(0, 10**(retry_num - 2)), 0)))
     next_run = datetime.datetime.now() + datetime.timedelta(
@@ -182,19 +178,19 @@ class DagUtils:
 
     cls.exec_postgres_command(
         sql, (new_connection_id, new_uuid, dest_type, dest_folder,
-              dest_config, next_run, retry_num, retriable_events), True)
+              json.dumps(dest_config), next_run, retry_num, retriable_events),
+        True)
 
   @classmethod
-  def delete_previous_retry_dag(cls, connection_id, prev_uuid):
-    delete_dag(connection_id)
-    sql = f'DELETE FROM Retry WHERE connection_id = %s AND uuid = %s'
-    cls.exec_postgres_command(sql, (connection_id, prev_uuid), True)
+  def mark_dag_for_deletion(dag_uuid):
+    sql = 'UPDATE Retries SET delete = true WHERE uuid=%s'
+    cls.exec_postgres_command(sql, (dag_uuid,), True)
 
   @classmethod
   def exec_postgres_command(
       cls,
       command: str,
-      parameters: Sequence,
+      parameters: Sequence = (),
       autocommit: bool = False) -> psycopg2.extensions.cursor:
     """Execute a postgres command.
 
@@ -264,3 +260,14 @@ class DagUtils:
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+  @classmethod
+  def handle_errors(cls, error_var, connection_id, log_msg, error_traceback):
+    register_errors = Variable.get(error_var, deserialize_json=True)
+    register_errors.append({
+        "connection_id": connection_id,
+        "error": error_traceback
+    })
+    print(f"{log_msg} : {error_traceback}")
+
+    Variable.update(error_var, register_errors, serialize_json=True)
