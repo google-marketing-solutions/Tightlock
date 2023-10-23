@@ -22,6 +22,7 @@ import traceback
 from typing import Any
 
 from airflow.api.common.delete_dag import delete_dag
+from airflow.exceptions import DagNotFound
 from airflow.decorators import dag
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.models import Variable
@@ -110,7 +111,9 @@ class RetryDAGBuilder:
   def delete_dag_marked_for_deletion(self, connection_id):
     try:
       delete_dag(connection_id)
-    except Exception:
+    except DagNotFound as e:
+      print(f'{e}. Will remove from Retries table shortly.')
+    except Exception as e:
       DagUtils.handle_errors(error_var=self.register_errors_var,
                              connection_id=connection_id,
                              log_msg=f'{connection_id} deletion error',
@@ -118,7 +121,7 @@ class RetryDAGBuilder:
 
   def check_for_retries(self):
     """Creates DAGs for retries."""
-    dags_to_remove = ['-1']
+    dags_to_remove = []
 
     while True:
       rows = self.retries.fetchmany(DAG_FETCH_SIZE)
@@ -133,9 +136,10 @@ class RetryDAGBuilder:
         else:
           self.create_retry_dag(row)
 
-    removal_list = "'" + "', '".join(dags_to_remove) + "'"
-    DagUtils.exec_postgres_command('DELETE FROM Retries WHERE uuid IN (%s)',
-                                   (removal_list,))
+    if dags_to_remove:
+      removal_list = "'" + "', '".join(dags_to_remove) + "'"
+      DagUtils.exec_postgres_command('DELETE FROM Retries WHERE uuid IN (%s)',
+                                    (removal_list,), True)
 
 
 builder = RetryDAGBuilder()

@@ -182,7 +182,7 @@ class DagUtils:
         True)
 
   @classmethod
-  def mark_dag_for_deletion(dag_uuid):
+  def mark_dag_for_deletion(cls, dag_uuid):
     sql = 'UPDATE Retries SET delete = true WHERE uuid=%s'
     cls.exec_postgres_command(sql, (dag_uuid,), True)
 
