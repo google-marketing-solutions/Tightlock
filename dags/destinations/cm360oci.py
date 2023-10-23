@@ -93,12 +93,12 @@ class Destination:
     # of the application. This avoids prompting the user for authorization every
     # time the access token expires, by remembering the refresh token.
     storage = Storage(CREDENTIAL_STORE_FILE)
-    credentials = storage.get()
+    #credentials = storage.get()
 
     # If no credentials were found, go through the authorization process and
     # persist credentials to the credential store.
-    if credentials is None or credentials.invalid:
-      credentials = tools.run_flow(flow, storage)
+    #if credentials is None or credentials.invalid:
+    credentials = tools.run_flow(flow, storage)
 
     # Use the credentials to authorize an httplib2.Http instance.
     http = credentials.authorize(httplib2.Http())
@@ -111,9 +111,9 @@ class Destination:
     Raises:
       Exception: If credential combination does not meet criteria.
     """
-    if not self.path_to_client_secrets_file:
+    if not self.client_secrets_file:
       raise errors.DataOutConnectorValueError(
-          f"Missing path to client secret file in config: {self.config}"
+          f"Missing client secrets file in config: {self.config}"
       )
 
   def _parse_timestamp_micros(self, conversion: Dict[str, Any]):
