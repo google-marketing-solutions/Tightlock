@@ -68,9 +68,13 @@ class Destination:
   def __init__(self, config: Dict[str, Any]):
     self.config = config  # Keeping a reference for convenience.
     self.profileId = config.get("profile_id")
-    self.path_to_client_secrets_file = config.get("path_to_client_secrets_file")
+    self.client_secrets_file = config.get("client_secrets_file")
+    self.client_secrets = config.get("secrets")
+    f = open(self.client_secrets_file, "w")
+    f.write(json.dumps(self.client_secrets))
+    f.close()
     # Authenticate using the supplied user account credentials
-    self.http = authenticate_using_user_account(self.path_to_client_secrets_file)
+    self.http = self.authenticate_using_user_account(self.client_secrets_file)
     self._validate_credentials()
     self.encryption_info = {}
     self.encryption_info["encryptionEntityType"] = config.get("encryptionEntityType")
@@ -78,11 +82,11 @@ class Destination:
     self.encryption_info["encryptionEntitySource"] = config.get("encryptionEntitySource")
     self.encryption_info["kind"] = config.get("kind")
 
-  def authenticate_using_user_account(path_to_client_secrets_file):
+  def authenticate_using_user_account(self,client_secrets_file):
     """Authorizes an httplib2.Http instance using user account credentials."""
     # Set up a Flow object to be used if we need to authenticate.
     flow = client.flow_from_clientsecrets(
-        path_to_client_secrets_file, scope=OAUTH_SCOPES)
+        client_secrets_file, scope=OAUTH_SCOPES)
 
     # Check whether credentials exist in the credential store. Using a credential
     # store allows auth credentials to be cached, so they survive multiple runs
@@ -186,21 +190,24 @@ class Destination:
     payload["encryptionInfo"] = self.encryption_info
     payload["conversions"] = conversions
 
+    success = True
+    send_error = ""
+
     if not dry_run:
       try:
         self._send_payload(payload)
       except (
-          errors.DataOutConnectorSendUnsuccessfulError,
-      )
+            errors.DataOutConnectorSendUnsuccessfulError,
+        ) as error:
+          send_error = error.error_num
     else:
       print(
         "Dry-Run: CM conversions event will not be sent."
       )
 
     run_result = RunResult(
-        successful_hits=len(valid_events),
-        failed_hits=len(invalid_indices_and_errors),
-        error_messages=[str(error[1]) for error in invalid_indices_and_errors],
+        success=success,
+        error_messages=send_error,
         dry_run=dry_run,
     )
 
