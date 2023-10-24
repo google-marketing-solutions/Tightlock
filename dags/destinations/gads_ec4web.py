@@ -24,31 +24,29 @@ from utils import GoogleAdsUtils, ProtocolSchema, RunResult, ValidationResult
 
 _BATCH_SIZE = 2000
 
-_DEFAULT_CURRENCY_CODE = "USD"
-
 _REQUIRED_FIELDS = [
-  "customer_id",
-  "conversion_action_id",
-  "order_id",
+    "customer_id",
+    "conversion_action_id",
+    "order_id",
 ]
 
 _ID_FIELDS = [
-  "email",
-  "phone_number",
-  "hashed_email",
-  "hashed_phone_number",
-  "first_name",
-  "last_name",
-  "hashed_first_name",
-  "hashed_last_name",
-  "country_code",
-  "postal_code" 
+    "email",
+    "phone_number",
+    "hashed_email",
+    "hashed_phone_number",
+    "first_name",
+    "last_name",
+    "hashed_first_name",
+    "hashed_last_name",
+    "country_code",
+    "postal_code" 
 ]
 
 _OTHER_FIELDS = [
-  "gclid",
-  "conversion_date_time",
-  "user_agent"
+    "gclid",
+    "conversion_date_time",
+    "user_agent"
 ]
 
 AdjustmentIndicesToAdjustments = List[Tuple[int, Any]]
@@ -181,8 +179,16 @@ class Destination:
       phone_number = adjustment.get("phone_number", "")
       hashed_email = adjustment.get("hashed_email", "")
       hashed_phone_number = adjustment.get("hashed_phone_number", "")
-      address_info = adjustment.get("adress_info", "")
+      first_name = adjustment.get("first_name", "")
+      last_name = adjustment.get("last_name", "")
+      hashed_first_name = adjustment.get("hashed_first_name", "")
+      hashed_last_name = adjustment.get("hashed_last_name", "")
+      country_code = adjustment.get("country_code", "")
+      postal_code = adjustment.get("postal_code",  "")
       order_id = adjustment.get("order_id", "")
+      gclid = adjustment.get("gclid", "")
+      conversion_date_time = adjustment.get("conversion_date_time", "")
+      user_agent = adjustment.get("user_agent", "")
 
       # Sets the order ID if provided.
       conversion_adjustment.order_id = order_id
@@ -199,28 +205,45 @@ class Destination:
       elif phone_number:
         user_identifier.hashed_phone_number = GoogleAdsUtils().normalize_and_hash(phone_number)
 
-      if address_info:
-        # TODO(caiotomazelli): Verify how to populate address info with each one of the proto fields
-        user_identifier.adress_info = address_info
+      # Checks if all fields required for AddressInfo are available
+      if first_name or hashed_first_name:
+        address_info = self._client.get_type("OfflineUserAddressInfo")
+        if hashed_first_name:
+          address_info.hashed_first_name = hashed_first_name
+        elif first_name:
+          address_info.hashed_first_name = GoogleAdsUtils().normalize_and_hash(first_name)
+        if hashed_last_name:
+          address_info.hashed_last_name = hashed_last_name
+        elif last_name:
+          address_info.hashed_last_name = GoogleAdsUtils().normalize_and_hash(last_name)
+        if country_code:
+          address_info.country_code = country_code
+        if postal_code:
+          address_info.postal_code = postal_code
+        
+        required_attrs = ["hashed_first_name", "hashed_last_name", "country_code", "postal_code"]
+        if all([getattr(address_info, attr, False) for attr in required_attrs]):
+          user_identifier.address_info = address_info
+        else:
+          print(f"Skipping addition of address_info for adjustment {i} due to missing required keys.")
 
       # Specifies the user identifier source.
       user_identifier.user_identifier_source = (
           self._client.enums.UserIdentifierSourceEnum.FIRST_PARTY
       )
 
+      # Specifies optional fields
+      if user_agent:
+        conversion_adjustment.user_agent = user_agent
+
+      if gclid and conversion_date_time:
+        gclid_date_time_pair = self._client.get_type("GclidDateTimePair")
+        gclid_date_time_pair.gclid = gclid
+        gclid_date_time_pair.conversion_date_time = conversion_date_time
+
+        conversion_adjustment.gclid_date_time_pair = gclid_date_time_pair
+
       conversion_adjustment.user_identifiers.append(user_identifier)
-
-      conversion_custom_variable_id = adjustment.get("conversion_custom_variable_id", "")
-      conversion_custom_variable_value = adjustment.get("conversion_custom_variable_value", "")
-
-      # Adds custom variable ID and value if set.
-      if conversion_custom_variable_id and conversion_custom_variable_value:
-        conversion_custom_variable = self._client.get_type("CustomVariable")
-        conversion_custom_variable.conversion_custom_variable = self._conversion_upload_service.conversion_custom_variable_path(
-          customer_id, conversion_custom_variable_id
-        )
-        conversion_custom_variable.value = conversion_custom_variable_value
-        conversion_adjustment.custom_variables.append(conversion_custom_variable)
 
       valid_adjustments[customer_id].append((i, conversion_adjustment))
 
