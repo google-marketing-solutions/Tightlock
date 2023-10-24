@@ -22,7 +22,7 @@ from pydantic import Field
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 from utils import GoogleAdsUtils, ProtocolSchema, RunResult, ValidationResult
 
-_BATCH_SIZE = 10000
+_BATCH_SIZE = 2000
 
 _DEFAULT_CURRENCY_CODE = "USD"
 
@@ -37,12 +37,18 @@ _ID_FIELDS = [
   "phone_number",
   "hashed_email",
   "hashed_phone_number",
-  "address_info" 
+  "first_name",
+  "last_name",
+  "hashed_first_name",
+  "hashed_last_name",
+  "country_code",
+  "postal_code" 
 ]
 
 _OTHER_FIELDS = [
-  "conversion_custom_variable_id",
-  "conversion_custom_variable_value",
+  "gclid",
+  "conversion_date_time",
+  "user_agent"
 ]
 
 AdjustmentIndicesToAdjustments = List[Tuple[int, Any]]
