@@ -22,6 +22,7 @@ import json
 import traceback
 from typing import Any
 
+# from airflow.api.common.experimental.delete_dag import delete_dag
 from airflow.api.common.delete_dag import delete_dag
 from airflow.exceptions import DagNotFound
 from airflow.decorators import dag
@@ -109,33 +110,32 @@ class RetryDAGBuilder:
                              log_msg=f'{connection_id} registration error',
                              error_traceback=traceback.format_exc())
 
-  def delete_dag_marked_for_deletion(self, connection_id):
-    try:
-      delete_dag(connection_id)
-    except DagNotFound as e:
-      print(f'{e}. Will remove from Retries table shortly.')
-    except Exception as e:
-      DagUtils.handle_errors(error_var=self.register_errors_var,
-                             connection_id=connection_id,
-                             log_msg=f'{connection_id} deletion error',
-                             error_traceback=traceback.format_exc())
+  # def delete_dag_marked_for_deletion(self, connection_id):
+  #   try:
+  #     delete_dag(connection_id)
+  #   except DagNotFound as e:
+  #     print(f'{e}. Will remove from Retries table shortly.')
+  #   except Exception as e:
+  #     DagUtils.handle_errors(error_var=self.register_errors_var,
+  #                            connection_id=connection_id,
+  #                            log_msg=f'{connection_id} deletion error',
+  #                            error_traceback=traceback.format_exc())
 
   def check_for_retries(self):
     """Creates DAGs for retries."""
-    dags_to_remove = []
+    remove_dags = []
 
     for retry in self.retries:
       if retry[RetryColumnIndices.DELETE.value]:
-        self.delete_dag_marked_for_deletion(
-            retry[RetryColumnIndices.CONNECTION_ID.value])
-        dags_to_remove.append(retry[RetryColumnIndices.UUID.value])
+        # self.delete_dag_marked_for_deletion(
+        #     retry[RetryColumnIndices.CONNECTION_ID.value])
+        remove_dags.append(retry[RetryColumnIndices.UUID.value])
       else:
         self.create_retry_dag(retry)
 
-    if dags_to_remove:
-      removal_list = "'" + "', '".join(dags_to_remove) + "'"
+    if remove_dags:
       sql = 'DELETE FROM Retries WHERE uuid IN (%s)'
-      closing(DagUtils.exec_postgres_command(sql, (removal_list,), True))
+      closing(DagUtils.exec_postgres_command(sql, (tuple(remove_dags),), True))
 
 
 builder = RetryDAGBuilder()

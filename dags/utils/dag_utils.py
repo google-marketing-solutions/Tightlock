@@ -28,7 +28,6 @@ import sys
 from typing import Any, List, Mapping, Optional, Sequence
 import uuid
 
-from airflow.api.common.delete_dag import delete_dag
 from airflow.decorators import dag
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.models import Variable
@@ -92,9 +91,10 @@ class DagUtils:
 
         # only retries have uuid.
         source_uuid = getattr(target_source, 'uuid', '')
+        print(f'=====================DAG "{connection_id}", uuid={source_uuid}')
 
         if run_result.retriable_events:
-          cls.schedule_retry(connection_id=connection_id,
+          cls.schedule_retry(parent_conn_id=connection_id,
                              source_uuid=source_uuid,
                              run_result=run_result,
                              target_source=target_source,
@@ -107,7 +107,6 @@ class DagUtils:
         if source_uuid:
           cls.mark_dag_for_deletion(source_uuid)
 
-
       PythonOperator(
           task_id=connection_id,
           op_kwargs={"dry_run_str": "{{dag_run.conf.get('dry_run', False)}}"},
@@ -119,7 +118,7 @@ class DagUtils:
   @classmethod
   def schedule_retry(
       cls,
-      connection_id: str,
+      parent_conn_id: str,
       source_uuid: str,
       run_result: RunResult,
       target_source: SourceProto,
@@ -132,7 +131,7 @@ class DagUtils:
     Schedules up to `MAX_TRIES` tries. Otherwise, logs the failure.
 
     Args:
-      connection_id (str): The connection id.
+      parent_conn_id (str): The connection id of the parent.
       uuid (str): UUid, if Retry, else `''`.
       run_result (RunResult): The run result.
       target_source (SourceProto): The target source.
@@ -142,18 +141,18 @@ class DagUtils:
     """
     if (not run_result.successful_hits):
       retry_num = getattr(target_source, 'retry_num', 0) + 1
-      print(f'DAG "{connection_id}" had no successes and '
+      print(f'DAG "{parent_conn_id}" had no successes and '
             f'{len(run_result.retriable_events)} retriable failures.'
             f' Incrementing retry count to {retry_num}.')
     else:
-      print(f'DAG "{connection_id}" had some successes and '
+      print(f'DAG "{parent_conn_id}" had some successes and '
             f' {len(run_result.retriable_events)} retriable failures.'
             f' Resetting retry count to 0.')
       retry_num = 0
 
     if retry_num < MAX_TRIES:
-      print(f'Retrying DAG "{connection_id}" ({retry_num+1} of {MAX_TRIES}))')
-      cls._add_retry_row(new_connection_id=connection_id.strip(source_uuid),
+      print(f'Retrying DAG "{parent_conn_id}" ({retry_num+1} of {MAX_TRIES}))')
+      cls._add_retry_row(new_connection_id=parent_conn_id.strip(source_uuid),
                          new_uuid=str(uuid.uuid4()),
                          dest_type=dest_type,
                          dest_folder=dest_folder,
@@ -162,7 +161,7 @@ class DagUtils:
                          retriable_events=json.dumps(
                              run_result.retriable_events))
     else:
-      print(f'DAG run "{connection_id}" had {run_result.failed_hits} failures.'
+      print(f'DAG run "{parent_conn_id}" had {run_result.failed_hits} failures.'
             f'Not rescheduling due to max tries ({MAX_TRIES}).')
 
   @classmethod
@@ -177,10 +176,12 @@ class DagUtils:
     next_run = datetime.datetime.now() + datetime.timedelta(
         seconds=wait_seconds)
 
-    closing(cls.exec_postgres_command(
-        sql, (new_connection_id, new_uuid, dest_type, dest_folder,
-              json.dumps(dest_config), next_run, retry_num, retriable_events),
-        True))
+    closing(
+        cls.exec_postgres_command(
+            sql,
+            (new_connection_id, new_uuid, dest_type, dest_folder,
+             json.dumps(dest_config), next_run, retry_num, retriable_events),
+            True))
 
   @classmethod
   def mark_dag_for_deletion(cls, dag_uuid):
