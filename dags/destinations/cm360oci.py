@@ -62,6 +62,24 @@ CM_CONVERSIONS_FIELDS = [
   "kind",
 ]
 
+CM_REQUIRED_CONVERSIONS_FIELDS = [
+  "floodlightConfigurationId",
+  "floodlightActivityId",
+  "timestamp_micros",
+  "value",
+  "quantity",
+  "ordinal",
+]
+
+CM_MUTUALLY_EXCLUSIVE_CONVERSIONS_FIELDS = [
+  "encryptedUserId",
+  "mobileDeviceId",
+  "gclid",
+  "matchId",
+  "dclid",
+  "impressionId",
+]
+
 class Destination:
   """Implements DestinationProto protocol for Campaign Manager Offline Conversion Import."""
 
@@ -75,12 +93,13 @@ class Destination:
     f.close()
     # Authenticate using the supplied user account credentials
     self.http = self.authenticate_using_user_account(self.client_secrets_file)
+    self.validate()
     self._validate_credentials()
     self.encryption_info = {}
-    self.encryption_info["encryptionEntityType"] = config.get("encryptionEntityType")
-    self.encryption_info["encryptionEntityId"] = config.get("encryptionEntityId")
-    self.encryption_info["encryptionEntitySource"] = config.get("encryptionEntitySource")
-    self.encryption_info["kind"] = config.get("kind")
+    self.encryption_info["encryptionEntityType"] = config.get("encryptionEntityType","")
+    self.encryption_info["encryptionEntityId"] = config.get("encryptionEntityId","")
+    self.encryption_info["encryptionEntitySource"] = config.get("encryptionEntitySource","")
+    self.encryption_info["kind"] = config.get("kind","")
 
   def authenticate_using_user_account(self,client_secrets_file):
     """Authorizes an httplib2.Http instance using user account credentials."""
@@ -114,6 +133,11 @@ class Destination:
     if not self.client_secrets_file:
       raise errors.DataOutConnectorValueError(
           f"Missing client secrets file in config: {self.config}"
+      )
+
+    if not self.client_secrets:
+      raise errors.DataOutConnectorValueError(
+          f"Missing client secrets in config: {self.config}"
       )
 
   def _parse_timestamp_micros(self, conversion: Dict[str, Any]):
@@ -230,3 +254,31 @@ class Destination:
   def batch_size(self) -> int:
     return 10000
 
+  def validate(self) -> ValidationResult:
+    """Validates the provided config.
+
+    Returns:
+      A ValidationResult for the provided config.
+    """
+    missing_encryption_fields = []
+
+    for encryption_field in self.encryptionInfo:
+      if not self.encryptionInfo[encryption_field]:
+        missing_encryption_fields.append(encryption_fields)
+
+    if missing_encryption_fields:
+      error_msg = (
+        "Config requires the following fields to be set: "
+        f"{', '.join(missing_encryption_fields)}")
+      return ValidationResult(False, [error_msg])
+
+  def validate_payload(self, payload) -> ValidationResult:
+    """Validates the conversions list.
+
+    Returns:
+      A ValidationResult for the provided conversions list.
+    """
+    #TODO: Add validation for conversions list defined in send_data
+    #and log index to invalid rows
+
+    return ValidationResult(True, [])
