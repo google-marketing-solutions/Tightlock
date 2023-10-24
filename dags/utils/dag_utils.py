@@ -15,6 +15,7 @@ limitations under the License."""
 """Utility functions for DAGs."""
 
 import ast
+from contextlib import closing
 from dataclasses import asdict
 import datetime
 from functools import partial
@@ -176,15 +177,15 @@ class DagUtils:
     next_run = datetime.datetime.now() + datetime.timedelta(
         seconds=wait_seconds)
 
-    cls.exec_postgres_command(
+    closing(cls.exec_postgres_command(
         sql, (new_connection_id, new_uuid, dest_type, dest_folder,
               json.dumps(dest_config), next_run, retry_num, retriable_events),
-        True)
+        True))
 
   @classmethod
   def mark_dag_for_deletion(cls, dag_uuid):
     sql = 'UPDATE Retries SET delete = true WHERE uuid=%s'
-    cls.exec_postgres_command(sql, (dag_uuid,), True)
+    closing(cls.exec_postgres_command(sql, (dag_uuid,), True))
 
   @classmethod
   def exec_postgres_command(

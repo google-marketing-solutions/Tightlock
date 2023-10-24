@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License."""
 """Registers connections dynamically from config."""
 
+from contextlib import closing
 from datetime import datetime
 import json
 import re
@@ -40,9 +41,9 @@ class DAGBuilder:
                  description="Report of dynamic DAG registering errors.")
 
   def _get_latest_config(self):
-    sql_stmt = "SELECT value FROM Config ORDER BY create_date DESC LIMIT 1"
-    cursor = DagUtils.exec_postgres_command(sql_stmt, (datetime.now(),))
-    return cursor.fetchone()[0]
+    sql = "SELECT value FROM Config ORDER BY create_date DESC LIMIT 1"
+    with closing(DagUtils.exec_postgres_command(sql, (datetime.now(),))) as c:
+      return c.fetchone()[0]
 
   def _config_from_ref(
       self, ref: Mapping[str, str]) -> SourceProto | DestinationProto:

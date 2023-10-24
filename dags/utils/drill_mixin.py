@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License."""
 """Utility functions for DAGs."""
 
+from contextlib import closing
 import traceback
 from typing import Any, List, Mapping, Sequence, Tuple
 
@@ -49,8 +50,9 @@ class DrillMixin:
              f" FROM {from_target} as {table_alias}"
              f" LIMIT {limit} OFFSET {offset}")
     try:
-      cursor.execute(query)
-      results = self._parse_data(fields, cursor.fetchall())
+      with closing(cursor) as c:
+        c.execute(query)
+        results = self._parse_data(fields, c.fetchall())
     except RuntimeError:
       # Return an empty list when an empty cursor is fetched
       results = []
@@ -61,7 +63,8 @@ class DrillMixin:
     cursor = drill_conn.cursor()
     query = f"SELECT COUNT(1) FROM {path}"
     try:
-      cursor.execute(query)
+      with closing(cursor) as c:
+        c.execute(query)
     except Exception:  # pylint: disable=broad-except
       print(f"Drill validation error: {traceback.format_exc()}")
       return ValidationResult(False, [f"Invalid location: {path}"])

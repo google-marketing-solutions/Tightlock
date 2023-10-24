@@ -14,6 +14,7 @@
  limitations under the License.
  """
 
+from contextlib import closing
 from airflow.hooks.postgres_hook import PostgresHook
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
@@ -37,16 +38,15 @@ class Source(SourceProto):
 
     self.data = self._get_retry_data(config['connection_id'], config['uuid'])
 
-  def _get_retry_data(self, connection_id, uuid) -> List[Mapping[str, Any]]:
+  def _get_retry_data(self, conn_id, uuid) -> List[Mapping[str, Any]]:
     """Gets retry data from the database."""
     sql = f'''SELECT data
               FROM Retries
               WHERE connection_id = %s AND uuid = %s
               ORDER BY id ASC
               LIMIT 1'''
-    cursor = DagUtils.exec_postgres_command(sql, (connection_id, uuid))
-    data = cursor.fetchone()[0]
-    return data
+    with closing(DagUtils.exec_postgres_command(sql, (conn_id, uuid))) as c:
+      return c.fetchone()[0]
 
   def get_data(
       self,

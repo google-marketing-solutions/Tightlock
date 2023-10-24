@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License."""
 """Registers connections dynamically from config."""
 
+from contextlib import closing
 from datetime import datetime
 import enum
 from dataclasses import asdict
@@ -67,12 +68,12 @@ class RetryDAGBuilder:
                  description='Report of dynamic retry DAG deletion errors.')
 
   def _get_retries(self):
-    sql_stmt = 'SELECT connection_id, uuid, destination_type, '\
+    sql = 'SELECT connection_id, uuid, destination_type, '\
                '       destination_folder, destination_config, next_run, '\
                '       retry_num, delete, data '\
                'FROM Retries WHERE next_run <= %s ORDER BY next_run'
-    cursor = DagUtils.exec_postgres_command(sql_stmt, (datetime.now(),))
-    return cursor
+    with closing(DagUtils.exec_postgres_command(sql, (datetime.now(),))) as c:
+      return c.fetchall()
 
   def create_retry_dag(self, row):
     connection_id = row[RetryColumnIndices.CONNECTION_ID.value]
@@ -123,23 +124,18 @@ class RetryDAGBuilder:
     """Creates DAGs for retries."""
     dags_to_remove = []
 
-    while True:
-      rows = self.retries.fetchmany(DAG_FETCH_SIZE)
-      if not rows:
-        break
-
-      for row in rows:
-        if row[RetryColumnIndices.DELETE.value]:
-          self.delete_dag_marked_for_deletion(
-              row[RetryColumnIndices.CONNECTION_ID.value])
-          dags_to_remove.append(row[RetryColumnIndices.UUID.value])
-        else:
-          self.create_retry_dag(row)
+    for retry in self.retries:
+      if retry[RetryColumnIndices.DELETE.value]:
+        self.delete_dag_marked_for_deletion(
+            retry[RetryColumnIndices.CONNECTION_ID.value])
+        dags_to_remove.append(retry[RetryColumnIndices.UUID.value])
+      else:
+        self.create_retry_dag(retry)
 
     if dags_to_remove:
       removal_list = "'" + "', '".join(dags_to_remove) + "'"
-      DagUtils.exec_postgres_command('DELETE FROM Retries WHERE uuid IN (%s)',
-                                    (removal_list,), True)
+      sql = 'DELETE FROM Retries WHERE uuid IN (%s)'
+      closing(DagUtils.exec_postgres_command(sql, (removal_list,), True))
 
 
 builder = RetryDAGBuilder()
