@@ -174,7 +174,6 @@ class Destination:
 
       conversion_adjustment.adjustment_type = 'ENHANCEMENT'
 
-
       email = adjustment.get("email", "")
       phone_number = adjustment.get("phone_number", "")
       hashed_email = adjustment.get("hashed_email", "")
