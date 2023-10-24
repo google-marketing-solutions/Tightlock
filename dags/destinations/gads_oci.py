@@ -22,7 +22,7 @@ from pydantic import Field
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 from utils import GoogleAdsUtils, ProtocolSchema, RunResult, ValidationResult
 
-_BATCH_SIZE = 10000
+_BATCH_SIZE = 2000
 
 _DEFAULT_CURRENCY_CODE = "USD"
 
