@@ -163,23 +163,23 @@ class Destination:
     Raises:
       ValueError:  Raised if not all of the mailing address fields are present.
     """
-    user_data_payload = client.get_type("UserData")
-    
     scrubber = _UserDataScrubber()
     scrubber.scrub_user_data(user_data)
     
-    self._populate_payload_with_identifiers(user_data_payload, user_data)
+    user_data_payload = self._create_user_data_payload(user_data)
 
     operation = client.get_type("OfflineUserDataJobOperation")
-    operation.create = user_data
+    operation.create = user_data_payload
     return operation
 
-  def _populate_payload_with_identifiers(payload: Any, user_data: Mapping[str, Any]) -> None:
+  def _populate_payload_with_identifiers(user_data: Mapping[str, Any]) -> None:
     """Populates the provided Google Ads UserData payload object with source data.
     
     Raises:
       ValueError:  Raised if not all of the mailing address fields are present.
     """
+    payload = client.get_type("UserData")
+
     if "email" in user_data:
       user_identifier = self._client.get_type("UserIdentifier")
       user_identifier.hashed_email = user_data["email"]
@@ -209,6 +209,8 @@ class Destination:
       address_info.postal_code = user_data["postal_code"]
 
       payload.user_identifiers.append(user_identifier)
+
+    return payload
 
   def _create_user_upload_job() -> str:
     """Sends a request to create a user data upload job.
