@@ -24,6 +24,52 @@ from utils import GoogleAdsUtils,ProtocolSchema, RunResult, ValidationResult
 # Default batch size of 1000 user identifiers
 _BATCH_SIZE = 1000
 
+_USER_IDENTIFIER_FIELDS = [
+  "email",
+  "phone",
+  "first_name",
+  "last_name",
+  "country_code",
+  "postal_code"
+]
+
+class _UserDataScrubber:
+  """Util class for scrubbing user identifier data."""
+
+  def __init__(self):
+    self._user_data = {}
+    self._utils = GoogleAdsUtils
+
+  def scrub_user_data(user_data: Map[str, Any]]) -> None:
+    self._user_data = user_data
+
+    self._scrub_email()
+    self._scrub_phone_number()
+    self._scrub_mailing_name_fields()
+
+  def _scrub_email() -> None:
+    if "email" in self._user_data:
+      self._user_data["email"] = self._utils.normalize_and_hash_email_address(
+        user_data["email"]
+      )
+
+  def _scrub_phone_number() -> None:
+    if "phone" in self._user_data:
+      self._user_data[""] = self._utils.normalize_and_hash(
+        user_data["phone"]
+      )
+
+  def _scrub_mailing_name_fields() -> None:
+    if "first_name" in self._user_data:
+      self._user_data[""] = self._utils.normalize_and_hash(
+        record["first_name"]
+      )
+
+    if "last_name" in self._user_data:
+      self._user_data[""] = self._utils.normalize_and_hash(
+        record["last_name"]
+      )
+
 
 class Destination:
   """Implements DestinationProto protocol for Google Ads Customer Match.
@@ -66,11 +112,17 @@ class Destination:
       return RunResult(dry_run=dry_run, successful_hits=0, failed_hits=0)
 
     user_data_operations = []
+    failures = []
+    
     print(f"Processing {len(input_data)} user records")
     for user_data in input_data:
-      user_operation = self._build_user_data_operation_from_row(user_data)
-      user_data_operations.append(user_operation)
-
+      try:
+        user_operation = self._build_user_data_operation_from_row(user_data)
+        user_data_operations.append(user_operation)
+      except ValueError as ve:
+        failures.append(ve)
+    print(f"There were '{len(failures)}' user rows that couldn't be processed.")
+  
     # No point in continuing if doing a dry run, since the above steps
     #   detail how many rows were processed, and how many operations
     #   were created
@@ -84,9 +136,10 @@ class Destination:
     )
 
     response = offline_user_data_job_service_client.add_offline_user_data_job_operations(
-        request=request
+        request=add_user_data_request
     )
-    failures = self._process_response_for_failures(response)
+    response_failures = self._process_response_for_failures(response)
+    failures.append(response_failures)
 
     self._offline_user_data_job_service.run_offline_user_data_job(
       resource_name=upload_job_id
@@ -102,26 +155,60 @@ class Destination:
     """Builds a Google Ads OfflineUserDataJobOperation object from the provided user data.
     
     Args:
-        user_data:  A row of user data from the Source.
+      user_data:  A row of user data from the Source.
     
     Returns:
-        A Google Ads OfflineUserDataJobOperation object populated with 1-or-more identifiers.
+      A Google Ads OfflineUserDataJobOperation object populated with 1-or-more identifiers.
+
+    Raises:
+      ValueError:  Raised if not all of the mailing address fields are present.
     """
     user_data_payload = client.get_type("UserData")
-    self._scrub_user_data(user_data)
+    
+    scrubber = _UserDataScrubber()
+    scrubber.scrub_user_data(user_data)
+    
     self._populate_payload_with_identifiers(user_data_payload, user_data)
 
     operation = client.get_type("OfflineUserDataJobOperation")
     operation.create = user_data
     return operation
 
-  def _scrub_user_data(user_data: Mapping[str, Any]) -> None:
-    """Scrub and format the user data to prepare it for the API."""
-    pass
+  def _populate_payload_with_identifiers(payload: Any, user_data: Mapping[str, Any]) -> None:
+    """Populates the provided Google Ads UserData payload object with source data.
+    
+    Raises:
+      ValueError:  Raised if not all of the mailing address fields are present.
+    """
+    if "email" in user_data:
+      user_identifier = self._client.get_type("UserIdentifier")
+      user_identifier.hashed_email = user_data["email"]
+      payload.user_identifiers.append(user_identifier)
 
-  def _populate_payload_with_identifiers(payload: Any, ser_data: Mapping[str, Any]) -> None:
-    """Populates the provided Google Ads UserData payload object with source data."""
-    pass
+    if "phone" in user_data:
+      user_identifier = client.get_type("UserIdentifier")
+      user_identifier.hashed_phone_number = user_data["phone"]
+      payload.user_identifiers.append(user_identifier)
+  
+    if "first_name" in user_data:
+      required_keys = ("last_name", "country_code", "postal_code")
+      if not all(key in record for key in required_keys):
+        missing_keys = record.keys() - required_keys
+        print(
+            "Raising exception because the following required mailing "
+            f"address keys are missing: {missing_keys}"
+        )
+        raise ValueError(f"Missing mailing address fields:  {missing_keys}")
+
+      user_identifier = client.get_type("UserIdentifier")
+      address_info = user_identifier.address_info
+      
+      address_info.hashed_first_name = user_data["first_name"]
+      address_info.hashed_last_name = user_data["last_name"]
+      address_info.country_code = user_data["country_code"]
+      address_info.postal_code = user_data["postal_code"]
+
+      payload.user_identifiers.append(user_identifier)
 
   def _create_user_upload_job() -> str:
     """Sends a request to create a user data upload job.
