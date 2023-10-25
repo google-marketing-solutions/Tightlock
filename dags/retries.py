@@ -134,7 +134,7 @@ class RetryDAGBuilder:
         self.create_retry_dag(retry)
 
     if remove_dags:
-      sql = 'DELETE FROM Retries WHERE uuid IN (%s)'
+      sql = 'DELETE FROM Retries WHERE uuid IN %s'
       closing(DagUtils.exec_postgres_command(sql, (tuple(remove_dags),), True))
 
 
