@@ -242,7 +242,7 @@ class Destination:
     return CM_CONVERSION_FIELDS
 
   def batch_size(self) -> int:
-    return 10000
+    return 1000
 
   def validate(self) -> ValidationResult:
     """Validates the provided config.
