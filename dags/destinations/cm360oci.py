@@ -86,14 +86,10 @@ class Destination:
   def __init__(self, config: Dict[str, Any]):
     self.config = config  # Keeping a reference for convenience.
     self.profileId = config.get("profile_id")
-    #self.client_secrets_file = config.get("client_secrets_file")
     self.credentials = {}
+
     for credential in CM_CREDENTIALS:
       self.credentials[credential] = config.get(credential,"")
-      
-    '''f = open(self.client_secrets_file, "w")
-    f.write(json.dumps(self.client_secrets))
-    f.close()'''
     
     self.encryption_info = {}
     self.encryption_info["encryptionEntityType"] = config.get("encryptionEntityType","")
@@ -102,6 +98,7 @@ class Destination:
     self.encryption_info["kind"] = config.get("kind","")
     self.validate()
     self._validate_credentials()
+    
     # Authenticate using the supplied user account credentials
     self.http = self.authenticate_using_user_account()
 
@@ -139,25 +136,16 @@ class Destination:
       return timestamp_micros
     return None
 
-  '''def _validate_param(self, key: str, value: Any) -> bool:
-    """Filter out null parameters and reserved keys."""
-    reserved_keys = ['app_instance_id', 'client_id', 'user_id', 'timestamp_micros', 'event_name']
-    result = key not in reserved_keys and value is not None and value != ''
-    return result'''
-
-
   def _send_payload(self, payload: Dict[str, Any]) -> None:
-    """Sends payload to GA via Measurement Protocol REST API.
+    """Sends conversions payload to CM360 via CM API.
 
     Args:
-      payload: Parameters containing required data for app conversion tracking.
+      payload: Parameters containing required data for conversion tracking.
 
     Returns:
       results: Includes request body, status_code, error_msg, response body and
       debug flag.
     """
-
-    #authenticate_using_user_account(self.path_to_client_secrets_file)
 
     # Construct a service object via the discovery service.
     service = discovery.build('dfareporting', 'v4', http=self.http)
@@ -183,10 +171,11 @@ class Destination:
   def send_data(self, input_data: List[Dict[str, Any]], dry_run:bool):
     """Builds payload and sends data to CM360 API."""
 
-    conversions = []
+    valid_conversions = []
+    invalid_conversions = []
     encryption_info = {}
 
-    for entry in input_data["conversions"]:
+    for i,entry in enumerate(input_data):
       conversion = {}
       for conversion_field in CM_CONVERSION_FIELDS:
         if conversion_field == "timestamp_micros":
@@ -200,31 +189,33 @@ class Destination:
         else:
           conversion[conversion_field] = str(entry.get(conversion_field, ""))
       
-      conversions.append(conversion)
+      if self.validate_conversion(conversion):
+        valid_conversions.append(conversion)
+      else:
+        invalid_conversions.append((i, errors.ErrorNameIDMap.CM_HOOK_ERROR_INVALID_CONVERSION_EVENT))
 
-    payload = {}
-    payload["encryptionInfo"] = self.encryption_info
-    payload["conversions"] = conversions
+    if valid_conversions:
+      payload = {}
+      payload["encryptionInfo"] = self.encryption_info
+      payload["conversions"] = valid_conversions
 
-    success = True
-    send_error = ""
+      if not dry_run:
+        try:
+          self._send_payload(payload)
+        except (
+              errors.DataOutConnectorSendUnsuccessfulError,
+          ) as error:
+            send_error = error.error_num
+      else:
+        print(
+          "Dry-Run: CM conversions event will not be sent."
+        )
 
-    if not dry_run:
-      try:
-        self._send_payload(payload)
-      except (
-            errors.DataOutConnectorSendUnsuccessfulError,
-        ) as error:
-          send_error = error.error_num
-    else:
-      print(
-        "Dry-Run: CM conversions event will not be sent."
-      )
-
-    run_result = RunResult(
-        success=success,
-        error_messages=send_error,
-        dry_run=dry_run,
+    return RunResult(
+      successful_hits=len(valid_conversions),
+      failed_hits=len(invalid_conversions),
+      error_messages=[str(error[1]) for error in invalid_conversions],
+      dry_run=dry_run,
     )
 
   @staticmethod
@@ -233,12 +224,15 @@ class Destination:
       "CM360OCI",
       [
         ("profile_id", str, Field(description="A Camaign Manager Profile ID .")),
-        ("client_secrets_file", str, Field(description="Client secrets file.")),
         ("encryptionEntityType", str, Field(description="The encryption entity type.")),
         ("encryptionEntityId", str, Field(description="The encryption entity ID.")),
         ("encryptionSource", str, Field(description="Describes whether the encrypted cookie was received from ad serving or from Data Transfer.")),
         ("kind", str, Field(description="Identifies what kind of resource this is.")),
-        ("secrets", str, Field(description="JSON CM360 credentials including client id and client secret.")),
+        ("access_token", str, Field(description="A Campaign Manager 360 access token.")),
+        ("refresh_token", str, Field(description="A Campaign Manager 360 API refresh token.")),
+        ("token_uri", str, Field(description="A Campaign Manager 360 API token uri.")),
+        ("client_id", str, Field(description="An OAuth2.0 Web Client ID.")),
+        ("client_secret", str, Field(description="An OAuth2.0 Web Client Secret.")),
       ]
     )
 
@@ -255,6 +249,7 @@ class Destination:
       A ValidationResult for the provided config.
     """
     missing_encryption_fields = []
+    error_msg = ''
 
     for encryption_field in self.encryption_info:
       if not self.encryption_info[encryption_field]:
@@ -268,13 +263,24 @@ class Destination:
       
     return ValidationResult(True, [error_msg])
 
-  def validate_payload(self, payload) -> ValidationResult:
+  def validate_conversion(self, conversion) -> bool:
     """Validates the conversions list.
 
     Returns:
       A ValidationResult for the provided conversions list.
     """
-    #TODO: Add validation for conversions list defined in send_data
-    #and log index to invalid rows
+    
+    for required_field in CM_REQUIRED_CONVERSIONS_FIELDS:
+      if not conversion[required_field]:
+        return False
 
-    return ValidationResult(True, [])
+    invalid = True
+    for id_field in CM_MUTUALLY_EXCLUSIVE_CONVERSIONS_FIELDS:
+      if conversion[id_field]:
+        invalid = False
+        break
+
+    if invalid:
+      return False
+
+    return True

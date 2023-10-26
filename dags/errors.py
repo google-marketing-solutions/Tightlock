@@ -42,6 +42,7 @@ _ERROR_ID_DESCRIPTION_MAP = immutabledict.immutabledict({
     20: 'Error in sending event to Google Analytics. Http error.',
     21: 'Error in loading events from Google Cloud Storage. Http error.',
     22: 'Error in sending event to Google Analytics 4. Http error.',
+    23: 'Error in sending conversion to Campaign Manager 360. Http error.',
     50: 'Event not sent. Event will not be retried.',
     51: 'Error in sending event to Ads Customer Match. Hashed values in the payload do not match SHA256 format.',
     52: 'Error in sending event to Ads Customer Match. HashedEmail field does not meet SHA256 format.',
