@@ -115,11 +115,10 @@ class Destination:
     client_id = self.credentials['client_id'],
     client_secret = self.credentials['client_secret'])
 
-    '''# Use the credentials to authorize an httplib2.Http instance.
+    # Use the credentials to authorize an httplib2.Http instance.
     http = credentials.authorize(httplib2.Http())
 
-    return http'''
-    return True
+    return http
 
   def _validate_credentials(self) -> None:
     """Validate credentials.
@@ -161,7 +160,7 @@ class Destination:
     #authenticate_using_user_account(self.path_to_client_secrets_file)
 
     # Construct a service object via the discovery service.
-    service = discovery.build('dfareporting', 'v4', http=http)
+    service = discovery.build('dfareporting', 'v4', http=self.http)
 
     try:
       request = service.conversions().batchinsert(profileId=self.profileId,
