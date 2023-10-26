@@ -168,7 +168,7 @@ class Destination:
           error_num=errors.ErrorNameIDMap.RETRIABLE_CM360_HOOK_ERROR_HTTP_ERROR,
       )
 
-  def send_data(self, input_data: List[Dict[str, Any]], dry_run:bool):
+  def send_data(self, input_data: List[Dict[str, Any]], dry_run:bool) -> Optional[RunResult]:
     """Builds payload and sends data to CM360 API."""
 
     valid_conversions = []
@@ -211,12 +211,14 @@ class Destination:
           "Dry-Run: CM conversions event will not be sent."
         )
 
-    return RunResult(
+    run_result = RunResult(
       successful_hits=len(valid_conversions),
       failed_hits=len(invalid_conversions),
       error_messages=[str(error[1]) for error in invalid_conversions],
       dry_run=dry_run,
     )
+
+    return run_result
 
   @staticmethod
   def schema() -> Optional[ProtocolSchema]:
