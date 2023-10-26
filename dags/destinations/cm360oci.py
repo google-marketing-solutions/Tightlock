@@ -24,7 +24,7 @@ import logging
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from googleapiclient import discovery
-import httplib2
+import google_auth_httplib2
 import google.oauth2.credentials
 
 import errors
@@ -116,7 +116,7 @@ class Destination:
     client_secret = self.credentials['client_secret'])
 
     # Use the credentials to authorize an httplib2.Http instance.
-    http = credentials.authorize(httplib2.Http())
+    http = google_auth_httplib2.AuthorizedHttp(credentials)
 
     return http
 
