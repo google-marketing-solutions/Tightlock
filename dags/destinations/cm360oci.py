@@ -168,7 +168,7 @@ class Destination:
           error_num=errors.ErrorNameIDMap.RETRIABLE_CM360_HOOK_ERROR_HTTP_ERROR,
       )
 
-  def send_data(self, input_data: List[Dict[str, Any]], dry_run:bool) -> Optional[RunResult]:
+  def send_data(self, input_data: List[Mapping[str, Any]], dry_run:bool) -> Optional[RunResult]:
     """Builds payload and sends data to CM360 API."""
 
     valid_conversions = []
