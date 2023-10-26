@@ -266,10 +266,10 @@ class Destination:
     return ValidationResult(True, [error_msg])
 
   def validate_conversion(self, conversion) -> bool:
-    """Validates the conversions list.
+    """Validates a conversion.
 
     Returns:
-      A ValidationResult for the provided conversions list.
+      True if the conversion is valid, False if it isn't.
     """
     
     for required_field in CM_REQUIRED_CONVERSIONS_FIELDS:
