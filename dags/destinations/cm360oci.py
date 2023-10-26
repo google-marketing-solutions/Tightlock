@@ -33,7 +33,7 @@ import requests
 from pydantic import Field
 from utils import ProtocolSchema, RunResult, SchemaUtils, ValidationResult
 
-CM_CONVERSIONS_FIELDS = [
+CM_CONVERSION_FIELDS = [
   "floodlightConfigurationId",
   "floodlightActivityId",
   "encryptedUserId",
@@ -243,7 +243,7 @@ class Destination:
     )
 
   def fields(self) -> Sequence[str]:
-    return CM_CONVERSIONS_FIELDS
+    return CM_CONVERSION_FIELDS
 
   def batch_size(self) -> int:
     return 10000
@@ -265,6 +265,7 @@ class Destination:
         "Config requires the following fields to be set: "
         f"{', '.join(missing_encryption_fields)}")
       return ValidationResult(False, [error_msg])
+      
     return ValidationResult(True, [error_msg])
 
   def validate_payload(self, payload) -> ValidationResult:
