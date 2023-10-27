@@ -1,0 +1,2 @@
+floodlightConfigurationId,floodlightActivityId,encryptedUserId,mobileDeviceId,timestamp_micros,value,quantity,ordinal,limitAdTracking,childDirectedTreatment,gclid,nonPersonalizedAd,treatmentForUnderage,matchId,dclid,impressionId,userIdentifiers,conversion_kind
+13641571,16352759,"test","test","",1695955940000000,"","","1","","","0000000000","","","","","","",""
