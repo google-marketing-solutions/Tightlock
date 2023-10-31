@@ -3,4 +3,4 @@ pytest-dotenv==0.5.2
 requests==2.31.0
 tenacity==8.2.2
 # TODO(b/293860480): Update version when support for docker-compose v2 is added to tests
-pyyaml==5.3.1
+pyyaml==5.4
