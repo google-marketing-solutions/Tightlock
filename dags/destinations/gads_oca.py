@@ -30,7 +30,7 @@ _REQUIRED_FIELDS = [
     "customer_id",
     "conversion_action_id",
     "adjustment_date_time",
-    "restatement_value"
+    "adjusted_value"
 ]
 
 _OTHER_FIELDS = [
@@ -168,6 +168,7 @@ class Destination:
       order_id = adjustment.get("order_id", "")
       gclid = adjustment.get("gclid", "")
       conversion_date_time = adjustment.get("conversion_date_time", "")
+      adjustment_date_time = adjustment.get("adjustment_date_time", "")
       
       # Make sure that "falsy" values still default to _DEFAULT_CURRENCY_CODE
       restatement_value = self._client.get_type("RestatementValue")
@@ -192,6 +193,7 @@ class Destination:
       restatement_value.currency_code = currency_code
 
       conversion_adjustment.restatement_value = restatement_value
+      conversion_adjustment.adjustment_date_time = adjustment_date_time
 
 
       valid_adjustments[customer_id].append((i, conversion_adjustment))
