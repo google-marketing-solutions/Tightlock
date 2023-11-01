@@ -15,11 +15,10 @@ limitations under the License."""
 
 """Google Ads Customer Match destination implementation."""
 
-import errors
-import logging
 
-from utils import GoogleAdsUtils,ProtocolSchema, RunResult, ValidationResult
-
+from pydantic import Field
+from typing import Any, Dict, List, Mapping, Optional, Sequence
+from utils import GoogleAdsUtils, ProtocolSchema, RunResult, ValidationResult
 
 # Default batch size of 1000 user identifiers
 _BATCH_SIZE = 1000
@@ -33,41 +32,52 @@ _USER_IDENTIFIER_FIELDS = [
   "postal_code"
 ]
 
+
+def _construct_error_message(api_error: Any) -> str:
+  """Construct an error message from an API error object."""
+  return (
+    "A partial failure at index "
+    f"{api_error.location.field_path_elements[0].index} occurred.\n"
+    f"Error message: {api_error.message}\n"
+    f"Error code: {api_error.error_code}"
+  )
+
+
 class _UserDataScrubber:
   """Util class for scrubbing user identifier data."""
 
   def __init__(self):
     self._user_data = {}
-    self._utils = GoogleAdsUtils
+    self._utils = GoogleAdsUtils()
 
-  def scrub_user_data(user_data: Map[str, Any]]) -> None:
+  def scrub_user_data(self, user_data: Mapping[str, Any]):
     self._user_data = user_data
 
     self._scrub_email()
     self._scrub_phone_number()
     self._scrub_mailing_name_fields()
 
-  def _scrub_email() -> None:
+  def _scrub_email(self) -> None:
     if "email" in self._user_data:
       self._user_data["email"] = self._utils.normalize_and_hash_email_address(
-        user_data["email"]
+        email_address=self._user_data["email"]
       )
 
-  def _scrub_phone_number() -> None:
+  def _scrub_phone_number(self) -> None:
     if "phone" in self._user_data:
-      self._user_data[""] = self._utils.normalize_and_hash(
-        user_data["phone"]
+      self._user_data["phone"] = self._utils.normalize_and_hash(
+        self._user_data["phone"]
       )
 
-  def _scrub_mailing_name_fields() -> None:
+  def _scrub_mailing_name_fields(self) -> None:
     if "first_name" in self._user_data:
-      self._user_data[""] = self._utils.normalize_and_hash(
-        record["first_name"]
+      self._user_data["first_name"] = self._utils.normalize_and_hash(
+        self._user_data["first_name"]
       )
 
     if "last_name" in self._user_data:
-      self._user_data[""] = self._utils.normalize_and_hash(
-        record["last_name"]
+      self._user_data["first_name"] = self._utils.normalize_and_hash(
+        self._user_data["last_name"]
       )
 
 
@@ -79,7 +89,7 @@ class Destination:
   phone number).  This destination will then generate 1-or-more user 
   identifiers to add to the user data upload job.
 
-  Hence, not all of the fields specified by this destination are requred,
+  Hence, not all fields specified by this destination are required,
   but at least one of them must be supplied.
   """
 
@@ -91,9 +101,14 @@ class Destination:
     """
     self._config = config
     self._debug = config.get("debug", False)
+    self._customer_id = config.get("login_customer_id")
+
     self._client = GoogleAdsUtils().build_google_ads_client(self._config)
     self._offline_user_data_job_service = self._client.get_service(
-        "OfflineUserDataJobService"
+      "OfflineUserDataJobService"
+    )
+    self._ads_service = self._client.get_service(
+      "GoogleAdsService"
     )
 
   def send_data(
@@ -113,20 +128,21 @@ class Destination:
 
     user_data_operations = []
     failures = []
-    
+
     print(f"Processing {len(input_data)} user records")
     for user_data in input_data:
       try:
         user_operation = self._build_user_data_operation_from_row(user_data)
         user_data_operations.append(user_operation)
       except ValueError as ve:
-        failures.append(ve)
-    print(f"There were '{len(failures)}' user rows that couldn't be processed.")
-  
+        failures.append(str(ve))
+    print(
+      f"There were '{len(failures)}' user rows that couldn't be processed.")
+
     # No point in continuing if doing a dry run, since the above steps
     #   detail how many rows were processed, and how many operations
     #   were created
-    if (dry_run):
+    if dry_run:
       print("Running as a dry run, so skipping upload steps.")
       return RunResult(dry_run=dry_run, successful_hits=0, failed_hits=0)
 
@@ -135,8 +151,8 @@ class Destination:
       upload_job_id, user_data_operations
     )
 
-    response = offline_user_data_job_service_client.add_offline_user_data_job_operations(
-        request=add_user_data_request
+    response = self._offline_user_data_job_service.add_offline_user_data_job_operations(
+      request=add_user_data_request
     )
     response_failures = self._process_response_for_failures(response)
     failures.append(response_failures)
@@ -151,34 +167,45 @@ class Destination:
       error_messages=failures
     )
 
-  def _build_user_data_operation_from_row(user_data: Mapping[str, Any]) -> Any:
-    """Builds a Google Ads OfflineUserDataJobOperation object from the provided user data.
+  def _build_user_data_operation_from_row(
+      self, user_data: Mapping[str, Any]
+  ) -> Any:
+    """Builds a Google Ads OfflineUserDataJobOperation object from user data.
     
     Args:
       user_data:  A row of user data from the Source.
     
     Returns:
-      A Google Ads OfflineUserDataJobOperation object populated with 1-or-more identifiers.
+      A Google Ads OfflineUserDataJobOperation object populated with 1-or-more
+      identifiers.
 
     Raises:
-      ValueError:  Raised if not all of the mailing address fields are present.
+      ValueError:  Raised if any of the required mailing address fields are
+        missing.
     """
     scrubber = _UserDataScrubber()
     scrubber.scrub_user_data(user_data)
-    
+
     user_data_payload = self._create_user_data_payload(user_data)
 
-    operation = client.get_type("OfflineUserDataJobOperation")
+    operation = self._client.get_type("OfflineUserDataJobOperation")
     operation.create = user_data_payload
     return operation
 
-  def _populate_payload_with_identifiers(user_data: Mapping[str, Any]) -> None:
-    """Populates the provided Google Ads UserData payload object with source data.
-    
+  def _create_user_data_payload(self, user_data: Mapping[str, Any]) -> Any:
+    """Populates the provided Google Ads UserData payload object.
+
+    Args:
+      user_data:  Row of user data with various identifiers.
+
+    Returns:
+      UserData Google Ads API payload object.
+
     Raises:
-      ValueError:  Raised if not all of the mailing address fields are present.
+      ValueError:  Raised if any of the required mailing address fields are
+        not present.
     """
-    payload = client.get_type("UserData")
+    payload = self._client.get_type("UserData")
 
     if "email" in user_data:
       user_identifier = self._client.get_type("UserIdentifier")
@@ -186,23 +213,23 @@ class Destination:
       payload.user_identifiers.append(user_identifier)
 
     if "phone" in user_data:
-      user_identifier = client.get_type("UserIdentifier")
+      user_identifier = self._client.get_type("UserIdentifier")
       user_identifier.hashed_phone_number = user_data["phone"]
       payload.user_identifiers.append(user_identifier)
-  
+
     if "first_name" in user_data:
       required_keys = ("last_name", "country_code", "postal_code")
-      if not all(key in record for key in required_keys):
-        missing_keys = record.keys() - required_keys
+      if not all(key in user_data for key in required_keys):
+        missing_keys = user_data.keys() - required_keys
         print(
-            "Raising exception because the following required mailing "
-            f"address keys are missing: {missing_keys}"
+          "Raising exception because the following required mailing "
+          f"address keys are missing: {missing_keys}"
         )
         raise ValueError(f"Missing mailing address fields:  {missing_keys}")
 
-      user_identifier = client.get_type("UserIdentifier")
+      user_identifier = self._client.get_type("UserIdentifier")
       address_info = user_identifier.address_info
-      
+
       address_info.hashed_first_name = user_data["first_name"]
       address_info.hashed_last_name = user_data["last_name"]
       address_info.country_code = user_data["country_code"]
@@ -212,34 +239,75 @@ class Destination:
 
     return payload
 
-  def _create_user_upload_job() -> str:
+  def _create_user_upload_job(self) -> str:
     """Sends a request to create a user data upload job.
 
     Returns:
       The resource name ID (ie, 'jobs/some_id') of the created job
     """
-    return ""
+    user_list_resource_name = self._ads_service.user_list_path(
+      self._config["login_customer_id"],
+      self._config["user_list_id"]
+    )
+    offline_user_data_job = self._client.get_type("OfflineUserDataJob")
+    offline_user_data_job.type_ = (
+      self._client.enums.OfflineUserDataJobTypeEnum.CUSTOMER_MATCH_USER_LIST)
+    offline_user_data_job.customer_match_user_list_metadata.user_list = (
+      user_list_resource_name
+    )
 
-  def _create_add_user_data_request(upload_job_id: str, user_operations: List[Any]) -> Any:
+    create_offline_user_data_job_response = (
+      self._offline_user_data_job_service.create_offline_user_data_job(
+        customer_id=self._customer_id, job=offline_user_data_job)
+    )
+
+    offline_user_data_job_resource_name = (
+      create_offline_user_data_job_response.resource_name
+    )
+    print(
+      "Created an offline user data job with resource name: "
+      f"'{offline_user_data_job_resource_name}'."
+    )
+
+    return offline_user_data_job_resource_name
+
+  def _create_add_user_data_request(
+      self, upload_job_id: str, user_operations: List[Any]) -> Any:
     # Create and send a request to add the operations to the job
-    request = client.get_type("AddOfflineUserDataJobOperationsRequest")
+    request = self._client.get_type("AddOfflineUserDataJobOperationsRequest")
     request.resource_name = upload_job_id
-    request.operations = user_data_operations
+    request.operations = user_operations
     request.enable_partial_failure = True
 
     return request
 
-  def _process_response_for_failures(response: Any) -> List[str]:
-    """Processes the response:  prints partial error details, and returns error details.
+  def _process_response_for_failures(self, response: Any) -> Sequence[str]:
+    """Prints and returns partial error details.
     
     Args:
-      response:  The Google Ads AddOfflineUserDataJobOperationsResponse returned by
-        the API call to add user operations to the job.
+      response:  The Google Ads AddOfflineUserDataJobOperationsResponse
+        returned by the API call to add user operations to the job.
 
     Returns:
-      List of error details, one message per failed user data operation.
+      Sequence of error details, one message per failed user data operation.
     """
-    return []
+    failures = []
+    partial_failure_payload = getattr(response, "partial_failure_error", None)
+
+    if getattr(partial_failure_payload, "code", None) != 0:
+      error_details_payload = getattr(partial_failure_payload, "details", [])
+      for error_detail in error_details_payload:
+        failure_message_type = self._client.get_type("GoogleAdsFailure")
+        failure_payload = type(failure_message_type).deserialize(
+          error_detail.value
+        )
+
+        for error in failure_payload.errors:
+          error_message = _construct_error_message(error)
+          print(error_message)
+          failures.append(error_message)
+
+    return failures
 
   @staticmethod
   def schema() -> Optional[ProtocolSchema]:
@@ -254,20 +322,29 @@ class Destination:
       "GADS_CUSTOMERMATCH",
       [
         # API config variables
-        ("client_id", str, Field(description="An OAuth2.0 Web Client ID.")),
-        ("client_secret", str, Field(description="An OAuth2.0 Web Client Secret.")),
-        ("developer_token", str, Field(description="A Google Ads Developer Token.")),
-        ("login_customer_id", str, Field(description="A Google Ads Login Customer ID (without hyphens).")),
-        ("refresh_token", str, Field(description="A Google Ads API refresh token.")),
+        ("client_id",
+         str,
+         Field(description="An OAuth2.0 Web Client ID.")),
+        ("client_secret",
+         str,
+         Field(description="An OAuth2.0 Web Client Secret.")),
+        ("developer_token",
+         str,
+         Field(description="A Google Ads Developer Token.")),
+        ("login_customer_id",
+         str,
+         Field(
+           description="A Google Ads Login Customer ID (without hyphens).")),
+        ("refresh_token",
+         str,
+         Field(description="A Google Ads API refresh token.")),
 
         # User Data List variables
-        ("user_list_id", str, Field(description="ID of the user list this destination will add users to.")),
-        ("user_data_consent_status", 
-         str, 
-         Field(description="Data consent status for ad user data for all members in in this list")),
-        ("user_personalization_consent_status", 
-         str, 
-         Field(description="Personalization consent status for ad user data for all members in in this list")),
+        ("user_list_id",
+         str,
+         Field(
+           description="ID of the user list this destination will add users "
+                       "to.")),
       ]
     )
 
@@ -277,6 +354,7 @@ class Destination:
     Returns:
       A sequence of fields.
     """
+    return _USER_IDENTIFIER_FIELDS
 
   def batch_size(self) -> int:
     """Returns the required batch_size for the underlying destination API.
@@ -292,4 +370,4 @@ class Destination:
     Returns:
       A ValidationResult for the provided config.
     """
-    return GoogleAdsUtils().validate_google_ads_config(self._config)    
+    return GoogleAdsUtils().validate_google_ads_config(self._config)
