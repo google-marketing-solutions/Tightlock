@@ -18,16 +18,18 @@ limitations under the License."""
 # pylint: disable=raise-missing-from
 
 import enum
+from re import A
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from googleapiclient import discovery
 import google_auth_httplib2
 import google.oauth2.credentials
+import google.auth.transport.requests
 
 import errors
 import requests
 from pydantic import Field
-from utils import ProtocolSchema, RunResult, ValidationResult
+from utils import GoogleAdsUtils, ProtocolSchema, RunResult, ValidationResult
 
 DV_CONTACT_INFO_FIELDS = [
   "email",
@@ -46,31 +48,16 @@ DV_DEVICE_ID_FIELDS = [
   "mobile_device_id",
 ]
 
-CM_REQUIRED_CONVERSIONS_FIELDS = [
-  "floodlightConfigurationId",
-  "floodlightActivityId",
-  "timestamp_micros",
-  "value",
-  "quantity",
-  "ordinal",
-]
-
-CM_MUTUALLY_EXCLUSIVE_CONVERSIONS_FIELDS = [
-  "encryptedUserId",
-  "mobileDeviceId",
-  "gclid",
-  "matchId",
-  "dclid",
-  "impressionId",
-]
-
 DV_CREDENTIALS = [
-  "access_token",
-  "refresh_token",
-  "token_uri",
-  "client_id",
-  "client_secret",
+    "access_token",
+    "refresh_token",
+    "token_uri",
+    "client_id",
+    "client_secret",
 ]
+
+API_VERSION = "v3"
+SERVICE_URL = f"https://displayvideo.googleapis.com/$discovery/rest?version={API_VERSION}"
 
 class PayloadTypes(str, enum.Enum):
   """DV360 supported payload types."""
@@ -89,35 +76,41 @@ class Destination:
     self.credentials = {}
 
     for credential in DV_CREDENTIALS:
-      self.credentials[credential] = config.get(credential,"")
-    
-    # self.encryption_info = {}
-    # self.encryption_info["encryptionEntityType"] = config.get("encryptionEntityType","")
-    # self.encryption_info["encryptionEntityId"] = config.get("encryptionEntityId","")
-    # self.encryption_info["encryptionEntitySource"] = config.get("encryptionEntitySource","")
-    # self.encryption_info["kind"] = config.get("kind","")
+      self.credentials[credential] = config.get(credential, "")
+
     # self.validate()
     self._validate_credentials()
-    
+
     # Authenticate using the supplied user account credentials
     self.http = self.authenticate_using_user_account()
-    self.client = discovery.build('displayvideo', 'v3', discoveryServiceUrl="https://displayvideo.googleapis.com/$discovery/rest?version=v3", http=self.http).firstAndThirdPartyAudiences()
+    self.client = discovery.build(
+        "displayvideo",
+        API_VERSION,
+        discoveryServiceUrl=SERVICE_URL,
+        http=self.http
+    ).firstAndThirdPartyAudiences()
 
   def authenticate_using_user_account(self):
     """Authorizes an httplib2.Http instance using user account credentials."""
-    
-    credentials = google.oauth2.credentials.Credentials(
-    self.credentials['access_token'],
-    refresh_token = self.credentials['refresh_token'],
-    token_uri = self.credentials['token_uri'],
-    client_id = self.credentials['client_id'],
-    client_secret = self.credentials['client_secret'])
 
+    # fix refresh token not working
+    credentials = google.oauth2.credentials.Credentials(
+        self.credentials["access_token"],
+        refresh_token=self.credentials["refresh_token"],
+        token_uri=self.credentials["token_uri"],
+        client_id=self.credentials["client_id"],
+        client_secret=self.credentials["client_secret"]
+    )
+
+    # TODO(caiotomazelli): Fix credentials refreshing
+    # Refresh credentials using the refresh_token
+    # request = google.auth.transport.requests.Request()
+    # credentials.refresh(request)
+    
     # Use the credentials to authorize an httplib2.Http instance.
     http = google_auth_httplib2.AuthorizedHttp(credentials)
 
     return http
-
 
   def _validate_entry(self, entry: Mapping[str, Any]) -> bool:
     """Validates an audience entry.
@@ -130,21 +123,98 @@ class Destination:
 
     """
     if self.payload_type == PayloadTypes.CONTACT_INFO:
-      has_email = any(field in entry for field in ["email", "hashed_email"])
-      has_phone = any(field in entry for field in ["phone_number", "hashed_phone_number"])
-      has_first_name = any(field in entry for field in ["first_name", "hashed_first_name"])
-      has_last_name = any(field in entry for field in ["last_name", "hashed_last_name"])
-      has_required_address_fields = all(field in entry for field in ["zip_code", "country_code"])
+      non_empty_field = lambda field: field in entry and entry.get(field)
+      has_email = any(non_empty_field(field) for field in ["email", "hashed_email"])
+      has_phone = any(non_empty_field(field) for field in ["phone_number", "hashed_phone_number"])
+      has_first_name = any(non_empty_field(field) for field in ["first_name", "hashed_first_name"])
+      has_last_name = any(non_empty_field(field) for field in ["last_name", "hashed_last_name"])
+      has_required_address_fields = all(non_empty_field(field) for field in ["zip_code", "country_code"])
       has_complete_address = all([has_first_name, has_last_name, has_required_address_fields])
       return any([has_email, has_phone, has_complete_address])
     else:
       return all(field in entry for field in DV_DEVICE_ID_FIELDS)
 
-  def _is_new_list(self) -> bool:
-    audiences = self.client.list(advertiserId=self.advertiser_id, filter=f"displayName:{self.audience_name}").execute()
-    print(f"Audiences: {audiences}")
-    
+  def _get_audience_id(self) -> Optional[str]:
+    audiences = self.client.list(advertiserId=self.advertiser_id, filter=f"displayName:\"{self.audience_name}\"").execute()
+    for audience in audiences['firstAndThirdPartyAudiences']:
+      if audience["displayName"] == self.audience_name:
+        # if the audience already exists, return the audience id
+        audience_id = audience["name"].split("/")[1]
+        return audience_id
+   # if the audience is not found, return None and a new audience with this display name will be created downstream. 
+    return None
 
+      
+  def _build_request_body(self, entries: List[Dict[str, Any]], is_create: bool) -> Dict[str, Any]:
+    """Creates DV360 API request body."""
+    body = {}
+    inner_field = "contactInfos" if self.payload_type == PayloadTypes.CONTACT_INFO else "mobileDeviceIds"
+    ids = {inner_field: [self._build_ids_object(entry) for entry in entries]}
+    if is_create:
+      outer_field = "contactInfoList" if self.payload_type == PayloadTypes.CONTACT_INFO else "mobileDeviceIdList"
+      body[outer_field] = ids
+      # TODO(caiotomazelli): Expose membership duration field
+      body["membershipDurationDays"] = 540
+    else:
+      outer_field = "addedContactInfoList" if self.payload_type == PayloadTypes.CONTACT_INFO else "addedMobileDeviceIdList"
+      body["advertiserId"] = self.advertiser_id
+      body[outer_field] = ids
+
+    # TODO(caiotomazelli): Review description
+    body["description"] = "Audience uploaded by Tightlock."
+    return body
+    
+  def _build_ids_object(self, entry: Dict[str, Any]) -> Dict[str, Any] | str | None:
+    """Build """
+    ids = None
+    if self.payload_type == PayloadTypes.CONTACT_INFO:
+      ids = {}
+      email = entry.get("email")
+      phone_number = entry.get("phone_number")
+      hashed_email = entry.get("hashed_email")
+      hashed_phone_number = entry.get("hashed_phone_number")
+      first_name = entry.get("first_name")
+      last_name = entry.get("last_name")
+      hashed_first_name = entry.get("hashed_first_name")
+      hashed_last_name = entry.get("hashed_last_name")
+      country_code = entry.get("country_code")
+      zip_code = entry.get("zip_code")
+
+      # Email
+      if email:
+        ids["hashedEmails"] = []
+        ids["hashedEmails"].append(GoogleAdsUtils().normalize_and_hash_email_address(email))
+      elif hashed_email:
+        ids["hashedEmails"] = []
+        ids["hashedEmails"].append(hashed_email)
+      # Phone Number
+      if phone_number:
+        ids["hashedPhoneNumbers"] = []
+        ids["hashedPhoneNumbers"].append(GoogleAdsUtils().normalize_and_hash(phone_number))
+      elif hashed_phone_number:
+        ids["hashedPhoneNumbers"] = []
+        ids["hashedPhoneNumbers"].append(hashed_phone_number)
+      # First Name
+      if first_name:
+        ids["hashedFirstName"] = GoogleAdsUtils().normalize_and_hash(first_name)
+      elif hashed_first_name:
+        ids["hashedFirstName"] = hashed_first_name
+      # Last Name
+      if last_name:
+        ids["hashedLastName"] = GoogleAdsUtils().normalize_and_hash(last_name)
+      elif hashed_last_name:
+        ids["hashedLastName"] = hashed_last_name
+      # Other Address fields
+      if country_code:
+        ids["countryCode"] = country_code
+      if zip_code:
+        ids["zipCodes"] = []
+        ids["zipCodes"].append(zip_code)
+    else:
+      # Mobile Device Id
+      ids = entry.get("mobile_device_id")
+
+    return ids
 
   def _validate_credentials(self) -> None:
     """Validate credentials.
@@ -165,32 +235,46 @@ class Destination:
       return timestamp_micros
     return None
 
-  def _send_payload(self, payload: Dict[str, Any]) -> None:
+  def _send_payload(self, valid_entries: List[Dict[str, Any]], audience_id: Optional[str]) -> None:
     """Sends Customer Match payload to DV360 API.
 
     Args:
-      payload: Parameters containing required data for conversion tracking.
+      valid_entries: Validated customer match list entries.
 
     Returns:
       results: Includes request body, status_code, error_msg, response body and
       debug flag.
     """
 
-    # Construct a service object via the discovery service.
-    service = discovery.build('displayvideo', 'v3', http=self.http)
-
+    body = self._build_request_body(
+        entries=valid_entries,
+        is_create=(audience_id is None)
+    )
+    print(f"Body: {body}")
     try:
-      request = service.firstAndThirdPartyAudiences().create(advertiserId=self.advertiser_id,
-                                                             body=payload)
-
-      response = request.execute()
-      # Success is to be considered between 200 and 299:
-      # https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
-      if response.status_code < 200 or response.status_code >= 300:
-        raise errors.DataOutConnectorSendUnsuccessfulError(
-            msg="Sending payload to DV360 did not complete successfully.",
-            error_num=errors.ErrorNameIDMap.RETRIABLE_DV360_HOOK_ERROR_HTTP_ERROR,
+      if audience_id:
+        # adds to existent audience
+        request = self.client.editCustomerMatchMembers(
+            firstAndThirdPartyAudienceId=audience_id,
+            body=body
         )
+      else:
+        # creates new audience
+        request = self.client.create(
+            advertiserId=self.advertiser_id,
+            body=body
+        )
+
+        response = request.execute()
+        # TODO(caiotomazelli): improve logging
+
+        # Success is to be considered between 200 and 299:
+        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+        if response.status_code < 200 or response.status_code >= 300:
+          raise errors.DataOutConnectorSendUnsuccessfulError(
+              msg="Sending payload to DV360 did not complete successfully.",
+              error_num=errors.ErrorNameIDMap.RETRIABLE_DV360_HOOK_ERROR_HTTP_ERROR,
+          )
     except requests.ConnectionError:
       raise errors.DataOutConnectorSendUnsuccessfulError(
           msg="Sending payload to DV360 did not complete successfully.",
@@ -218,7 +302,7 @@ class Destination:
 
       if not dry_run:
         try:
-          self._send_payload(valid_entries, self._is_new_list())
+          self._send_payload(valid_entries, self._get_audience_id())
         except (
               errors.DataOutConnectorSendUnsuccessfulError,
           ) as error:
@@ -229,9 +313,9 @@ class Destination:
         )
 
     run_result = RunResult(
-      successful_hits=len(valid_conversions),
-      failed_hits=len(invalid_conversions),
-      error_messages=[str(error[1]) for error in invalid_conversions],
+      successful_hits=len(valid_entries),
+      failed_hits=len(invalid_entries),
+      error_messages=[str(error[1]) for error in invalid_entries],
       dry_run=dry_run,
     )
 
@@ -246,10 +330,6 @@ class Destination:
         ("audience_name", str, Field(description="The display name of the audience list.")),
         # ("description", str, Field(description="The description of the audience list.")),
         ("payload_type", PayloadTypes, Field(description="DV360 Customer Match Payload Type")),
-        # ("encryptionEntityType", str, Field(description="The encryption entity type.")),
-        # ("encryptionEntityId", str, Field(description="The encryption entity ID.")),
-        # ("encryptionSource", str, Field(description="Describes whether the encrypted cookie was received from ad serving or from Data Transfer.")),
-        # ("kind", str, Field(description="Identifies what kind of resource this is.")),
         ("access_token", str, Field(description="A Campaign Manager 360 access token.")),
         ("refresh_token", str, Field(description="A Campaign Manager 360 API refresh token.")),
         ("token_uri", str, Field(description="A Campaign Manager 360 API token uri.")),
@@ -298,18 +378,5 @@ class Destination:
     Returns:
       True if the conversion is valid, False if it isn't.
     """
-    
-    for required_field in CM_REQUIRED_CONVERSIONS_FIELDS:
-      if not conversion[required_field]:
-        return False
-
-    invalid = True
-    for id_field in CM_MUTUALLY_EXCLUSIVE_CONVERSIONS_FIELDS:
-      if conversion[id_field]:
-        invalid = False
-        break
-
-    if invalid:
-      return False
-
+    # TODO(caiotomazelli): Check if this is needed and implement or delete
     return True
