@@ -156,7 +156,7 @@ class Destination:
         return (False, f"MobileDeviceId payloads require {','.join(DV_DEVICE_ID_FIELDS)} fields.")
 
   def _get_audience_id(self) -> Optional[str]:
-    """Get audience_id of an audience wit the same name as provided, if it exists.
+    """Get audience_id of an audience with the same name as provided, if it exists.
     
     Returns:
       The audience_id str, if the audience can be found.
