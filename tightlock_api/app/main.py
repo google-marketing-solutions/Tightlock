@@ -225,7 +225,7 @@ async def get_schemas(airflow_client=Depends(AirflowClient)):
   """
   response = await airflow_client.get_schemas()
   if not response:
-    return JSONResponse(status_code=404)
+    return Response(status_code=404)
   return JSONResponse(content=response)
 
 
