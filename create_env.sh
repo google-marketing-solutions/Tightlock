@@ -13,6 +13,7 @@
 # limitations under the License.
 
 ENV=".env"
+LATEST_TAG=$(git describe --tags --abbrev=0)
 if ! [ -f $ENV ]; then
   # create env file and write Airflow UID ang GID to it
   echo -e "AIRFLOW_UID=$(id -u)\nAIRFLOW_GID=0" > $ENV
@@ -30,7 +31,7 @@ if ! [ -f $ENV ]; then
   echo -e "API_PORT=$API_PORT" >> $ENV
 
   # get latest git tag and save it to a variable
-  echo -e "LATEST_TAG=$(git describe --tags --abbrev=0)" >> $ENV
+  echo -e "LATEST_TAG=$LATEST_TAG" >> $ENV
 
   # generate or read API key
   PSEUDORANDOM_API_KEY=$( dd bs=512 if=/dev/urandom count=1 2>/dev/null | tr -dc '[:alpha:]' | fold -w20 | head -n 1 )
@@ -51,4 +52,8 @@ if ! [ -f $ENV ]; then
   fi
   # append API key to env file
   echo -e "TIGHTLOCK_API_KEY=$API_KEY" >> $ENV
+else
+  # overwrite variables that may change with every run
+  sed -i~ "/^LATEST_TAG=/s/=.*/=$LATEST_TAG/" .env
+
 fi

@@ -200,7 +200,7 @@ async def create_config(config: Config,
 # TODO(b/290388517): Remove mentions to activation once UI is ready
 @v1.get("/connections", response_model=list[Connection])
 @v1.get("/activations", response_model=list[Connection])
-async def get_connections(session: AsyncSession = Depends(get_session)):
+async def get_connections(session: AsyncSession = Depends(get_session), airflow_client=Depends(AirflowClient)):
   """Queries latest config and query connections field from config json.
   
   Args:
@@ -208,7 +208,7 @@ async def get_connections(session: AsyncSession = Depends(get_session)):
   Returns:
     The connections registered in the latests config wrapped in an HTTP JSONResponse.
   """
-  latest_config = await get_latest_config(session=session)
+  latest_config = await get_latest_config(session=session, airflow_client=airflow_client)
   connections = [Connection(**a) for a in latest_config.value["activations"]]
   return connections
 
@@ -225,7 +225,7 @@ async def get_schemas(airflow_client=Depends(AirflowClient)):
   """
   response = await airflow_client.get_schemas()
   if not response:
-    return JSONResponse(status_code=404)
+    return Response(status_code=404)
   return JSONResponse(content=response)
 
 
@@ -299,7 +299,7 @@ async def batch_get_connections_runs(
     The RunLogsResponse object wrapped in an HTTP JSONResponse.
   """
   # define target connections
-  connections = await get_connections(session)
+  connections = await get_connections(session=session, airflow_client=airflow_client)
   final_connection_names = final_connection_names or connection_names
   if not final_connection_names:  # if none passed, gets logs from all connections
     final_connection_names = [connection.name for connection in connections]

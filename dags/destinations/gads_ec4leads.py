@@ -22,7 +22,7 @@ from pydantic import Field
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 from utils import GoogleAdsUtils, ProtocolSchema, RunResult, ValidationResult
 
-_BATCH_SIZE = 10000
+_BATCH_SIZE = 2000
 
 _DEFAULT_CURRENCY_CODE = "USD"
 
@@ -53,10 +53,10 @@ InvalidConversionIndices = List[Tuple[int, errors.ErrorNameIDMap]]
 
 
 class Destination:
-  """Implements DestinationProto protocol for Google Ads OCI."""
+  """Implements DestinationProto protocol for Google Ads EC for Leads."""
 
   def __init__(self, config: Dict[str, Any]):
-    """ Initializes Google Ads OCI Destination Class.
+    """ Initializes Google Ads EC for Leads Destination Class.
 
     Args:
       config: Configuration object to hold environment variables
@@ -186,12 +186,12 @@ class Destination:
       if hashed_email:
         user_identifier.hashed_email = hashed_email
       elif email:
-        user_identifier.hashed_email = GoogleAdsUtils.normalize_and_hash_email_address(email)
+        user_identifier.hashed_email = GoogleAdsUtils().normalize_and_hash_email_address(email)
       
       if hashed_phone_number:
         user_identifier.hashed_phone_number = hashed_phone_number
       elif phone_number:
-        user_identifier.hashed_phone_number = GoogleAdsUtils.normalize_and_hash(phone_number)
+        user_identifier.hashed_phone_number = GoogleAdsUtils().normalize_and_hash(phone_number)
 
       # Specifies the user identifier source.
       user_identifier.user_identifier_source = (

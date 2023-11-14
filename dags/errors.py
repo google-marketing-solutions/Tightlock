@@ -42,6 +42,8 @@ _ERROR_ID_DESCRIPTION_MAP = immutabledict.immutabledict({
     20: 'Error in sending event to Google Analytics. Http error.',
     21: 'Error in loading events from Google Cloud Storage. Http error.',
     22: 'Error in sending event to Google Analytics 4. Http error.',
+    23: 'Error in sending conversion to Campaign Manager 360. Http error.',
+    24: 'Error in sending audience lists to DV360. Http error.',
     50: 'Event not sent. Event will not be retried.',
     51: 'Error in sending event to Ads Customer Match. Hashed values in the payload do not match SHA256 format.',
     52: 'Error in sending event to Ads Customer Match. HashedEmail field does not meet SHA256 format.',
@@ -117,6 +119,8 @@ class ErrorNameIDMap(enum.Enum):
   RETRIABLE_GA_HOOK_ERROR_HTTP_ERROR = 20
   RETRIABLE_GCS_HOOK_ERROR_HTTP_ERROR = 21
   RETRIABLE_GA4_HOOK_ERROR_HTTP_ERROR = 22
+  RETRIABLE_CM360_HOOK_ERROR_HTTP_ERROR = 23
+  RETRIABLE_DV360_HOOK_ERROR_HTTP_ERROR = 24
 
   # Non retriable error numbers start from 50
   NON_RETRIABLE_ERROR_EVENT_NOT_SENT = 50
