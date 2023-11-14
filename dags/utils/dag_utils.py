@@ -79,7 +79,7 @@ class DagUtils:
                            reusable_credentials=reusable_credentials)
         data = get_data(offset=offset)
 
-        run_result = RunResult(0, 0, [], dry_run)
+        run_result = RunResult(0, 0, [], [], dry_run)
         while data:
           run_result += target_destination.send_data(data, dry_run)
           offset += batch_size
@@ -94,13 +94,14 @@ class DagUtils:
         print(f'=====================DAG "{connection_id}", uuid={source_uuid}')
 
         if run_result.retriable_events:
-          cls.schedule_retry(parent_conn_id=connection_id,
-                             source_uuid=source_uuid,
-                             run_result=run_result,
-                             target_source=target_source,
-                             dest_type=dest_type,
-                             dest_folder=dest_folder,
-                             dest_config=dest_config)
+          cls.schedule_retries(parent_conn_id=connection_id,
+                               source_uuid=source_uuid,
+                               run_result=run_result,
+                               target_source=target_source,
+                               dest_type=dest_type,
+                               dest_folder=dest_folder,
+                               dest_config=dest_config,
+                               retry_batch_size=target_destination.batch_size())
 
         task_instance.xcom_push("run_result", asdict(run_result))
 
@@ -116,7 +117,7 @@ class DagUtils:
     return dynamic_generated_dag
 
   @classmethod
-  def schedule_retry(
+  def schedule_retries(
       cls,
       parent_conn_id: str,
       source_uuid: str,
@@ -125,6 +126,7 @@ class DagUtils:
       dest_type: str,
       dest_folder: str,
       dest_config: str,
+      retry_batch_size: int,
   ):
     """Schedules a retry for the retriable events.
 
@@ -132,12 +134,13 @@ class DagUtils:
 
     Args:
       parent_conn_id (str): The connection id of the parent.
-      uuid (str): UUid, if Retry, else `''`.
+      uuid (str): UUID, if Retry, else `''`.
       run_result (RunResult): The run result.
       target_source (SourceProto): The target source.
       dest_type (str): The target destination type.
       dest_folder (str): The target destination folder.
       dest_config (str): The target destination type config.
+      retry_batch_size (int): The number of retriable events per retry row.
     """
     if (not run_result.successful_hits):
       retry_num = getattr(target_source, 'retry_num', 0) + 1
@@ -145,6 +148,7 @@ class DagUtils:
             f'{len(run_result.retriable_events)} retriable failures.'
             f' Incrementing retry count to {retry_num}.')
     else:
+
       print(f'DAG "{parent_conn_id}" had some successes and '
             f' {len(run_result.retriable_events)} retriable failures.'
             f' Resetting retry count to 0.')
@@ -152,14 +156,18 @@ class DagUtils:
 
     if retry_num < MAX_TRIES:
       print(f'Retrying DAG "{parent_conn_id}" ({retry_num+1} of {MAX_TRIES}))')
-      cls._add_retry_row(new_connection_id=parent_conn_id.strip(source_uuid),
-                         new_uuid=str(uuid.uuid4()),
-                         dest_type=dest_type,
-                         dest_folder=dest_folder,
-                         dest_config=dest_config,
-                         retry_num=retry_num,
-                         retriable_events=json.dumps(
-                             run_result.retriable_events))
+
+      for r in range(0, run_result, len(run_result.retriable_events),
+                     retry_batch_size):
+        cls._add_retry_row(new_connection_id=parent_conn_id.strip(source_uuid),
+                           new_uuid=str(uuid.uuid4()),
+                           dest_type=dest_type,
+                           dest_folder=dest_folder,
+                           dest_config=dest_config,
+                           retry_num=retry_num,
+                           retriable_events=json.dumps(
+                               run_result.retriable_events[r:r +
+                                                           retry_batch_size]))
     else:
       print(f'DAG run "{parent_conn_id}" had {run_result.failed_hits} failures.'
             f'Not rescheduling due to max tries ({MAX_TRIES}).')

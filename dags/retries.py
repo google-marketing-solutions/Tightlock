@@ -22,8 +22,6 @@ import json
 import traceback
 from typing import Any
 
-# from airflow.api.common.experimental.delete_dag import delete_dag
-from airflow.api.common.delete_dag import delete_dag
 from airflow.exceptions import DagNotFound
 from airflow.decorators import dag
 from airflow.hooks.postgres_hook import PostgresHook
@@ -110,25 +108,12 @@ class RetryDAGBuilder:
                              log_msg=f'{connection_id} registration error',
                              error_traceback=traceback.format_exc())
 
-  # def delete_dag_marked_for_deletion(self, connection_id):
-  #   try:
-  #     delete_dag(connection_id)
-  #   except DagNotFound as e:
-  #     print(f'{e}. Will remove from Retries table shortly.')
-  #   except Exception as e:
-  #     DagUtils.handle_errors(error_var=self.register_errors_var,
-  #                            connection_id=connection_id,
-  #                            log_msg=f'{connection_id} deletion error',
-  #                            error_traceback=traceback.format_exc())
-
   def check_for_retries(self):
     """Creates DAGs for retries."""
     remove_dags = []
 
     for retry in self.retries:
       if retry[RetryColumnIndices.DELETE.value]:
-        # self.delete_dag_marked_for_deletion(
-        #     retry[RetryColumnIndices.CONNECTION_ID.value])
         remove_dags.append(retry[RetryColumnIndices.UUID.value])
       else:
         self.create_retry_dag(retry)

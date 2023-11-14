@@ -36,4 +36,5 @@ class RunResult:
     fh = self.failed_hits + other.failed_hits
     em = self.error_messages + other.error_messages
     dr = self.dry_run or other.dry_run
-    return RunResult(sh, fh, em, dr)
+    re = self.retriable_events + other.retriable_events
+    return RunResult(sh, fh, em, dr, re)

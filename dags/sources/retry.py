@@ -27,7 +27,6 @@ from utils.protocol_schema import ProtocolSchema
 from utils.validation_result import ValidationResult
 
 
-# TODO(caiotomazelli): Hide this from the UI.
 class Source(SourceProto):
   """Implements SourceProto protocol for Retrying (should not be used directly)."""
 
@@ -39,6 +38,8 @@ class Source(SourceProto):
     self.data = self._get_retry_data(config['connection_id'], config['uuid'])
 
   def _get_retry_data(self, conn_id, uuid) -> List[Mapping[str, Any]]:
+    # NOTE: This source is only callable from `dags/retries.py`. It won't be
+    #       called every 10 seconds from `dags/register_connections.py`.
     """Gets retry data from the database."""
     sql = f'''SELECT data
               FROM Retries
@@ -60,11 +61,7 @@ class Source(SourceProto):
 
   @staticmethod
   def schema() -> Optional[ProtocolSchema]:
-    return ProtocolSchema("retry", [
-        ("connection_id", str, Field(description="Connection id.",)),
-        ("uuid", str, Field(description="Universally unique id.",)),
-        ("retry_num", int, Field(description="Retry count.",)),
-    ])
+    return None # Hides from UI.
 
   def validate(self) -> ValidationResult:
     return ValidationResult(True, [])
