@@ -16,7 +16,7 @@
 
 """Test utility methods."""
 
-from dags.utils import DrillMixin 
+from dags.utils.drill_mixin import DrillMixin
 
 def test_parse_data():
   drill_mixin = DrillMixin()

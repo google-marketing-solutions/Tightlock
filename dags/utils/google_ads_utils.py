@@ -35,7 +35,8 @@ class GoogleAdsUtils:
   """Utility functions for Google Ads connectors."""
   PartialFailures = Dict[int, str]
 
-  def validate_google_ads_config(self, config: dict[str, Any]) -> ValidationResult:
+  def validate_google_ads_config(self, config: dict[str,
+                                                    Any]) -> ValidationResult:
     """Validates the provided config can build a Google Ads client.
 
     Args:
@@ -50,9 +51,8 @@ class GoogleAdsUtils:
         missing_fields.append(credential)
 
     if missing_fields:
-      error_msg = (
-        "Config requires the following fields to be set: "
-        f"{', '.join(missing_fields)}")
+      error_msg = ("Config requires the following fields to be set: "
+                   f"{', '.join(missing_fields)}")
       return ValidationResult(False, [error_msg])
 
     return ValidationResult(True, [])
@@ -60,7 +60,7 @@ class GoogleAdsUtils:
   def build_google_ads_client(
       self,
       config: dict[str, Any],
-      version: str=_DEFAULT_GOOGLE_ADS_API_VERSION) -> GoogleAdsClient:
+      version: str = _DEFAULT_GOOGLE_ADS_API_VERSION) -> GoogleAdsClient:
     """Generate Google Ads Client.
 
     Requires the following to be stored in config:
@@ -83,10 +83,11 @@ class GoogleAdsUtils:
 
     credentials["use_proto_plus"] = True
 
-    return GoogleAdsClient.load_from_dict(
-      config_dict=credentials, version=version)
+    return GoogleAdsClient.load_from_dict(config_dict=credentials,
+                                          version=version)
 
-  def get_partial_failures(self, client: GoogleAdsClient, response: Any) -> PartialFailures:
+  def get_partial_failures(self, client: GoogleAdsClient,
+                           response: Any) -> PartialFailures:
     """Checks whether a response message has a partial failure error.
 
     In Python the partial_failure_error attr is always present on a response
@@ -123,7 +124,8 @@ class GoogleAdsUtils:
       for error in failure_object.errors:
         index = error.location.field_path_elements[0].index
         message = f'Code: {error.error_code}, Error: {error.message}'
-        partial_failures[index] += message  # Can be multiple errors for the same conversion.
+        partial_failures[
+            index] += message  # Can be multiple errors for the same conversion.
 
     print(f"Partial failures: {partial_failures}")
 
@@ -132,8 +134,8 @@ class GoogleAdsUtils:
   def normalize_and_hash_email_address(self, email_address: str) -> str:
     """Returns the result of normalizing and hashing an email address.
 
-    For this use case, Google Ads requires removal of any '.' characters
-    preceding "gmail.com" or "googlemail.com"
+    For this use case, Google Ads (and the GMP suite) requires removal of any
+    '.' characters preceding "gmail.com" or "googlemail.com".git 
 
     Args:
         email_address: An email address to normalize.
@@ -151,13 +153,12 @@ class GoogleAdsUtils:
     # Check that there are at least two segments and the second segment
     # matches the above regex expression validating the email domain name.
     if len(email_parts) > 1 and is_gmail:
-        # Removes any '.' characters from the portion of the email address
-        # before the domain if the domain is gmail.com or googlemail.com.
-        email_parts[0] = email_parts[0].replace(".", "")
-        normalized_email = "@".join(email_parts)
+      # Removes any '.' characters from the portion of the email address
+      # before the domain if the domain is gmail.com or googlemail.com.
+      email_parts[0] = email_parts[0].replace(".", "")
+      normalized_email = "@".join(email_parts)
 
     return self.normalize_and_hash(normalized_email)
-
 
   def normalize_and_hash(self, s: str) -> str:
     """Normalizes and hashes a string with SHA-256.
