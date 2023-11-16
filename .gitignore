@@ -153,3 +153,4 @@ lib64
 .DS_Store
 generated/
 include/
+.idea/

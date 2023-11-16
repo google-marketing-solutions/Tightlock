@@ -5,9 +5,12 @@ pytest-mypy==0.10.3
 Requests==2.31.0
 pydantic==1.10.9
 
-# Data sources requirements
+# Data sources and destinations requirements
 apache-airflow-providers-apache-drill==2.4.3
 google-cloud-bigquery==3.11.3
+google-api-python-client==2.66.0
 google-ads>=21.3.0
 sqlmodel==0.0.8
 asyncpg==0.27.0
+google-auth-oauthlib==1.1.0
+google-auth-httplib2==0.1.1

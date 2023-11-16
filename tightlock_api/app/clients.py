@@ -18,7 +18,8 @@ import datetime
 import json
 import random
 import time
-from typing import Any, Optional
+from typing import Any, Awaitable, Callable, Dict, List, Optional
+from functools import partial
 
 import httpx
 from models import (Connection, RunLog, RunLogsResponse, RunResult,
@@ -35,6 +36,21 @@ class AirflowClient:
     # TODO(b/267772197): Add functionality to store usn:password.
     self.auth = ("airflow", "airflow")
 
+  async def _retry_request(self,
+                           request_callable: Callable[[], Awaitable[Any]],
+                           status_forcelist: List[int],
+                           max_retries: int,
+                           backoff_in_seconds: int):
+    response = await request_callable()
+    retries_left = max_retries
+    while retries_left > 0 and response.status_code in status_forcelist:
+      retries_tried = max_retries - retries_left
+      sleep = backoff_in_seconds * 2**retries_tried + random.uniform(0, 1)
+      time.sleep(sleep)
+      response = await request_callable()
+      retries_left -= 1
+    return response
+
   async def _post_request(self, url: str, body: dict[str, Any]):
     async with httpx.AsyncClient() as client:
       return await client.post(url, json=body, auth=self.auth)
@@ -43,14 +59,8 @@ class AirflowClient:
       self, url: str, status_forcelist=[404], max_retries=3, backoff_in_seconds=1
   ):
     async with httpx.AsyncClient() as client:
-      response = await client.get(url, auth=self.auth)
-      retries_left = max_retries
-      while retries_left > 0 and response.status_code in status_forcelist:
-        retries_tried = max_retries - retries_left
-        sleep = backoff_in_seconds * 2**retries_tried + random.uniform(0, 1)
-        time.sleep(sleep)
-        response = await client.get(url, auth=self.auth)
-        retries_left -= 1
+      request_callable = partial(client.get, url=url, auth=self.auth)
+      response = await self._retry_request(request_callable, status_forcelist, max_retries, backoff_in_seconds) 
       return response
 
   async def _validate_target(
@@ -172,11 +182,17 @@ class AirflowClient:
     # Trigger schema DAG
     dag_id = "retrieve_schemas"
     task_id = dag_id  # this task has the same name as the dag
-    trigger_result = await self.trigger(dag_id, "")
+    trigger_callable = partial(self.trigger, dag_prefix=dag_id, dag_suffix="")
+    # retry trigger to avoid empty responses due to conflicts/transient Airflow errors
+    trigger_result = await self._retry_request(trigger_callable, [404, 409, 500], 3, 1)
+    if trigger_result.status_code != 200:
+      return None
     content = json.loads(trigger_result.content)
 
     # Get result of schemas DAG
-    dag_run_id = content["dag_run_id"]
+    dag_run_id = content.get("dag_run_id")
+    if dag_run_id is None:
+      return None
     url = f"{self.base_url}/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/xcomEntries/return_value"
     xcom_response = await self._get_request(url)
     if xcom_response.status_code != 200:
@@ -184,4 +200,16 @@ class AirflowClient:
     parsed_xcom_response = json.loads(xcom_response.content)
     schemas_result = parsed_xcom_response["value"]
     return schemas_result
+
+  async def get_register_errors(self) -> List[Dict[str, Any]]:
+    """Retrieves list of connections that failed during registration."""
+
+    url = f"{self.base_url}/variables/register_errors"
+    errors_response = await self._get_request(url)
+    if errors_response.status_code != 200:
+      return None
+    parsed_errors = json.loads(errors_response.content)
+    errors_result = parsed_errors["value"]
+    
+    return json.loads(errors_result)
 

@@ -13,17 +13,19 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License."""
 
-"""Google Ads OCI destination implementation."""
-import utils.errors as errors
+"""Google Ads EC for Leads destination implementation."""
+from utils import errors
 
 from collections import defaultdict
 from google.ads.googleads.errors import GoogleAdsException
 from pydantic import Field
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+
 from utils.google_ads_utils import GoogleAdsUtils
 from utils.protocol_schema import ProtocolSchema
-from utils.run_result import  RunResult
+from utils.run_result import RunResult
 from utils.validation_result import ValidationResult
+
 
 _BATCH_SIZE = 2000
 
@@ -37,12 +39,14 @@ _REQUIRED_FIELDS = [
 ]
 
 _ID_FIELDS = [
-  "gclid",
-  "gbraid",
-  "wbraid",
+  "email",
+  "phone_number",
+  "hashed_email",
+  "hashed_phone_number",
 ]
 
 _OTHER_FIELDS = [
+  "order_id",
   "currency_code",
   "conversion_custom_variable_id",
   "conversion_custom_variable_value",
@@ -54,10 +58,10 @@ InvalidConversionIndices = List[Tuple[int, errors.ErrorNameIDMap]]
 
 
 class Destination:
-  """Implements DestinationProto protocol for Google Ads OCI."""
+  """Implements DestinationProto protocol for Google Ads EC for Leads."""
 
   def __init__(self, config: Dict[str, Any]):
-    """ Initializes Google Ads OCI Destination Class.
+    """ Initializes Google Ads EC for Leads Destination Class.
 
     Args:
       config: Configuration object to hold environment variables
@@ -68,7 +72,7 @@ class Destination:
       "ConversionUploadService")
     self._debug = config.get("debug", False)
 
-    print("Initialized Google Ads OCI Destination class.")
+    print("Initialized Google Ads EC4L Destination class.")
 
   def send_data(
       self, input_data: List[Mapping[str, Any]], dry_run: bool
@@ -158,14 +162,6 @@ class Destination:
           invalid_indices_and_errors.append((i, errors.ErrorNameIDMap.ADS_OC_HOOK_ERROR_MISSING_MANDATORY_FIELDS))
           valid = False
 
-      # Checks exactly one of gclid, gbraid, or wbraid is set.
-      target_ids = [
-        conversion.get(key) for key in _ID_FIELDS if conversion.get(key, "")]
-
-      if len(target_ids) != 1:
-        invalid_indices_and_errors.append((i, errors.ErrorNameIDMap.ADS_OC_HOOK_ERROR_INVALID_ID_CONFIG))
-        valid = False
-
       if not valid:
         # Invalid conversion.
         continue
@@ -180,18 +176,34 @@ class Destination:
         customer_id, conversion.get("conversion_action_id", "")
       )
 
-      gclid = conversion.get("gclid", "")
-      gbraid = conversion.get("gbraid", "")
-      wbraid = conversion.get("wbraid", "")
+      email = conversion.get("email", "")
+      phone_number = conversion.get("phone_number", "")
+      hashed_email = conversion.get("hashed_email", "")
+      hashed_phone_number = conversion.get("hashed_phone_number", "")
+      order_id = conversion.get("order_id", "")
 
-      # Sets the single specified ID field.
-      if gclid:
-        click_conversion.gclid = gclid
-      elif gbraid:
-        click_conversion.gbraid = gbraid
-      else:
-        click_conversion.wbraid = wbraid
+      # Sets the order ID if provided.
+      if order_id:
+        click_conversion.order_id = order_id
 
+      # Populates user_identifier fields
+      user_identifier = self._client.get_type("UserIdentifier")
+      if hashed_email:
+        user_identifier.hashed_email = hashed_email
+      elif email:
+        user_identifier.hashed_email = GoogleAdsUtils().normalize_and_hash_email_address(email)
+
+      if hashed_phone_number:
+        user_identifier.hashed_phone_number = hashed_phone_number
+      elif phone_number:
+        user_identifier.hashed_phone_number = GoogleAdsUtils().normalize_and_hash(phone_number)
+
+      # Specifies the user identifier source.
+      user_identifier.user_identifier_source = (
+          self._client.enums.UserIdentifierSourceEnum.FIRST_PARTY
+      )
+
+      click_conversion.user_identifiers.append(user_identifier)
       click_conversion.conversion_value = float(conversion.get("conversion_value", ""))
       click_conversion.conversion_date_time = conversion.get("conversion_date_time", "")
       # Make sure that "falsy" values still default to _DEFAULT_CURRENCY_CODE
@@ -226,6 +238,7 @@ class Destination:
     request = self._client.get_type("UploadClickConversionsRequest")
     request.customer_id = customer_id
     request.conversions.extend(conversions)
+    request.debug_enabled = self._debug
     request.partial_failure = True
 
     try:
@@ -249,13 +262,14 @@ class Destination:
       of this protocol.
     """
     return ProtocolSchema(
-      "GADS_OCI",
+      "GADS_EC4LEADS",
       [
         ("client_id", str, Field(description="An OAuth2.0 Web Client ID.")),
         ("client_secret", str, Field(description="An OAuth2.0 Web Client Secret.")),
         ("developer_token", str, Field(description="A Google Ads Developer Token.")),
         ("login_customer_id", str, Field(description="A Google Ads Login Customer ID (without hyphens).")),
         ("refresh_token", str, Field(description="A Google Ads API refresh token.")),
+        ("debug", bool, Field(description="If true, the API will perform all upload checks and return errors if any are found. When uploading enhanced conversions for leads, you should upload all conversion events to the API, including those that may not come from Google Ads campaigns. The upload of an event that is not from a Google Ads campaign will result in a CLICK_NOT_FOUND error if this field is set to true. Since these errors are expected for such events, set this field to false so you can confirm your uploads are properly formatted but ignore CLICK_NOT_FOUND errors from all of the conversions that are not from a Google Ads campaign. This will allow you to focus only on errors that you can address. ")),
       ]
     )
 
