@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License."""
 
 """Google Ads Customer Match destination implementation."""
-
+import json
 
 from pydantic import Field
 from typing import Any, Dict, List, Mapping, Optional, Sequence
@@ -46,39 +46,78 @@ def _construct_error_message(api_error: Any) -> str:
 class _UserDataScrubber:
   """Util class for scrubbing user identifier data."""
 
-  def __init__(self):
+  def __init__(self, debug: bool = False):
+    self._debug = debug
     self._user_data = {}
     self._utils = GoogleAdsUtils()
 
-  def scrub_user_data(self, user_data: Mapping[str, Any]):
-    self._user_data = user_data
+  def scrub_user_data(self, user_data: Mapping[str, Any]) -> Mapping[str, Any]:
+    """Scrubs the user data this scrubber was created with.
+
+    Args:
+      user_data: Dict of user data to scrub.
+
+    Raises:
+      ValueError: Raised if any of the required mailing address fields are
+        missing.
+    """
+    # Trimming dict, removing any keys with empty/whitespace string values
+    self._user_data = {k: v for k, v in user_data.items() if v and v.strip()}
+    if self._debug:
+      print(f"Scrubbing user data: {json.dumps(self._user_data, indent=4)}")
 
     self._scrub_email()
     self._scrub_phone_number()
     self._scrub_mailing_name_fields()
 
+    if self._debug:
+      print(f"Scrubbed user data: {json.dumps(self._user_data, indent=4)}")
+    return self._user_data
+
   def _scrub_email(self) -> None:
-    if "email" in self._user_data:
+    if self._user_data.get("email", None):
       self._user_data["email"] = self._utils.normalize_and_hash_email_address(
         email_address=self._user_data["email"]
       )
 
   def _scrub_phone_number(self) -> None:
-    if "phone" in self._user_data:
+    if self._user_data.get("phone", None):
       self._user_data["phone"] = self._utils.normalize_and_hash(
         self._user_data["phone"]
       )
 
   def _scrub_mailing_name_fields(self) -> None:
-    if "first_name" in self._user_data:
+    self._check_for_all_postal_fields()
+
+    if self._user_data.get("first_name", None):
       self._user_data["first_name"] = self._utils.normalize_and_hash(
         self._user_data["first_name"]
       )
 
-    if "last_name" in self._user_data:
-      self._user_data["first_name"] = self._utils.normalize_and_hash(
-        self._user_data["last_name"]
+    if self._user_data.get("last_name", None):
+        self._user_data["last_name"] = self._utils.normalize_and_hash(
+          self._user_data["last_name"]
       )
+
+  def _check_for_all_postal_fields(self) -> None:
+    required_keys = ("first_name", "last_name", "country_code", "postal_code")
+    is_postal_keys_available_flags = []
+    for required_key in required_keys:
+      is_postal_keys_available_flags.append(required_key in self._user_data)
+
+    if not any(is_postal_keys_available_flags):
+      if self._debug:
+        print("No postal fields, so skipping postal fields scrubbing steps")
+      return
+
+    if not all(is_postal_keys_available_flags):
+      missing_keys = required_keys - self._user_data.keys()
+      if self._debug:
+        print(
+          "Raising exception because the following required mailing "
+          f"address keys are missing: {missing_keys}"
+        )
+      raise ValueError(f"Missing mailing address fields:  {missing_keys}")
 
 
 class Destination:
@@ -130,12 +169,14 @@ class Destination:
     failures = []
 
     print(f"Processing {len(input_data)} user records")
-    for user_data in input_data:
+    for index, user_data in enumerate(input_data):
       try:
         user_operation = self._build_user_data_operation_from_row(user_data)
         user_data_operations.append(user_operation)
       except ValueError as ve:
-        failures.append(str(ve))
+        err_msg = f"Could not process data at row '{index}':  {str(ve)}"
+        print(err_msg)
+        failures.append(err_msg)
     print(
       f"There were '{len(failures)}' user rows that couldn't be processed.")
 
@@ -144,7 +185,12 @@ class Destination:
     #   were created
     if dry_run:
       print("Running as a dry run, so skipping upload steps.")
-      return RunResult(dry_run=dry_run, successful_hits=0, failed_hits=0)
+      return RunResult(
+        dry_run=True,
+        successful_hits=len(user_data_operations) - len(failures),
+        failed_hits=len(failures),
+        error_messages=failures
+      )
 
     upload_job_id = self._create_user_upload_job()
     add_user_data_request = self._create_add_user_data_request(
@@ -178,15 +224,11 @@ class Destination:
     Returns:
       A Google Ads OfflineUserDataJobOperation object populated with 1-or-more
       identifiers.
-
-    Raises:
-      ValueError:  Raised if any of the required mailing address fields are
-        missing.
     """
-    scrubber = _UserDataScrubber()
-    scrubber.scrub_user_data(user_data)
+    scrubber = _UserDataScrubber(self._debug)
+    scrubbed_user_data = scrubber.scrub_user_data(user_data)
 
-    user_data_payload = self._create_user_data_payload(user_data)
+    user_data_payload = self._create_user_data_payload(scrubbed_user_data)
 
     operation = self._client.get_type("OfflineUserDataJobOperation")
     operation.create = user_data_payload
@@ -218,15 +260,6 @@ class Destination:
       payload.user_identifiers.append(user_identifier)
 
     if "first_name" in user_data:
-      required_keys = ("last_name", "country_code", "postal_code")
-      if not all(key in user_data for key in required_keys):
-        missing_keys = user_data.keys() - required_keys
-        print(
-          "Raising exception because the following required mailing "
-          f"address keys are missing: {missing_keys}"
-        )
-        raise ValueError(f"Missing mailing address fields:  {missing_keys}")
-
       user_identifier = self._client.get_type("UserIdentifier")
       address_info = user_identifier.address_info
 
