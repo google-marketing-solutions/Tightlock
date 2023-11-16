@@ -1,0 +1,5 @@
+user_id,event_name,engagement_time_msec,session_id
+246,offline_purchase,500,222
+4968,offline_purchase,600,333
+1736,offline_purchase,700,444
+4442,offline_purchase,1700,555

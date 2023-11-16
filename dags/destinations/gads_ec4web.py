@@ -14,13 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License."""
 
 """Google Ads EC for Web destination implementation."""
-import errors
+from utils import errors
 
 from collections import defaultdict
 from google.ads.googleads.errors import GoogleAdsException
 from pydantic import Field
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
-from utils import GoogleAdsUtils, ProtocolSchema, RunResult, ValidationResult
+from utils.google_ads_utils import GoogleAdsUtils
+from utils.protocol_schema import ProtocolSchema
+from utils.run_result import RunResult
+from utils.validation_result import ValidationResult
+
 
 _BATCH_SIZE = 2000
 
@@ -40,7 +44,7 @@ _ID_FIELDS = [
     "hashed_first_name",
     "hashed_last_name",
     "country_code",
-    "postal_code" 
+    "postal_code"
 ]
 
 _OTHER_FIELDS = [
@@ -198,7 +202,7 @@ class Destination:
         user_identifier.hashed_email = hashed_email
       elif email:
         user_identifier.hashed_email = GoogleAdsUtils().normalize_and_hash_email_address(email)
-      
+
       if hashed_phone_number:
         user_identifier.hashed_phone_number = hashed_phone_number
       elif phone_number:
@@ -219,7 +223,7 @@ class Destination:
           address_info.country_code = country_code
         if postal_code:
           address_info.postal_code = postal_code
-        
+
         required_attrs = ["hashed_first_name", "hashed_last_name", "country_code", "postal_code"]
         if all([getattr(address_info, attr, False) for attr in required_attrs]):
           user_identifier.address_info = address_info
@@ -317,4 +321,3 @@ class Destination:
       A ValidationResult for the provided config.
     """
     return GoogleAdsUtils().validate_google_ads_config(self._config)
-

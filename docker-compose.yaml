@@ -19,7 +19,7 @@ x-airflow-common:
   # Comment the image line, place your Dockerfile in the directory where you placed the docker-compose.yaml
   # and uncomment the "build" line below, Then run `docker-compose build` to build the images.
   # image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:2.5.0}
-  build: 
+  build:
     context: .
     dockerfile: airflow.Dockerfile
   environment:
@@ -104,7 +104,7 @@ services:
       - 8082:8000 # documentation
     environment:
       MAX_WORKERS: 5 # needed to limit the number of DB connections
-      CONFIG_DB_CONN: postgresql+asyncpg://tightlock:tightlock@postgres/tightlock 
+      CONFIG_DB_CONN: postgresql+asyncpg://tightlock:tightlock@postgres/tightlock
       TIGHTLOCK_API_KEY: ${TIGHTLOCK_API_KEY}
       LATEST_TAG: ${LATEST_TAG}
     depends_on:

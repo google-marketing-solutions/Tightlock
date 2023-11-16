@@ -14,13 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License."""
 
 """Google Ads EC for Leads destination implementation."""
-import errors
+from utils import errors
 
 from collections import defaultdict
 from google.ads.googleads.errors import GoogleAdsException
 from pydantic import Field
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
-from utils import GoogleAdsUtils, ProtocolSchema, RunResult, ValidationResult
+
+from utils.google_ads_utils import GoogleAdsUtils
+from utils.protocol_schema import ProtocolSchema
+from utils.run_result import RunResult
+from utils.validation_result import ValidationResult
+
 
 _BATCH_SIZE = 2000
 
@@ -179,7 +184,7 @@ class Destination:
 
       # Sets the order ID if provided.
       if order_id:
-          click_conversion.order_id = order_id
+        click_conversion.order_id = order_id
 
       # Populates user_identifier fields
       user_identifier = self._client.get_type("UserIdentifier")
@@ -187,7 +192,7 @@ class Destination:
         user_identifier.hashed_email = hashed_email
       elif email:
         user_identifier.hashed_email = GoogleAdsUtils().normalize_and_hash_email_address(email)
-      
+
       if hashed_phone_number:
         user_identifier.hashed_phone_number = hashed_phone_number
       elif phone_number:
@@ -291,4 +296,3 @@ class Destination:
       A ValidationResult for the provided config.
     """
     return GoogleAdsUtils().validate_google_ads_config(self._config)
-

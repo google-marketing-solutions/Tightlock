@@ -18,7 +18,9 @@ limitations under the License."""
 
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
-from utils import ProtocolSchema, RunResult, ValidationResult
+from utils.protocol_schema import ProtocolSchema
+from utils.run_result import RunResult
+from utils.validation_result import ValidationResult
 
 
 class Destination:

@@ -14,22 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License."""
 
 """Google Ads Conversion Adjustments destination implementation."""
-import errors
+from utils import errors
 
 from collections import defaultdict
 from google.ads.googleads.errors import GoogleAdsException
 from pydantic import Field
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
-from utils import GoogleAdsUtils, ProtocolSchema, RunResult, ValidationResult
+
+from utils.google_ads_utils import GoogleAdsUtils
+from utils.protocol_schema import ProtocolSchema
+from utils.run_result import RunResult
+from utils.validation_result import ValidationResult
 
 _BATCH_SIZE = 2000
 
 _DEFAULT_CURRENCY_CODE = "USD"
 
 _REQUIRED_FIELDS = [
-    "customer_id",
-    "conversion_action_id",
-    "adjustment_date_time",
+    "customer_id", "conversion_action_id", "adjustment_date_time",
     "adjusted_value"
 ]
 
@@ -57,13 +59,12 @@ class Destination:
     self._config = config  # Keeping a reference for convenience.
     self._client = GoogleAdsUtils().build_google_ads_client(self._config)
     self._conversion_upload_service = self._client.get_service(
-      "ConversionAdjustmentUploadService")
+        "ConversionAdjustmentUploadService")
 
     print("Initialized Google Ads OCA Destination class.")
 
-  def send_data(
-      self, input_data: List[Mapping[str, Any]], dry_run: bool
-  ) -> Optional[RunResult]:
+  def send_data(self, input_data: List[Mapping[str, Any]],
+                dry_run: bool) -> Optional[RunResult]:
     """Builds payload and sends data to Google Ads API.
 
     Args:
@@ -73,8 +74,7 @@ class Destination:
     Returns: A RunResult summarizing success / failures, etc.
     """
     valid_adjustments, invalid_indices_and_errors = self._get_valid_and_invalid_adjustments(
-      input_data
-    )
+        input_data)
     successfully_uploaded_adjustments = []
 
     if not dry_run:
@@ -87,7 +87,9 @@ class Destination:
         except GoogleAdsException as error:
           # Set every index as failed
           err_msg = error.error.code().name
-          invalid_indices_and_errors.extend([(index, err_msg) for index in adjustment_indices])
+          invalid_indices_and_errors.extend([
+              (index, err_msg) for index in adjustment_indices
+          ])
         else:
           # Handles partial failures: Checks which adjustments were successfully
           # sent, and which failed.
@@ -97,13 +99,12 @@ class Destination:
             # Maps index from this customer's adjustments back to original input data index.
             original_index = adjustment_indices[index]
             if index in partial_failure_indices:
-              invalid_indices_and_errors.append((original_index, partial_failures[index]))
+              invalid_indices_and_errors.append(
+                  (original_index, partial_failures[index]))
             else:
               successfully_uploaded_adjustments.append(original_index)
     else:
-      print(
-        "Dry-Run: Events will not be sent to the API."
-      )
+      print("Dry-Run: Events will not be sent to the API.")
 
     print(f"Sent adjustments: {successfully_uploaded_adjustments}")
     print(f"Invalid events: {invalid_indices_and_errors}")
@@ -115,10 +116,10 @@ class Destination:
       print(f"adjustment_index: {adjustment_index}; error: {error}")
 
     return RunResult(
-      successful_hits=len(successfully_uploaded_adjustments),
-      failed_hits=len(invalid_indices_and_errors),
-      error_messages=[str(error[1]) for error in invalid_indices_and_errors],
-      dry_run=dry_run,
+        successful_hits=len(successfully_uploaded_adjustments),
+        failed_hits=len(invalid_indices_and_errors),
+        error_messages=[str(error[1]) for error in invalid_indices_and_errors],
+        dry_run=dry_run,
     )
 
   def _get_valid_and_invalid_adjustments(
@@ -146,7 +147,9 @@ class Destination:
       # Checks required fields set.
       for required_field in _REQUIRED_FIELDS:
         if not adjustment.get(required_field, ""):
-          invalid_indices_and_errors.append((i, errors.ErrorNameIDMap.ADS_OC_HOOK_ERROR_MISSING_MANDATORY_FIELDS))
+          invalid_indices_and_errors.append((
+              i,
+              errors.ErrorNameIDMap.ADS_OC_HOOK_ERROR_MISSING_MANDATORY_FIELDS))
           valid = False
 
       if not valid:
@@ -155,13 +158,13 @@ class Destination:
 
       # Builds the API adjustment payload.
       conversion_adjustment = self._client.get_type("ConversionAdjustment")
-      conversion_action_service = self._client.get_service("ConversionActionService")
+      conversion_action_service = self._client.get_service(
+          "ConversionActionService")
 
       customer_id = adjustment.get("customer_id")
 
       conversion_adjustment.conversion_action = conversion_action_service.conversion_action_path(
-        customer_id, adjustment.get("conversion_action_id", "")
-      )
+          customer_id, adjustment.get("conversion_action_id", ""))
 
       conversion_adjustment.adjustment_type = 'RESTATEMENT'
 
@@ -169,11 +172,12 @@ class Destination:
       gclid = adjustment.get("gclid", "")
       conversion_date_time = adjustment.get("conversion_date_time", "")
       adjustment_date_time = adjustment.get("adjustment_date_time", "")
-      
+
       # Make sure that "falsy" values still default to _DEFAULT_CURRENCY_CODE
       restatement_value = self._client.get_type("RestatementValue")
       adjusted_value = float(adjustment.get("adjusted_value", ""))
-      currency_code = adjustment.get("currency_code", False) or _DEFAULT_CURRENCY_CODE
+      currency_code = adjustment.get("currency_code",
+                                     False) or _DEFAULT_CURRENCY_CODE
 
       # Sets the order ID if provided.
       if order_id:
@@ -187,7 +191,6 @@ class Destination:
 
         conversion_adjustment.gclid_date_time_pair = gclid_date_time_pair
 
-
       restatement_value = self._client.get_type("RestatementValue")
       restatement_value.adjusted_value = adjusted_value
       restatement_value.currency_code = currency_code
@@ -195,12 +198,12 @@ class Destination:
       conversion_adjustment.restatement_value = restatement_value
       conversion_adjustment.adjustment_date_time = adjustment_date_time
 
-
       valid_adjustments[customer_id].append((i, conversion_adjustment))
 
     return valid_adjustments, invalid_indices_and_errors
 
-  def _send_request(self, customer_id: str, adjustments: List[Any]) -> GoogleAdsUtils.PartialFailures:
+  def _send_request(self, customer_id: str,
+                    adjustments: List[Any]) -> GoogleAdsUtils.PartialFailures:
     """Sends conversions to the offline conversion import API.
 
     Args:
@@ -217,14 +220,13 @@ class Destination:
 
     try:
       adjustment_upload_response = self._conversion_upload_service.upload_conversion_adjustments(
-        request=request,
-      )
+          request=request,)
     except GoogleAdsException as error:
       print(f"Caught GoogleAdsException: {error}")
       raise
 
-    return GoogleAdsUtils().get_partial_failures(self._client, adjustment_upload_response)
-
+    return GoogleAdsUtils().get_partial_failures(self._client,
+                                                 adjustment_upload_response)
 
   @staticmethod
   def schema() -> Optional[ProtocolSchema]:
@@ -235,16 +237,18 @@ class Destination:
       required and optional metadata used by the implementation
       of this protocol.
     """
-    return ProtocolSchema(
-      "GADS_OCA",
-      [
+    return ProtocolSchema("GADS_OCA", [
         ("client_id", str, Field(description="An OAuth2.0 Web Client ID.")),
-        ("client_secret", str, Field(description="An OAuth2.0 Web Client Secret.")),
-        ("developer_token", str, Field(description="A Google Ads Developer Token.")),
-        ("login_customer_id", str, Field(description="A Google Ads Login Customer ID (without hyphens).")),
-        ("refresh_token", str, Field(description="A Google Ads API refresh token.")),
-      ]
-    )
+        ("client_secret", str,
+         Field(description="An OAuth2.0 Web Client Secret.")),
+        ("developer_token", str,
+         Field(description="A Google Ads Developer Token.")),
+        ("login_customer_id", str,
+         Field(
+             description="A Google Ads Login Customer ID (without hyphens).")),
+        ("refresh_token", str,
+         Field(description="A Google Ads API refresh token.")),
+    ])
 
   def fields(self) -> Sequence[str]:
     """Lists required fields for the destination input data.
@@ -269,4 +273,3 @@ class Destination:
       A ValidationResult for the provided config.
     """
     return GoogleAdsUtils().validate_google_ads_config(self._config)
-

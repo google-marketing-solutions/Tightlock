@@ -26,9 +26,12 @@ from googleapiclient import discovery
 import google_auth_httplib2
 import google.oauth2.credentials
 
-import errors
+from utils import errors
 from pydantic import Field
-from utils import GoogleAdsUtils, ProtocolSchema, RunResult, ValidationResult
+from utils.google_ads_utils import GoogleAdsUtils
+from utils.protocol_schema import ProtocolSchema
+from utils.run_result import RunResult
+from utils.validation_result import ValidationResult
 
 DV_CONTACT_INFO_FIELDS = [
     "email",
@@ -112,12 +115,12 @@ class Destination:
 
   def _validate_entry(self, entry: Mapping[str, Any]) -> Tuple[bool, Optional[str]]:
     """Validates an audience entry.
-    
+
     Arguments:
       entry: The target entry to be validated
 
     Returns:
-      A tuple containing a boolean indicating whether or not the entry is valid 
+      A tuple containing a boolean indicating whether or not the entry is valid
       and an optional error message.
     """
     if self.payload_type == PayloadTypes.CONTACT_INFO:
@@ -157,7 +160,7 @@ class Destination:
 
   def _get_audience_id(self) -> Optional[str]:
     """Get audience_id of an audience with the same name as provided, if it exists.
-    
+
     Returns:
       The audience_id str, if the audience can be found.
       Returns None otherwise, which will cause a new audience to be created.
@@ -172,8 +175,8 @@ class Destination:
         # return the audience id
         audience_id = audience["name"].split("/")[1]
         return audience_id
-   # if the audience is not found, return None and a new audience
-   # with this display name will be created downstream.
+  # if the audience is not found, return None and a new audience
+  # with this display name will be created downstream.
     return None
 
   def _build_request_body(self, entries: List[Dict[str, Any]], is_create: bool) -> Dict[str, Any]:
@@ -333,7 +336,7 @@ class Destination:
     if valid_entry_tuples:
       if not dry_run:
         try:
-          valid_entries = [entry[1] for entry in valid_entry_tuples] 
+          valid_entries = [entry[1] for entry in valid_entry_tuples]
           self._send_payload(valid_entries, self._get_audience_id())
         except (
             errors.DataOutConnectorSendUnsuccessfulError,

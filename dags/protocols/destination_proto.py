@@ -17,7 +17,9 @@ limitations under the License.
 from typing import (Any, Dict, List, Mapping, Optional, Protocol, Sequence,
                     runtime_checkable)
 
-from utils import ProtocolSchema, RunResult, ValidationResult
+from utils.protocol_schema import ProtocolSchema
+from utils.run_result import RunResult
+from utils.validation_result import  ValidationResult
 
 
 @runtime_checkable
@@ -26,7 +28,7 @@ class DestinationProto(Protocol):
 
   def __init__(self, config: Dict[str, Any]):
     """Init method for DestinationProto.
-    
+
     Args:
       config: A dictionary parsed from the connection config, containing
         the metadata required for the the target destination.
@@ -37,10 +39,10 @@ class DestinationProto(Protocol):
       self, input_data: List[Mapping[str, Any]], dry_run: bool
   ) -> Optional[RunResult]:
     """Sends data to the underlying destination API.
-    
+
     Args:
       input_data: A list of key-value mappings representing inputs for the
-        target destination. The mapping keys must be a subset of the list 
+        target destination. The mapping keys must be a subset of the list
         retrieved by calling the destinations "fields" method.
       dry_run: A boolean indicating whether or not to actually send
         the data to the destination or if it should only be validated
@@ -54,7 +56,7 @@ class DestinationProto(Protocol):
 
   def fields(self) -> Sequence[str]:
     """Lists required fields for the destination input data.
-    
+
     Returns:
       A sequence of fields.
     """
@@ -71,9 +73,9 @@ class DestinationProto(Protocol):
   @staticmethod
   def schema() -> Optional[ProtocolSchema]:
     """Returns the required metadata for this destination config.
-    
+
     Returns:
-      An optional ProtocolSchema object that defines the 
+      An optional ProtocolSchema object that defines the
       required and optional metadata used by the implementation
       of this protocol.
     """
@@ -81,7 +83,7 @@ class DestinationProto(Protocol):
 
   def validate(self) -> ValidationResult:
     """Validates the provided config.
-    
+
     Returns:
       A ValidationResult for the provided config.
     """

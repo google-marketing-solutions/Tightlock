@@ -27,11 +27,16 @@ from googleapiclient import discovery
 import google_auth_httplib2
 import google.oauth2.credentials
 
-import errors
+from utils import errors
 import immutabledict
 import requests
 from pydantic import Field
-from utils import ProtocolSchema, RunResult, SchemaUtils, ValidationResult
+from utils.protocol_schema import ProtocolSchema
+from utils.run_result import RunResult
+from utils.schema_utils import SchemaUtils
+from utils.validation_result import ValidationResult
+
+
 
 CM_CONVERSION_FIELDS = [
   "floodlightConfigurationId",
@@ -90,7 +95,7 @@ class Destination:
 
     for credential in CM_CREDENTIALS:
       self.credentials[credential] = config.get(credential,"")
-    
+
     self.encryption_info = {}
     self.encryption_info["encryptionEntityType"] = config.get("encryptionEntityType","")
     self.encryption_info["encryptionEntityId"] = config.get("encryptionEntityId","")
@@ -98,13 +103,13 @@ class Destination:
     self.encryption_info["kind"] = config.get("kind","")
     self.validate()
     self._validate_credentials()
-    
+
     # Authenticate using the supplied user account credentials
     self.http = self.authenticate_using_user_account()
 
   def authenticate_using_user_account(self):
     """Authorizes an httplib2.Http instance using user account credentials."""
-    
+
     credentials = google.oauth2.credentials.Credentials(
     self.credentials['access_token'],
     refresh_token = self.credentials['refresh_token'],
@@ -188,7 +193,7 @@ class Destination:
           conversion["kind"] = str(entry.get(conversion_field, ""))
         else:
           conversion[conversion_field] = str(entry.get(conversion_field, ""))
-      
+
       if self.validate_conversion(conversion):
         valid_conversions.append(conversion)
       else:
@@ -205,7 +210,7 @@ class Destination:
         except (
               errors.DataOutConnectorSendUnsuccessfulError,
           ) as error:
-            send_error = error.error_num
+          send_error = error.error_num
       else:
         print(
           "Dry-Run: CM conversions event will not be sent."
@@ -262,7 +267,7 @@ class Destination:
         "Config requires the following fields to be set: "
         f"{', '.join(missing_encryption_fields)}")
       return ValidationResult(False, [error_msg])
-      
+
     return ValidationResult(True, [error_msg])
 
   def validate_conversion(self, conversion) -> bool:
@@ -271,7 +276,7 @@ class Destination:
     Returns:
       True if the conversion is valid, False if it isn't.
     """
-    
+
     for required_field in CM_REQUIRED_CONVERSIONS_FIELDS:
       if not conversion[required_field]:
         return False

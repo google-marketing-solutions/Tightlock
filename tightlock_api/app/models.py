@@ -12,7 +12,6 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License."""
-
 """Definition of data models used by Tightlock application."""
 
 import datetime
@@ -28,6 +27,7 @@ class ConnectResponse(SQLModel):
   """Connect endpoint response."""
 
   version: str
+
 
 class RunResult(SQLModel):
   """Result of a connection run."""
@@ -50,10 +50,12 @@ class RunLog(SQLModel):
   run_type: str
   run_result: RunResult
 
+
 class RunLogsResponse(SQLModel):
   """RunLogs endpoint response."""
   run_logs: Sequence[RunLog]
   total_entries: int
+
 
 class ValidationResult(SQLModel):
   """Result of source or destination validation."""
@@ -97,15 +99,56 @@ class Config(SQLModel, table=True):
   label: str
   # defined as below to avoid
   # https://amercader.net/blog/beware-of-json-fields-in-sqlalchemy/
-  value: Dict[str, Any] = Field(
-      default={}, sa_column=Column(mutable_json_type(dbtype=JSONB, nested=True))
-  )
+  value: Dict[str, Any] = Field(default={},
+                                sa_column=Column(
+                                    mutable_json_type(dbtype=JSONB,
+                                                      nested=True)))
 
   # Needed for Column(JSON)
   class Config:
     """Inner `Config` class is needed by sqlmodel.
 
-    Same name as the parant class is a coincidence.
+    Same name as the parent class is a coincidence.
+    """
+
+    arbitrary_types_allowed = True
+
+
+class Retries(SQLModel, table=True):
+  """ Table of events to be retried.
+
+  For now, all retry events lives in a JSON 'data' field.
+  """
+
+  __table_args__ = (UniqueConstraint("uuid"),)
+
+  id: Optional[int] = Field(default=None, primary_key=True)
+  connection_id: str
+  uuid: str
+  destination_type: str
+  destination_folder: str
+  destination_config: Dict[str,
+                           Any] = Field(default={},
+                                        sa_column=Column(
+                                            mutable_json_type(dbtype=JSONB,
+                                                              nested=True)))
+  next_run: datetime.datetime = Field(
+      sa_column=Column(DateTime(timezone=True)),
+      default_factory=datetime.datetime.now,
+      nullable=False,
+  )
+  retry_num: int
+  delete: bool
+  # defined as below to avoid
+  # https://amercader.net/blog/beware-of-json-fields-in-sqlalchemy/
+  data: Dict[str, Any] = Field(default={},
+                               sa_column=Column(
+                                   mutable_json_type(dbtype=JSONB,
+                                                     nested=True)))
+
+  # Needed for Column(JSON)
+  class Config:
+    """Inner `Config` class is needed by sqlmodel.
     """
 
     arbitrary_types_allowed = True

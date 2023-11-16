@@ -12,26 +12,22 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License."""
-
 """Registers connections dynamically from config."""
 
-import ast
-import datetime
-import importlib.util
-import pathlib
+from contextlib import closing
+from datetime import datetime
+import json
 import re
 import traceback
 from dataclasses import asdict
-from functools import partial
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any, Mapping
 
-from airflow.decorators import dag
 from airflow.hooks.postgres_hook import PostgresHook
-from airflow.models import Variable
-from airflow.operators.python_operator import PythonOperator
+from airflow.models import DAG, Variable
+
 from protocols.destination_proto import DestinationProto
 from protocols.source_proto import SourceProto
-from utils import RunResult
+from utils.dag_utils import DagUtils
 
 
 class DAGBuilder:
@@ -44,7 +40,13 @@ class DAGBuilder:
                  value=[],
                  description="Report of dynamic DAG registering errors.")
 
-  def _config_from_ref(self, ref: Mapping[str, str]) -> SourceProto | DestinationProto:
+  def _get_latest_config(self):
+    sql = "SELECT value FROM Config ORDER BY create_date DESC LIMIT 1"
+    with closing(DagUtils.exec_postgres_command(sql, (datetime.now(),))) as c:
+      return c.fetchone()[0]
+
+  def _config_from_ref(
+      self, ref: Mapping[str, str]) -> SourceProto | DestinationProto:
     refs_regex = r"^#\/(sources|destinations)\/(.*)"
     ref_str = ref["$ref"]
     match = re.search(refs_regex, ref_str)
@@ -55,93 +57,13 @@ class DAGBuilder:
     if not target_type:
       raise ValueError("Missing config attribute `type`.")
     if target_folder == "sources":
-      return self._import_entity(target_type, target_folder).Source(target_config)
+      return DagUtils.import_entity(target_type,
+                                    target_folder).Source(target_config)
     elif target_folder == "destinations":
-      return self._import_entity(target_type, target_folder).Destination(target_config)
+      return (DagUtils.import_entity(target_type,
+                                     target_folder).Destination(target_config),
+              target_type, target_folder, target_config)
     raise ValueError(f"Not supported folder: {target_folder}")
-
-  def _parse_dry_run(self, connection_id: str, dry_run_str: str) -> bool:
-    try:
-      dry_run = ast.literal_eval(dry_run_str)
-      if dry_run:
-        print(f"Dry-run enabled for {connection_id}")
-      return dry_run
-    except ValueError:
-      print(f"Dry-run defaulting to False for {connection_id}")
-      return False
-
-  def _import_entity(
-      self, source_name: str, folder_name: str
-  ) -> SourceProto | DestinationProto:
-    module_name = "".join(x.title() for x in source_name.split("_") if not x.isspace())
-
-    lower_source_name = source_name.lower()
-    filepath = pathlib.Path(f"dags/{folder_name}") / f"{lower_source_name}.py"
-    spec = importlib.util.spec_from_file_location(module_name, filepath)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-  def _get_latest_config(self):
-    sql_stmt = "SELECT value FROM Config ORDER BY create_date DESC LIMIT 1"
-    pg_hook = PostgresHook(
-        postgres_conn_id="tightlock_config",
-    )
-    pg_conn = pg_hook.get_conn()
-    cursor = pg_conn.cursor()
-    cursor.execute(sql_stmt)
-    return cursor.fetchone()[0]
-
-  def _build_dynamic_dag(
-      self,
-      connection: Mapping[str, Any],
-      target_source: SourceProto,
-      target_destination: DestinationProto,
-      reusable_credentials: Optional[Sequence[Any]] = None,
-  ):
-    """Dynamically creates a DAG based on a given connection."""
-    connection_id = f"{connection['name']}_dag"
-
-    schedule = connection["schedule"]
-    schedule_interval = schedule if schedule else None
-
-    start_date = datetime.datetime(2023, 1, 1, 0, 0, 0)
-
-    @dag(
-        dag_id=connection_id,
-        is_paused_upon_creation=False,
-        start_date=start_date,
-        schedule_interval=schedule_interval,
-        catchup=False
-    )
-    def dynamic_generated_dag():
-      def process(task_instance, dry_run_str: str) -> None:
-        dry_run = self._parse_dry_run(connection_id, dry_run_str)
-        fields = target_destination.fields()
-        batch_size = target_destination.batch_size()
-        offset = 0
-        get_data = partial(
-            target_source.get_data,
-            fields=fields,
-            limit=batch_size,
-            reusable_credentials=reusable_credentials
-        )
-        data = get_data(offset=offset)
-        run_result = RunResult(0, 0, [], dry_run)
-        while data:
-          run_result += target_destination.send_data(data, dry_run)
-          offset += batch_size
-          data = get_data(offset=offset)
-
-        task_instance.xcom_push("run_result", asdict(run_result))
-
-      PythonOperator(
-          task_id=connection_id,
-          op_kwargs={"dry_run_str": "{{dag_run.conf.get('dry_run', False)}}"},
-          python_callable=process,
-      )
-
-    return dynamic_generated_dag
 
   def register_dags(self):
     """Loops over all configured connections and create an Airflow DAG for each one of them."""
@@ -149,26 +71,25 @@ class DAGBuilder:
     for connection in self.latest_config["activations"]:
       # actual implementations of each source and destination
       try:
-        target_source = self._config_from_ref(connection["source"])
-        target_destination = self._config_from_ref(connection["destination"])
-        dynamic_dag = self._build_dynamic_dag(
-            connection, target_source, target_destination
-        )
+        source = self._config_from_ref(connection["source"])
+        (destination, dest_type, dest_folder,
+         dest_config) = self._config_from_ref(connection["destination"])
+        dynamic_dag = DagUtils.build_dynamic_dag(
+            new_dag_name=connection['name'],
+            schedule=connection['schedule'],
+            target_source=source,
+            target_destination=destination,
+            dest_type=dest_type,
+            dest_folder=dest_folder,
+            dest_config=json.dumps(dest_config))
         # register dag by calling the dag object
         dynamic_dag()
       except Exception:  # pylint: disable=broad-except
-        error_traceback = traceback.format_exc()
-        register_errors = Variable.get(self.register_errors_var,
-                                       deserialize_json=True)
-        register_errors.append({
-            "connection_name": connection["name"], 
-            "error": error_traceback
-        })
-        print(f"{connection['name']} registration error : {error_traceback}")
-
-        Variable.update(self.register_errors_var,
-                        register_errors,
-                        serialize_json=True)
+        DagUtils.handle_errors(
+            error_var=self.register_errors_var,
+            connection_id=connection['name'],
+            log_msg=f"{connection['name']} registration error",
+            error_traceback=traceback.format_exc())
 
 
 builder = DAGBuilder()

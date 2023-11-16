@@ -23,7 +23,7 @@ from airflow.decorators import dag
 from airflow.operators.python_operator import PythonOperator
 from protocols.destination_proto import DestinationProto
 from protocols.source_proto import SourceProto
-from utils import ValidationResult
+from utils.validation_result import ValidationResult
 
 _SOURCE_CLASS_NAME = "Source"
 _DESTINATION_CLASS_NAME = "Destination"

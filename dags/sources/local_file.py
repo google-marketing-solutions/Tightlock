@@ -17,7 +17,9 @@
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from pydantic import Field
-from utils import DrillMixin, ProtocolSchema, ValidationResult
+from utils.drill_mixin import DrillMixin
+from utils.protocol_schema import ProtocolSchema
+from utils.validation_result import  ValidationResult
 
 
 class Source(DrillMixin):

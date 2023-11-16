@@ -19,7 +19,7 @@ import inspect
 
 from protocols.destination_proto import DestinationProto
 from protocols.source_proto import SourceProto
-from utils import DagUtils
+from utils.dag_utils import DagUtils
 
 dag_utils = DagUtils()
 

@@ -22,7 +22,9 @@ from google.auth.exceptions import RefreshError
 from google.cloud import bigquery
 from google.cloud.exceptions import NotFound
 from pydantic import Field
-from utils import ProtocolSchema, SchemaUtils, ValidationResult
+from utils.protocol_schema import ProtocolSchema
+from utils.schema_utils import SchemaUtils
+from utils.validation_result import  ValidationResult
 
 
 class Source:
@@ -84,7 +86,7 @@ class Source:
                 validation="^[a-zA-Z0-9_]{1,1024}$")),
             ("table", str, Field(
                 description="The name of your BigQuery table.",)),
-            
+
             ("credentials", Optional[SchemaUtils.raw_json_type()], Field(
                 default=None,
                 description="The full credentials service-account JSON string. Not needed if your backend is located in the same GCP project as the BigQuery table.")),

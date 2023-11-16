@@ -18,7 +18,7 @@
 import pytest
 from pydantic import Field
 from schemas import build_schema_type, reduce_schemas
-from utils import ProtocolSchema
+from utils.protocol_schema import ProtocolSchema
 
 
 @pytest.mark.parametrize(
