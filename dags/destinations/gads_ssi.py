@@ -82,7 +82,6 @@ class Destination:
         self._offline_data_job_service = self._client.get_service(
             "OfflineUserDataJobService"
         )
-        self._debug = config.get("debug", False)
 
         print("Initialized Google Ads SSI Destination class.")
 
@@ -400,13 +399,6 @@ class Destination:
                     "refresh_token",
                     str,
                     Field(description="A Google Ads API refresh token."),
-                ),
-                (
-                    "debug",
-                    bool,
-                    Field(
-                        description="If true, the API will perform all upload checks and return errors if any are found. When uploading enhanced conversions for leads, you should upload all conversion events to the API, including those that may not come from Google Ads campaigns. The upload of an event that is not from a Google Ads campaign will result in a CLICK_NOT_FOUND error if this field is set to true. Since these errors are expected for such events, set this field to false so you can confirm your uploads are properly formatted but ignore CLICK_NOT_FOUND errors from all of the conversions that are not from a Google Ads campaign. This will allow you to focus only on errors that you can address. "
-                    ),
                 ),
             ],
         )
