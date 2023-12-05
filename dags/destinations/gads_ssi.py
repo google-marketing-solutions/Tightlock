@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License."""
 
-"""Google Ads EC for Leads destination implementation."""
+"""Google Ads SSI destination implementation."""
 import errors
 
 from collections import defaultdict
