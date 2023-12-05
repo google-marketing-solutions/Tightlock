@@ -1,0 +1,3 @@
+customer_id,conversion_action_id,conversion_date_time,conversion_micro_value,email,phone_number,first_name,last_name,zip_code,country_code,custom_key,custom_value,ad_user_data_consent,ad_personalization_consent
+1234,1234556,2023-10-12 11:00:00-10:00,10000,abc@gmail.com,1111111111,abc,santos,04100,US,"","","",""
+12345,1234556789,2023-11-12 11:00:00-10:00,20000,def@gmail.com,2233445566,def,silva,01300,BR,"","","",""

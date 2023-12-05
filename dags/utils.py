@@ -31,7 +31,7 @@ from pydantic import BaseModel
 from google.ads.googleads.client import GoogleAdsClient
 
 _TABLE_ALIAS = "t"
-_DEFAULT_GOOGLE_ADS_API_VERSION = "v14"
+_DEFAULT_GOOGLE_ADS_API_VERSION = "v15"
 
 _REQUIRED_GOOGLE_ADS_CREDENTIALS = frozenset([
   "client_id",
