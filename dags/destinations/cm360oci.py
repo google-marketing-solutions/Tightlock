@@ -17,21 +17,16 @@ limitations under the License."""
 
 # pylint: disable=raise-missing-from
 
-import datetime
-import enum
-import json
-import logging
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from googleapiclient import discovery
 import google_auth_httplib2
 import google.oauth2.credentials
 
 import errors
-import immutabledict
 import requests
 from pydantic import Field
-from utils import ProtocolSchema, RunResult, SchemaUtils, ValidationResult
+from utils import ProtocolSchema, RunResult, ValidationResult
 
 CM_CONVERSION_FIELDS = [
   "floodlightConfigurationId",
@@ -75,7 +70,6 @@ CM_MUTUALLY_EXCLUSIVE_CONVERSIONS_FIELDS = [
 CM_CREDENTIALS = [
   "access_token",
   "refresh_token",
-  "token_uri",
   "client_id",
   "client_secret",
 ]
@@ -104,13 +98,14 @@ class Destination:
 
   def authenticate_using_user_account(self):
     """Authorizes an httplib2.Http instance using user account credentials."""
-    
+
     credentials = google.oauth2.credentials.Credentials(
-    self.credentials['access_token'],
-    refresh_token = self.credentials['refresh_token'],
-    token_uri = self.credentials['token_uri'],
-    client_id = self.credentials['client_id'],
-    client_secret = self.credentials['client_secret'])
+        self.credentials["access_token"],
+        refresh_token=self.credentials["refresh_token"],
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id=self.credentials["client_id"],
+        client_secret=self.credentials["client_secret"]
+    )
 
     # Use the credentials to authorize an httplib2.Http instance.
     http = google_auth_httplib2.AuthorizedHttp(credentials)
@@ -151,8 +146,10 @@ class Destination:
     service = discovery.build('dfareporting', 'v4', http=self.http)
 
     try:
-      request = service.conversions().batchinsert(profileId=self.profileId,
-                                            body=payload)
+      request = service.conversions().batchinsert(
+          profileId=self.profileId,
+          body=payload
+      )
 
       response = request.execute()
       # Success is to be considered between 200 and 299:
@@ -168,14 +165,13 @@ class Destination:
           error_num=errors.ErrorNameIDMap.RETRIABLE_CM360_HOOK_ERROR_HTTP_ERROR,
       )
 
-  def send_data(self, input_data: List[Mapping[str, Any]], dry_run:bool) -> Optional[RunResult]:
+  def send_data(self, input_data: List[Mapping[str, Any]], dry_run: bool) -> Optional[RunResult]:
     """Builds payload and sends data to CM360 API."""
 
     valid_conversions = []
     invalid_conversions = []
-    encryption_info = {}
 
-    for i,entry in enumerate(input_data):
+    for i, entry in enumerate(input_data):
       conversion = {}
       for conversion_field in CM_CONVERSION_FIELDS:
         if conversion_field == "timestamp_micros":
@@ -212,10 +208,10 @@ class Destination:
         )
 
     run_result = RunResult(
-      successful_hits=len(valid_conversions),
-      failed_hits=len(invalid_conversions),
-      error_messages=[str(error[1]) for error in invalid_conversions],
-      dry_run=dry_run,
+        successful_hits=len(valid_conversions),
+        failed_hits=len(invalid_conversions),
+        error_messages=[str(error[1]) for error in invalid_conversions],
+        dry_run=dry_run,
     )
 
     return run_result
@@ -223,19 +219,45 @@ class Destination:
   @staticmethod
   def schema() -> Optional[ProtocolSchema]:
     return ProtocolSchema(
-      "CM360OCI",
-      [
-        ("profile_id", str, Field(description="A Camaign Manager Profile ID .")),
-        ("encryptionEntityType", str, Field(description="The encryption entity type.")),
-        ("encryptionEntityId", str, Field(description="The encryption entity ID.")),
-        ("encryptionSource", str, Field(description="Describes whether the encrypted cookie was received from ad serving or from Data Transfer.")),
-        ("kind", str, Field(description="Identifies what kind of resource this is.")),
-        ("access_token", str, Field(description="A Campaign Manager 360 access token.")),
-        ("refresh_token", str, Field(description="A Campaign Manager 360 API refresh token.")),
-        ("token_uri", str, Field(description="A Campaign Manager 360 API token uri.")),
-        ("client_id", str, Field(description="An OAuth2.0 Web Client ID.")),
-        ("client_secret", str, Field(description="An OAuth2.0 Web Client Secret.")),
-      ]
+        "CM360OCI",
+        [
+            ("profile_id",
+             str,
+             Field(description="A Campaign Manager Profile ID .")
+            ),
+            ("encryptionEntityType",
+             str,
+             Field(description="The encryption entity type. One of DCM_ACCOUNT, DCM_ADVERTISER, DBM_PARTNER, DBM_ADVERTISER, ADWORDS_CUSTOMER	 or DFP_NETWORK_CODE")
+            ),
+            ("encryptionEntityId",
+             str,
+             Field(description="The encryption entity ID.")
+            ),
+            ("encryptionSource",
+             str,
+             Field(description="Describes whether the encrypted cookie was received from AD_SERVING or DATA_TRANSFER.")
+            ),
+            ("kind",
+             str,
+             Field(description="Identifies what kind of resource this is.")
+            ),
+            ("access_token",
+             str,
+             Field(description="A Campaign Manager 360 access token.")
+            ),
+            ("refresh_token",
+             str,
+             Field(description="A Campaign Manager 360 API refresh token.")
+            ),
+            ("client_id",
+             str,
+             Field(description="An OAuth2.0 Web Client ID.")
+            ),
+            ("client_secret",
+             str,
+             Field(description="An OAuth2.0 Web Client Secret.")
+            ),
+        ]
     )
 
   def fields(self) -> Sequence[str]:
