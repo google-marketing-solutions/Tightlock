@@ -17,8 +17,9 @@ limitations under the License."""
 
 # pylint: disable=raise-missing-from
 
-from typing import Any, Dict, List, Mapping, Optional, Sequence
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
+import googleapiclient
 from googleapiclient import discovery
 import google_auth_httplib2
 import google.oauth2.credentials
@@ -88,7 +89,7 @@ class Destination:
     self.encryption_info = {}
     self.encryption_info["encryptionEntityType"] = config.get("encryptionEntityType","")
     self.encryption_info["encryptionEntityId"] = config.get("encryptionEntityId","")
-    self.encryption_info["encryptionEntitySource"] = config.get("encryptionEntitySource","")
+    self.encryption_info["encryptionSource"] = config.get("encryptionSource","")
     self.encryption_info["kind"] = config.get("kind","")
     self.validate()
     self._validate_credentials()
@@ -152,28 +153,43 @@ class Destination:
       )
 
       response = request.execute()
+      print(f"RESPONSE >>>>>>> {response}")
       # Success is to be considered between 200 and 299:
       # https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
-      if response.status_code < 200 or response.status_code >= 300:
+      if not response.get("hasFailures"):
         raise errors.DataOutConnectorSendUnsuccessfulError(
             msg="Sending payload to CM360 did not complete successfully.",
             error_num=errors.ErrorNameIDMap.RETRIABLE_CM360_HOOK_ERROR_HTTP_ERROR,
         )
-    except requests.ConnectionError:
+      else:
+        if response["hasFailures"]:
+          error_num = errors.ErrorNameIDMap.NON_RETRIABLE_ERROR_EVENT_NOT_SENT
+          status_errors = [status["errors"] for status in response["status"]]
+          raise errors.DataOutConnectorSendUnsuccessfulError(
+              msg=f"Sending payload to CM360 did not complete successfully: {status_errors}",
+              error_num=error_num,
+      )
+
+    except googleapiclient.errors.HttpError as http_error:
+      if http_error.resp.status >= 400 and http_error.resp.status < 500:
+        error_num = errors.ErrorNameIDMap.NON_RETRIABLE_ERROR_EVENT_NOT_SENT
+      else:
+        error_num = errors.ErrorNameIDMap.RETRIABLE_CM360_HOOK_ERROR_HTTP_ERROR
       raise errors.DataOutConnectorSendUnsuccessfulError(
-          msg="Sending payload to CM360 did not complete successfully.",
-          error_num=errors.ErrorNameIDMap.RETRIABLE_CM360_HOOK_ERROR_HTTP_ERROR,
+          msg=f"Sending payload to CM360 did not complete successfully: {http_error}",
+          error_num=error_num,
       )
 
   def send_data(self, input_data: List[Mapping[str, Any]], dry_run: bool) -> Optional[RunResult]:
     """Builds payload and sends data to CM360 API."""
 
-    valid_conversions = []
-    invalid_conversions = []
+    valid_conversion_tuples = []
+    invalid_conversion_tuples = []
+    http_error = None
 
     for i, entry in enumerate(input_data):
       conversion = {}
-      for conversion_field in CM_CONVERSION_FIELDS:
+      for conversion_field in (CM_REQUIRED_CONVERSIONS_FIELDS + CM_CONVERSION_FIELDS + CM_MUTUALLY_EXCLUSIVE_CONVERSIONS_FIELDS):
         if conversion_field == "timestamp_micros":
           timestamp_micros = self._parse_timestamp_micros(entry)
           if timestamp_micros:
@@ -183,34 +199,45 @@ class Destination:
         elif conversion_field == "conversion_kind":
           conversion["kind"] = str(entry.get(conversion_field, ""))
         else:
-          conversion[conversion_field] = str(entry.get(conversion_field, ""))
-      
-      if self.validate_conversion(conversion):
-        valid_conversions.append(conversion)
-      else:
-        invalid_conversions.append((i, errors.ErrorNameIDMap.CM_HOOK_ERROR_INVALID_CONVERSION_EVENT))
+          value = entry.get(conversion_field)
+          if value:
+            conversion[conversion_field] = value
 
-    if valid_conversions:
+      is_valid, error_message = self._validate_conversion(conversion)
+      if is_valid:
+        valid_conversion_tuples.append((i, conversion))
+      else:
+        invalid_conversion_tuples.append((i, error_message))
+
+    if valid_conversion_tuples:
       payload = {}
       payload["encryptionInfo"] = self.encryption_info
-      payload["conversions"] = valid_conversions
+      payload["conversions"] = [conversion_tuple[1] for conversion_tuple in valid_conversion_tuples]
 
       if not dry_run:
         try:
+          print(f"PAYLOAD >>>>>>>>>> {payload}")
           self._send_payload(payload)
         except (
               errors.DataOutConnectorSendUnsuccessfulError,
           ) as error:
-            send_error = error.error_num
+            http_error = error.msg
       else:
         print(
           "Dry-Run: CM conversions event will not be sent."
         )
 
+    if http_error:
+      invalid_conversion_tuples += [(conversion_tuple[0], http_error) for conversion_tuple in valid_conversion_tuples]
+      valid_conversion_tuples = []
+
+    print(f"Sent entries: {len(valid_conversion_tuples)}")
+    print(f"Invalid entries: {len(invalid_conversion_tuples)}")
+
     run_result = RunResult(
-        successful_hits=len(valid_conversions),
-        failed_hits=len(invalid_conversions),
-        error_messages=[str(error[1]) for error in invalid_conversions],
+        successful_hits=len(valid_conversion_tuples),
+        failed_hits=len(invalid_conversion_tuples),
+        error_messages=[str(error[1]) for error in invalid_conversion_tuples],
         dry_run=dry_run,
     )
 
@@ -287,24 +314,31 @@ class Destination:
       
     return ValidationResult(True, [error_msg])
 
-  def validate_conversion(self, conversion) -> bool:
+  def _validate_conversion(self, conversion: Mapping[str, Any]) -> Tuple[bool, Optional[str]]:
     """Validates a conversion.
 
+    Arguments:
+      conversion: The target conversion to be validated
+
     Returns:
-      True if the conversion is valid, False if it isn't.
+      A tuple containing a boolean indicating whether or not the entry is valid 
+      and an optional error message.
     """
+
     
     for required_field in CM_REQUIRED_CONVERSIONS_FIELDS:
       if not conversion[required_field]:
-        return False
+        error_message = f"[Invalid conversion] Missing required conversion field: {required_field}"
+        return (False, error_message)
 
     invalid = True
     for id_field in CM_MUTUALLY_EXCLUSIVE_CONVERSIONS_FIELDS:
-      if conversion[id_field]:
+      if conversion.get(id_field):
         invalid = False
         break
 
     if invalid:
-      return False
+      error_message = "[Invalid conversion] No valid identifier was found."
+      return (False, error_message)
 
-    return True
+    return (True, "")
