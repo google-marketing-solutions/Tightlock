@@ -25,7 +25,6 @@ import google_auth_httplib2
 import google.oauth2.credentials
 
 import errors
-import requests
 from pydantic import Field
 from utils import ProtocolSchema, RunResult, ValidationResult
 
@@ -84,13 +83,12 @@ class Destination:
     self.credentials = {}
 
     for credential in CM_CREDENTIALS:
-      self.credentials[credential] = config.get(credential,"")
+      self.credentials[credential] = config.get(credential, "")
     
     self.encryption_info = {}
-    self.encryption_info["encryptionEntityType"] = config.get("encryptionEntityType","")
-    self.encryption_info["encryptionEntityId"] = config.get("encryptionEntityId","")
-    self.encryption_info["encryptionSource"] = config.get("encryptionSource","")
-    self.encryption_info["kind"] = config.get("kind","")
+    self.encryption_info["encryptionEntityType"] = config.get("encryptionEntityType", "")
+    self.encryption_info["encryptionEntityId"] = config.get("encryptionEntityId", "")
+    self.encryption_info["encryptionSource"] = config.get("encryptionSource",  "")
     self.validate()
     self._validate_credentials()
     
@@ -144,7 +142,7 @@ class Destination:
     """
 
     # Construct a service object via the discovery service.
-    service = discovery.build('dfareporting', 'v4', http=self.http)
+    service = discovery.build("dfareporting", "v4", http=self.http)
 
     try:
       request = service.conversions().batchinsert(
@@ -153,7 +151,6 @@ class Destination:
       )
 
       response = request.execute()
-      print(f"RESPONSE >>>>>>> {response}")
       # Success is to be considered between 200 and 299:
       # https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
       if not response.get("hasFailures"):
@@ -168,7 +165,7 @@ class Destination:
           raise errors.DataOutConnectorSendUnsuccessfulError(
               msg=f"Sending payload to CM360 did not complete successfully: {status_errors}",
               error_num=error_num,
-      )
+          )
 
     except googleapiclient.errors.HttpError as http_error:
       if http_error.resp.status >= 400 and http_error.resp.status < 500:
@@ -196,8 +193,6 @@ class Destination:
             conversion[conversion_field] = timestamp_micros
           else:
             conversion[conversion_field] = ""
-        elif conversion_field == "conversion_kind":
-          conversion["kind"] = str(entry.get(conversion_field, ""))
         else:
           value = entry.get(conversion_field)
           if value:
@@ -216,15 +211,14 @@ class Destination:
 
       if not dry_run:
         try:
-          print(f"PAYLOAD >>>>>>>>>> {payload}")
           self._send_payload(payload)
         except (
-              errors.DataOutConnectorSendUnsuccessfulError,
-          ) as error:
-            http_error = error.msg
+            errors.DataOutConnectorSendUnsuccessfulError,
+        ) as error:
+          http_error = error.msg
       else:
         print(
-          "Dry-Run: CM conversions event will not be sent."
+            "Dry-Run: CM conversions event will not be sent."
         )
 
     if http_error:
@@ -264,10 +258,6 @@ class Destination:
              str,
              Field(description="Describes whether the encrypted cookie was received from AD_SERVING or DATA_TRANSFER.")
             ),
-            ("kind",
-             str,
-             Field(description="Identifies what kind of resource this is.")
-            ),
             ("access_token",
              str,
              Field(description="A Campaign Manager 360 access token.")
@@ -300,7 +290,7 @@ class Destination:
       A ValidationResult for the provided config.
     """
     missing_encryption_fields = []
-    error_msg = ''
+    error_msg = ""
 
     for encryption_field in self.encryption_info:
       if not self.encryption_info[encryption_field]:
@@ -308,10 +298,10 @@ class Destination:
 
     if missing_encryption_fields:
       error_msg = (
-        "Config requires the following fields to be set: "
-        f"{', '.join(missing_encryption_fields)}")
+          "Config requires the following fields to be set: "
+          f"{', '.join(missing_encryption_fields)}")
       return ValidationResult(False, [error_msg])
-      
+
     return ValidationResult(True, [error_msg])
 
   def _validate_conversion(self, conversion: Mapping[str, Any]) -> Tuple[bool, Optional[str]]:
@@ -325,20 +315,24 @@ class Destination:
       and an optional error message.
     """
 
-    
+    # checks for required fields
     for required_field in CM_REQUIRED_CONVERSIONS_FIELDS:
       if not conversion[required_field]:
-        error_message = f"[Invalid conversion] Missing required conversion field: {required_field}"
+        error_message = f"Missing required conversion field: {required_field}"
         return (False, error_message)
 
-    invalid = True
+    # checks for mutually exclusive ids
+    found_ids = []
     for id_field in CM_MUTUALLY_EXCLUSIVE_CONVERSIONS_FIELDS:
       if conversion.get(id_field):
-        invalid = False
-        break
+        found_ids.append(id_field)
 
-    if invalid:
-      error_message = "[Invalid conversion] No valid identifier was found."
+    ids_count = len(found_ids)
+    if ids_count == 0:
+      error_message = "No valid identifier was found."
+      return (False, error_message)
+    elif ids_count > 1:
+      error_message = f"More than one mutually-exclusive identifier found: {found_ids}"
       return (False, error_message)
 
     return (True, "")
