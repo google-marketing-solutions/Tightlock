@@ -22,7 +22,7 @@ import pytest
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-from tenacity import retry, wait_exponential
+from tenacity import retry, wait_exponential, stop_after_attempt
 
 pytest_plugins = ["docker_compose"]
 
@@ -59,7 +59,7 @@ class Helpers:
 
 
 @pytest.fixture(scope="session", autouse=True)
-@retry(wait=wait_exponential(multiplier=1, min=4, max=10))
+@retry(wait=wait_exponential(multiplier=1, min=4, max=10), stop=stop_after_attempt(5))
 def wait_for_api(session_scoped_container_getter):
   """Wait for Airflow and Drill to be ready before starting integration tests."""
   airflow_request_session, airflow_url = Helpers(
