@@ -30,12 +30,27 @@ from security import check_authentication_header
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from starlette import status
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.middleware import SlowAPIMiddleware
+from slowapi.errors import RateLimitExceeded
+
 
 # Creates base app and v1 API objects
 app = FastAPI()
 v1 = FastAPI(dependencies=[Depends(check_authentication_header)])
 
+# Setup rate limiter
+limiter = Limiter(key_func=get_remote_address,
+                  default_limits=["1/second"],
+                  application_limits=["5/second", "50/minute"],
+                  strategy="moving-window",
+                  storage_uri=os.environ.get("RATE_LIMITER_STORAGE_URL"))
+
+v1.state.limiter = limiter
+v1.add_exception_handler(RateLimitExceeded,
+                         _rate_limit_exceeded_handler)
+v1.add_middleware(SlowAPIMiddleware)
 
 @app.on_event("startup")
 async def create_initial_config():
