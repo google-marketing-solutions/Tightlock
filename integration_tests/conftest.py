@@ -40,7 +40,7 @@ class Helpers:
       request_session.auth = auth
     if api_key:
       request_session.headers.update({"X-API-Key": api_key})
-    retries = Retry(total=5, backoff_factor=1, status_forcelist=[404, 500, 502, 503, 504])
+    retries = Retry(total=5, backoff_factor=1, status_forcelist=[404, 429, 500, 502, 503, 504])
     request_session.mount("http://", HTTPAdapter(max_retries=retries))
 
     service = self.container_getter.get(container_name).network_info[0]
