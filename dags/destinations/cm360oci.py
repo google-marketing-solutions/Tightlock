@@ -17,14 +17,14 @@ limitations under the License."""
 
 # pylint: disable=raise-missing-from
 
-from typing import Any, Dict, List, Mapping, Optional, Sequence
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
+import googleapiclient
 from googleapiclient import discovery
 import google_auth_httplib2
 import google.oauth2.credentials
 
 import errors
-import requests
 from pydantic import Field
 from utils import ProtocolSchema, RunResult, ValidationResult
 
@@ -83,13 +83,12 @@ class Destination:
     self.credentials = {}
 
     for credential in CM_CREDENTIALS:
-      self.credentials[credential] = config.get(credential,"")
+      self.credentials[credential] = config.get(credential, "")
     
     self.encryption_info = {}
-    self.encryption_info["encryptionEntityType"] = config.get("encryptionEntityType","")
-    self.encryption_info["encryptionEntityId"] = config.get("encryptionEntityId","")
-    self.encryption_info["encryptionEntitySource"] = config.get("encryptionEntitySource","")
-    self.encryption_info["kind"] = config.get("kind","")
+    self.encryption_info["encryptionEntityType"] = config.get("encryptionEntityType", "")
+    self.encryption_info["encryptionEntityId"] = config.get("encryptionEntityId", "")
+    self.encryption_info["encryptionSource"] = config.get("encryptionSource",  "")
     self.validate()
     self._validate_credentials()
     
@@ -143,7 +142,7 @@ class Destination:
     """
 
     # Construct a service object via the discovery service.
-    service = discovery.build('dfareporting', 'v4', http=self.http)
+    service = discovery.build("dfareporting", "v4", http=self.http)
 
     try:
       request = service.conversions().batchinsert(
@@ -154,63 +153,85 @@ class Destination:
       response = request.execute()
       # Success is to be considered between 200 and 299:
       # https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
-      if response.status_code < 200 or response.status_code >= 300:
+      if not response.get("hasFailures"):
         raise errors.DataOutConnectorSendUnsuccessfulError(
             msg="Sending payload to CM360 did not complete successfully.",
             error_num=errors.ErrorNameIDMap.RETRIABLE_CM360_HOOK_ERROR_HTTP_ERROR,
         )
-    except requests.ConnectionError:
+      else:
+        if response["hasFailures"]:
+          error_num = errors.ErrorNameIDMap.NON_RETRIABLE_ERROR_EVENT_NOT_SENT
+          status_errors = [status["errors"] for status in response["status"]]
+          raise errors.DataOutConnectorSendUnsuccessfulError(
+              msg=f"Sending payload to CM360 did not complete successfully: {status_errors}",
+              error_num=error_num,
+          )
+
+    except googleapiclient.errors.HttpError as http_error:
+      if http_error.resp.status >= 400 and http_error.resp.status < 500:
+        error_num = errors.ErrorNameIDMap.NON_RETRIABLE_ERROR_EVENT_NOT_SENT
+      else:
+        error_num = errors.ErrorNameIDMap.RETRIABLE_CM360_HOOK_ERROR_HTTP_ERROR
       raise errors.DataOutConnectorSendUnsuccessfulError(
-          msg="Sending payload to CM360 did not complete successfully.",
-          error_num=errors.ErrorNameIDMap.RETRIABLE_CM360_HOOK_ERROR_HTTP_ERROR,
+          msg=f"Sending payload to CM360 did not complete successfully: {http_error}",
+          error_num=error_num,
       )
 
   def send_data(self, input_data: List[Mapping[str, Any]], dry_run: bool) -> Optional[RunResult]:
     """Builds payload and sends data to CM360 API."""
 
-    valid_conversions = []
-    invalid_conversions = []
+    valid_conversion_tuples = []
+    invalid_conversion_tuples = []
+    http_error = None
 
     for i, entry in enumerate(input_data):
       conversion = {}
-      for conversion_field in CM_CONVERSION_FIELDS:
+      for conversion_field in (CM_REQUIRED_CONVERSIONS_FIELDS + CM_CONVERSION_FIELDS + CM_MUTUALLY_EXCLUSIVE_CONVERSIONS_FIELDS):
         if conversion_field == "timestamp_micros":
           timestamp_micros = self._parse_timestamp_micros(entry)
           if timestamp_micros:
             conversion[conversion_field] = timestamp_micros
           else:
             conversion[conversion_field] = ""
-        elif conversion_field == "conversion_kind":
-          conversion["kind"] = str(entry.get(conversion_field, ""))
         else:
-          conversion[conversion_field] = str(entry.get(conversion_field, ""))
-      
-      if self.validate_conversion(conversion):
-        valid_conversions.append(conversion)
-      else:
-        invalid_conversions.append((i, errors.ErrorNameIDMap.CM_HOOK_ERROR_INVALID_CONVERSION_EVENT))
+          value = entry.get(conversion_field)
+          if value:
+            conversion[conversion_field] = value
 
-    if valid_conversions:
+      is_valid, error_message = self._validate_conversion(conversion)
+      if is_valid:
+        valid_conversion_tuples.append((i, conversion))
+      else:
+        invalid_conversion_tuples.append((i, error_message))
+
+    if valid_conversion_tuples:
       payload = {}
       payload["encryptionInfo"] = self.encryption_info
-      payload["conversions"] = valid_conversions
+      payload["conversions"] = [conversion_tuple[1] for conversion_tuple in valid_conversion_tuples]
 
       if not dry_run:
         try:
           self._send_payload(payload)
         except (
-              errors.DataOutConnectorSendUnsuccessfulError,
-          ) as error:
-            send_error = error.error_num
+            errors.DataOutConnectorSendUnsuccessfulError,
+        ) as error:
+          http_error = error.msg
       else:
         print(
-          "Dry-Run: CM conversions event will not be sent."
+            "Dry-Run: CM conversions event will not be sent."
         )
 
+    if http_error:
+      invalid_conversion_tuples += [(conversion_tuple[0], http_error) for conversion_tuple in valid_conversion_tuples]
+      valid_conversion_tuples = []
+
+    print(f"Sent entries: {len(valid_conversion_tuples)}")
+    print(f"Invalid entries: {len(invalid_conversion_tuples)}")
+
     run_result = RunResult(
-        successful_hits=len(valid_conversions),
-        failed_hits=len(invalid_conversions),
-        error_messages=[str(error[1]) for error in invalid_conversions],
+        successful_hits=len(valid_conversion_tuples),
+        failed_hits=len(invalid_conversion_tuples),
+        error_messages=[str(error[1]) for error in invalid_conversion_tuples],
         dry_run=dry_run,
     )
 
@@ -236,10 +257,6 @@ class Destination:
             ("encryptionSource",
              str,
              Field(description="Describes whether the encrypted cookie was received from AD_SERVING or DATA_TRANSFER.")
-            ),
-            ("kind",
-             str,
-             Field(description="Identifies what kind of resource this is.")
             ),
             ("access_token",
              str,
@@ -273,7 +290,7 @@ class Destination:
       A ValidationResult for the provided config.
     """
     missing_encryption_fields = []
-    error_msg = ''
+    error_msg = ""
 
     for encryption_field in self.encryption_info:
       if not self.encryption_info[encryption_field]:
@@ -281,30 +298,41 @@ class Destination:
 
     if missing_encryption_fields:
       error_msg = (
-        "Config requires the following fields to be set: "
-        f"{', '.join(missing_encryption_fields)}")
+          "Config requires the following fields to be set: "
+          f"{', '.join(missing_encryption_fields)}")
       return ValidationResult(False, [error_msg])
-      
+
     return ValidationResult(True, [error_msg])
 
-  def validate_conversion(self, conversion) -> bool:
+  def _validate_conversion(self, conversion: Mapping[str, Any]) -> Tuple[bool, Optional[str]]:
     """Validates a conversion.
 
+    Arguments:
+      conversion: The target conversion to be validated
+
     Returns:
-      True if the conversion is valid, False if it isn't.
+      A tuple containing a boolean indicating whether or not the entry is valid 
+      and an optional error message.
     """
-    
+
+    # checks for required fields
     for required_field in CM_REQUIRED_CONVERSIONS_FIELDS:
       if not conversion[required_field]:
-        return False
+        error_message = f"Missing required conversion field: {required_field}"
+        return (False, error_message)
 
-    invalid = True
+    # checks for mutually exclusive ids
+    found_ids = []
     for id_field in CM_MUTUALLY_EXCLUSIVE_CONVERSIONS_FIELDS:
-      if conversion[id_field]:
-        invalid = False
-        break
+      if conversion.get(id_field):
+        found_ids.append(id_field)
 
-    if invalid:
-      return False
+    ids_count = len(found_ids)
+    if ids_count == 0:
+      error_message = "No valid identifier was found."
+      return (False, error_message)
+    elif ids_count > 1:
+      error_message = f"More than one mutually-exclusive identifier found: {found_ids}"
+      return (False, error_message)
 
-    return True
+    return (True, "")
