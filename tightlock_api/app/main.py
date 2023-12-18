@@ -35,6 +35,8 @@ from slowapi.util import get_remote_address
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.errors import RateLimitExceeded
 
+_METHOD_LEVEL_RATE_LIMITS = ["1/second"]
+_APP_LEVEL_RATE_LIMITS = ["3/second", "30/minute"]
 
 # Creates base app and v1 API objects
 app = FastAPI()
@@ -42,8 +44,8 @@ v1 = FastAPI(dependencies=[Depends(check_authentication_header)])
 
 # Setup rate limiter
 limiter = Limiter(key_func=get_remote_address,
-                  default_limits=["1/second"],
-                  application_limits=["5/second", "50/minute"],
+                  default_limits=_METHOD_LEVEL_RATE_LIMITS,
+                  application_limits=_APP_LEVEL_RATE_LIMITS,
                   strategy="moving-window",
                   storage_uri=os.environ.get("RATE_LIMITER_STORAGE_URL"))
 
