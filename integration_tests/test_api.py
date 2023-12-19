@@ -16,8 +16,8 @@
 
 """Integration tests for tightlock-api container."""
 
-import ast
 from urllib import parse
+from tenacity import retry, wait_random_exponential, stop_after_attempt
 
 import pytest
 
@@ -29,6 +29,8 @@ def test_initial_config(helpers):
   assert config[0]["label"] == "Initial Config"
 
 
+# retry to remediate rate limiter
+@retry(wait=wait_random_exponential(multiplier=1, min=3, max=10), stop=stop_after_attempt(5))
 def test_connect_authentication(helpers):
   """Verifies if connect/ endpoint is properly authenticated."""
   request_session, api_url = helpers.get_tightlock_api_client()
@@ -41,6 +43,8 @@ def test_connect_authentication(helpers):
     "test_location,expected_result",
     [("integration_test.csvh", True), ("non_existent.file", False)],
 )
+# retry to remediate rate limiter
+@retry(wait=wait_random_exponential(multiplier=1, min=3, max=10), stop=stop_after_attempt(5))
 def test_validate_source(helpers, test_location, expected_result):
   request_session, api_url = helpers.get_tightlock_api_client()
   response = request_session.post(
@@ -53,6 +57,8 @@ def test_validate_source(helpers, test_location, expected_result):
   assert validation_result["is_valid"] == expected_result
 
 
+# retry to remediate rate limiter
+@retry(wait=wait_random_exponential(multiplier=1, min=3, max=10), stop=stop_after_attempt(5))
 def test_validate_destination(helpers):
   request_session, api_url = helpers.get_tightlock_api_client()
   response = request_session.post(
@@ -69,3 +75,12 @@ def test_validate_destination(helpers):
     pytest.fail(response.text)
   validation_result = response.json()
   assert validation_result["is_valid"]
+
+
+def test_rate_limiter(helpers):
+  request_session, api_url = helpers.get_tightlock_api_client()
+  responses = []
+  for _ in range(10):
+    responses.append(
+        request_session.post(parse.urljoin(api_url, "api/v1/connect")))
+  assert any([res.status_code == 429 for res in responses])
