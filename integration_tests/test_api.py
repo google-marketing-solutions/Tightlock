@@ -30,7 +30,7 @@ def test_initial_config(helpers):
 
 
 # retry to remediate rate limiter
-@retry(wait=wait_random_exponential(multiplier=1, min=2, max=5), stop=stop_after_attempt(3))
+@retry(wait=wait_random_exponential(multiplier=1, min=3, max=10), stop=stop_after_attempt(5))
 def test_connect_authentication(helpers):
   """Verifies if connect/ endpoint is properly authenticated."""
   request_session, api_url = helpers.get_tightlock_api_client()
@@ -44,7 +44,7 @@ def test_connect_authentication(helpers):
     [("integration_test.csvh", True), ("non_existent.file", False)],
 )
 # retry to remediate rate limiter
-@retry(wait=wait_random_exponential(multiplier=1, min=2, max=5), stop=stop_after_attempt(3))
+@retry(wait=wait_random_exponential(multiplier=1, min=3, max=10), stop=stop_after_attempt(5))
 def test_validate_source(helpers, test_location, expected_result):
   request_session, api_url = helpers.get_tightlock_api_client()
   response = request_session.post(
@@ -58,7 +58,7 @@ def test_validate_source(helpers, test_location, expected_result):
 
 
 # retry to remediate rate limiter
-@retry(wait=wait_random_exponential(multiplier=1, min=2, max=5), stop=stop_after_attempt(3))
+@retry(wait=wait_random_exponential(multiplier=1, min=3, max=10), stop=stop_after_attempt(5))
 def test_validate_destination(helpers):
   request_session, api_url = helpers.get_tightlock_api_client()
   response = request_session.post(
