@@ -19,6 +19,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 from pydantic import Field
 from utils import DrillMixin, ProtocolSchema, ValidationResult
 
+_UNIQUE_ID_DEFAULT_NAME = "id"
 
 class Source(DrillMixin):
   """Implements SourceProto protocol for Drill Local Files."""
@@ -28,6 +29,7 @@ class Source(DrillMixin):
     self.location = self.config["location"]
     self.conn_name = "dfs"
     self.path = f"{self.conn_name}.`data/{self.location}`"
+    self.unique_id = config.get("unique_id", _UNIQUE_ID_DEFAULT_NAME)
 
   def get_data(
       self,
@@ -36,7 +38,7 @@ class Source(DrillMixin):
       limit: int,
       reusable_credentials: Optional[Sequence[Mapping[str, Any]]],
   ) -> List[Mapping[str, Any]]:
-    return self.get_drill_data(self.path, fields, offset, limit)
+    return self.get_drill_data(self.path, fields, offset, limit, self.unique_id)
 
   @staticmethod
   def schema() -> Optional[ProtocolSchema]:
@@ -44,7 +46,11 @@ class Source(DrillMixin):
         "local_file",
         [
             ("location", str, Field(
-                description="The path to your local file, relative to the container 'data' folder."))
+                description="The path to your local file, relative to the container 'data' folder.")),
+            ("unique_id", Optional[str], Field(
+                description=f"Unique id column name to be used by local file engine. Defaults to '{_UNIQUE_ID_DEFAULT_NAME}' when nothing is provided.",
+                default=_UNIQUE_ID_DEFAULT_NAME
+            )),
         ]
     )
 

@@ -24,6 +24,7 @@ from google.cloud.exceptions import NotFound
 from pydantic import Field
 from utils import ProtocolSchema, SchemaUtils, ValidationResult
 
+_UNIQUE_ID_DEFAULT_NAME = "id"
 
 class Source:
   """Implements SourceProto protocol for BigQuery."""
@@ -47,6 +48,7 @@ class Source:
     else:
       self.client = bigquery.Client()
     self.location = f"{config.get('dataset')}.{config.get('table')}"
+    self.unique_id = config.get("unique_id", _UNIQUE_ID_DEFAULT_NAME)
 
   def get_data(
       self,
@@ -59,6 +61,7 @@ class Source:
     query = (
         f"SELECT *"
         f" FROM `{self.location}`"
+        f" ORDER BY {self.unique_id}"
         f" LIMIT {limit} OFFSET {offset}"
     )
     query_job = self.client.query(query)
@@ -84,7 +87,10 @@ class Source:
                 validation="^[a-zA-Z0-9_]{1,1024}$")),
             ("table", str, Field(
                 description="The name of your BigQuery table.",)),
-            
+            ("unique_id", Optional[str], Field(
+                description=f"Unique id column name to be used by BigQuery. Defaults to '{_UNIQUE_ID_DEFAULT_NAME}' when nothing is provided.",
+                default=_UNIQUE_ID_DEFAULT_NAME
+            )),
             ("credentials", Optional[SchemaUtils.raw_json_type()], Field(
                 default=None,
                 description="The full credentials service-account JSON string. Not needed if your backend is located in the same GCP project as the BigQuery table.")),

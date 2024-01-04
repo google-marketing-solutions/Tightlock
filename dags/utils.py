@@ -84,7 +84,6 @@ class SchemaUtils:
       value: str
     return KeyValue
 
-
   @staticmethod
   def raw_json_type():
     class RawJSON(BaseModel):
@@ -270,7 +269,12 @@ class DrillMixin:
     return events
 
   def get_drill_data(
-      self, from_target: Sequence[str], fields: Sequence[str], offset: int, limit: int
+      self,
+      from_target: Sequence[str],
+      fields: Sequence[str],
+      offset: int,
+      limit: int,
+      unique_id: str
   ) -> List[Mapping[str, Any]]:
     drill_conn = DrillHook().get_conn()
     cursor = drill_conn.cursor()
@@ -279,6 +283,7 @@ class DrillMixin:
     query = (
         f"SELECT {fields_str}"
         f" FROM {from_target} as {table_alias}"
+        f" ORDER BY {unique_id}"
         f" LIMIT {limit} OFFSET {offset}"
     )
     try:
