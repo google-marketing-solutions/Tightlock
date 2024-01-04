@@ -1,0 +1,3 @@
+email,phone_number,first_name,last_name,postal_code,country_code,ad_user_data_consent,ad_personalization_consent
+a@gmail.com,1111111111,abc,tom,01300,BR,GRANTED,GRANTED
+b@gmail.com,1111111111,abc,tom,01300,BR,GRANTED,GRANTED

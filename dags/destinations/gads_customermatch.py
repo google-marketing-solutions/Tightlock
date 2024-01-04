@@ -32,6 +32,11 @@ _USER_IDENTIFIER_FIELDS = [
   "postal_code"
 ]
 
+_OTHER_FIELDS = [
+    "ad_user_data_consent",
+    "ad_personalization_consent",
+]
+
 
 def _construct_error_message(api_error: Any) -> str:
   """Construct an error message from an API error object."""
@@ -150,6 +155,10 @@ class Destination:
       "GoogleAdsService"
     )
 
+    # Request-level consent flags
+    self.ad_user_data_consent = None
+    self.ad_personalization_consent = None
+
   def send_data(
       self, input_data: List[Mapping[str, Any]], dry_run: bool
   ) -> Optional[RunResult]:
@@ -173,6 +182,7 @@ class Destination:
       try:
         user_operation = self._build_user_data_operation_from_row(user_data)
         user_data_operations.append(user_operation)
+        self._update_consent_metadata(index, user_data)
       except ValueError as ve:
         err_msg = f"Could not process data at row '{index}':  {str(ve)}"
         print(err_msg)
@@ -212,6 +222,35 @@ class Destination:
       failed_hits=len(failures),
       error_messages=failures
     )
+
+  def _update_consent_metadata(self, index: int, user_data: Mapping[str, Any]):
+    """Updates the consent metadata with a new user_data row.
+    
+    Consent metadata needs to be consensual for the whole batch and will default
+    to None if divergence occurs.
+
+    Args:
+      index: The index of the user_data row.
+      user_data:  A row of user data from the source.
+    """
+    ad_user_data = user_data.get("ad_user_data_consent")
+    ad_personalization = user_data.get("ad_personalization_consent")
+
+    for global_consent_var_name, row_consent_var in [
+        ('ad_user_data_consent', ad_user_data),
+        ('ad_personalization_consent', ad_personalization)
+    ]:
+      global_consent_var = getattr(self, global_consent_var_name)
+      if global_consent_var and row_consent_var:
+          updated_consent = (
+            global_consent_var
+            if global_consent_var == row_consent_var
+            else None
+          )
+          setattr(self, global_consent_var_name, updated_consent)
+      # allow global None to be update on the first row of the batch
+      elif index == 0 and row_consent_var:
+        setattr(self, global_consent_var_name, row_consent_var)
 
   def _build_user_data_operation_from_row(
       self, user_data: Mapping[str, Any]
@@ -269,7 +308,7 @@ class Destination:
       address_info.postal_code = user_data["postal_code"]
 
       payload.user_identifiers.append(user_identifier)
-
+  
     return payload
 
   def _create_user_upload_job(self) -> str:
@@ -288,6 +327,14 @@ class Destination:
     offline_user_data_job.customer_match_user_list_metadata.user_list = (
       user_list_resource_name
     )
+    if self.ad_user_data_consent:
+      offline_user_data_job.customer_match_user_list_metadata.consent.ad_user_data = (
+          self.ad_user_data_consent)
+
+    if self.ad_personalization_consent:
+      offline_user_data_job.customer_match_user_list_metadata.consent.ad_personalization = (
+          self.ad_personalization_consent)
+
 
     create_offline_user_data_job_response = (
       self._offline_user_data_job_service.create_offline_user_data_job(
@@ -387,7 +434,7 @@ class Destination:
     Returns:
       A sequence of fields.
     """
-    return _USER_IDENTIFIER_FIELDS
+    return _USER_IDENTIFIER_FIELDS + _OTHER_FIELDS
 
   def batch_size(self) -> int:
     """Returns the required batch_size for the underlying destination API.
