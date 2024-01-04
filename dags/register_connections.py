@@ -32,6 +32,7 @@ from airflow.operators.python_operator import PythonOperator
 from protocols.destination_proto import DestinationProto
 from protocols.source_proto import SourceProto
 from utils import RunResult
+import errors
 
 
 class DAGBuilder:
@@ -126,14 +127,18 @@ class DAGBuilder:
             limit=batch_size,
             reusable_credentials=reusable_credentials
         )
-        data = get_data(offset=offset)
-        run_result = RunResult(0, 0, [], dry_run)
-        while data:
-          run_result += target_destination.send_data(data, dry_run)
-          offset += batch_size
+        try:
           data = get_data(offset=offset)
-
-        task_instance.xcom_push("run_result", asdict(run_result))
+        except errors.DataInConnectorError as e:
+          run_result = RunResult(0, 0, [e.msg], dry_run)
+        else:
+          run_result = RunResult(0, 0, [], dry_run)
+          while data:
+            run_result += target_destination.send_data(data, dry_run)
+            offset += batch_size
+            data = get_data(offset=offset)
+        finally:
+          task_instance.xcom_push("run_result", asdict(run_result))
 
       PythonOperator(
           task_id=connection_id,

@@ -29,7 +29,7 @@ class Source(DrillMixin):
     self.location = self.config["location"]
     self.conn_name = "dfs"
     self.path = f"{self.conn_name}.`data/{self.location}`"
-    self.unique_id = config.get("unique_id", _UNIQUE_ID_DEFAULT_NAME)
+    self.unique_id = config.get("unique_id") or _UNIQUE_ID_DEFAULT_NAME
 
   def get_data(
       self,

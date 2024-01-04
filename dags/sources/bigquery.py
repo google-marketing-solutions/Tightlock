@@ -21,8 +21,10 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 from google.auth.exceptions import RefreshError
 from google.cloud import bigquery
 from google.cloud.exceptions import NotFound
+from google.api_core.exceptions import BadRequest
 from pydantic import Field
 from utils import ProtocolSchema, SchemaUtils, ValidationResult
+import errors
 
 _UNIQUE_ID_DEFAULT_NAME = "id"
 
@@ -48,7 +50,8 @@ class Source:
     else:
       self.client = bigquery.Client()
     self.location = f"{config.get('dataset')}.{config.get('table')}"
-    self.unique_id = config.get("unique_id", _UNIQUE_ID_DEFAULT_NAME)
+    # overrides empty string config values
+    self.unique_id = config.get("unique_id") or _UNIQUE_ID_DEFAULT_NAME
 
   def get_data(
       self,
@@ -66,16 +69,19 @@ class Source:
     )
     query_job = self.client.query(query)
 
-    rows = []
-    for element in query_job.result():
-      # create dict to hold results and respect the return type
-      row = {}
-      for f in fields:
-        if f in element.keys():
-          row[f] = element.get(f)
-      rows.append(row)
+    try:
+      rows = []
+      for element in query_job.result():
+        # create dict to hold results and respect the return type
+        row = {}
+        for f in fields:
+          if f in element.keys():
+            row[f] = element.get(f)
+        rows.append(row)
+      return rows
+    except BadRequest as e:
+      raise errors.DataInConnectorError(e.message)
 
-    return rows
 
   @staticmethod
   def schema() -> Optional[ProtocolSchema]:
