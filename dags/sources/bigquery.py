@@ -104,8 +104,16 @@ class Source:
     )
 
   def validate(self) -> ValidationResult:
+    # TODO(caiotomazelli): Add id checking to validation
     try:
-      self.client.get_table(self.location)
+      table = self.client.get_table(self.location)
+      id_exists = any([col.name == self.unique_id for col in table.schema])
+
+      if not id_exists:
+        return ValidationResult(
+            False,
+            [f"Column {self.unique_id} could not be found in table {self.location}."])
+
       return ValidationResult(True, [])
     except RefreshError:
       return ValidationResult(

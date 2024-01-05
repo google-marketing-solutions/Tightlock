@@ -55,4 +55,4 @@ class Source(DrillMixin):
     )
 
   def validate(self) -> ValidationResult:
-    return self.validate_drill(self.path)
+    return self.validate_drill(self.path, self.unique_id)
