@@ -15,7 +15,7 @@
 # update pip version
 python3 -m pip install --user --upgrade pip setuptools wheel
 
-# Create test venv
+# create test venv
 ENV_NAME=".tightlock_integration_test_venv"
 python3 -m venv $ENV_NAME
 
@@ -24,11 +24,14 @@ PY3=$ENV_NAME/bin/python
 
 $PY3 -m pip install -r integration_tests/test_requirements.txt
 
-# Create env
-./create_env.sh non-interactive test 
+# create env
+./create_env.sh non-interactive test
 
-# Remove potentially running containers and run integration tests
-docker-compose down 
+# enable docker buildkit
+export DOCKER_BUILDKIT=1
+
+# remove potentially running containers and run integration tests
+docker-compose down
 $PY3 -m pytest -s --no-header -vv --docker-compose=docker-compose.yaml integration_tests/
 
 # get return value of integration tests run
