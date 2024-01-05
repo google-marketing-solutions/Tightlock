@@ -71,7 +71,8 @@ class Source:
 
     try:
       rows = []
-      for element in query_job.result():
+      query_result = query_job.result()
+      for element in query_result:
         # create dict to hold results and respect the return type
         row = {}
         for f in fields:
@@ -80,6 +81,8 @@ class Source:
         rows.append(row)
       return rows
     except BadRequest as e:
+      # BadRequest is raised when the unique_id provided is not available in the table.
+      # The message provides details about the missing field.
       raise errors.DataInConnectorError(e.message)
 
 
@@ -94,8 +97,8 @@ class Source:
             ("table", str, Field(
                 description="The name of your BigQuery table.",)),
             ("unique_id", Optional[str], Field(
-                description=f"Unique id column name to be used by BigQuery. Defaults to '{_UNIQUE_ID_DEFAULT_NAME}' when nothing is provided.",
-                default=_UNIQUE_ID_DEFAULT_NAME
+                default=_UNIQUE_ID_DEFAULT_NAME,
+                description=f"Unique id column name to be used by BigQuery. Defaults to '{_UNIQUE_ID_DEFAULT_NAME}' when nothing is provided."
             )),
             ("credentials", Optional[SchemaUtils.raw_json_type()], Field(
                 default=None,
