@@ -54,6 +54,11 @@ DV_CREDENTIALS = [
     "client_secret",
 ]
 
+_OTHER_FIELDS = [
+    "ad_user_data_consent",
+    "ad_personalization_consent",
+]
+
 API_VERSION = "v3"
 SERVICE_URL = f"https://displayvideo.googleapis.com/$discovery/rest?version={API_VERSION}"
 
@@ -93,6 +98,10 @@ class Destination:
         discoveryServiceUrl=SERVICE_URL,
         http=self.http
     ).firstAndThirdPartyAudiences()
+    
+    # Request-level consent flags
+    self.ad_user_data_consent = None
+    self.ad_personalization_consent = None
 
   def authenticate_using_user_account(self):
     """Authorizes an httplib2.Http instance using user account credentials."""
@@ -109,6 +118,42 @@ class Destination:
     http = google_auth_httplib2.AuthorizedHttp(credentials)
 
     return http
+
+  def _consent_status_map(self, value: Optional[str]) -> str:
+    if not value:
+      return "CONSENT_STATUS_DENIED"
+    if value == "GRANTED":
+      return "CONSENT_STATUS_GRANTED"
+    return "CONSENT_STATUS_DENIED"
+
+  def _update_consent_metadata(self, index: int, user_data: Mapping[str, Any]):
+    """Updates the consent metadata with a new user_data row.
+    
+    Consent metadata needs to be consensual for the whole batch and will default
+    to None if divergence occurs.
+
+    Args:
+      index: The index of the user_data row.
+      user_data:  A row of user data from the source.
+    """
+    ad_user_data = user_data.get("ad_user_data_consent")
+    ad_personalization = user_data.get("ad_personalization_consent")
+
+    for global_consent_var_name, row_consent_var in [
+        ('ad_user_data_consent', ad_user_data),
+        ('ad_personalization_consent', ad_personalization)
+    ]:
+      global_consent_var = getattr(self, global_consent_var_name)
+      if global_consent_var and row_consent_var:
+          updated_consent = (
+            global_consent_var
+            if global_consent_var == row_consent_var
+            else None
+          )
+          setattr(self, global_consent_var_name, updated_consent)
+      # allow global None to be update on the first row of the batch
+      elif index == 0 and row_consent_var:
+        setattr(self, global_consent_var_name, row_consent_var)
 
   def _validate_entry(self, entry: Mapping[str, Any]) -> Tuple[bool, Optional[str]]:
     """Validates an audience entry.
@@ -180,7 +225,14 @@ class Destination:
     """Creates DV360 API request body."""
     body = {}
     inner_id_field = "contactInfos" if self.payload_type == PayloadTypes.CONTACT_INFO else "mobileDeviceIds"
-    ids = {inner_id_field: [self._build_ids_object(entry) for entry in entries]}
+    ids = {inner_id_field: []}
+    for index, entry in enumerate(entries):
+      # adds entry to ids list
+      ids[inner_id_field].append(self._build_ids_object(entry))
+
+      # updates consent metadata with current entry
+      self._update_consent_metadata(index, entry)
+
     if is_create:
       # "create" exclusive fields
       outer_id_field = "contactInfoList" if self.payload_type == PayloadTypes.CONTACT_INFO else "mobileDeviceIdList"
@@ -197,6 +249,14 @@ class Destination:
 
     # add ids to body with the appropriate field depending on the operation
     body[outer_id_field] = ids
+
+    # add consent data
+    if self.ad_user_data_consent or self.ad_personalization_consent:
+      consent_key = "consent"
+      body[outer_id_field][consent_key] = {}
+      body[outer_id_field][consent_key]["adUserData"] = self._consent_status_map(self.ad_user_data_consent)
+      body[outer_id_field][consent_key]["adPersonalization"] = self._consent_status_map(self.ad_personalization_consent)
+    
     return body
 
   def _build_ids_object(self,
@@ -416,12 +476,14 @@ class Destination:
     )
 
   def fields(self) -> Sequence[str]:
+    fields = _OTHER_FIELDS
     if self.payload_type == PayloadTypes.CONTACT_INFO:
-      return DV_CONTACT_INFO_FIELDS
+      fields.extend(DV_CONTACT_INFO_FIELDS)
     elif self.payload_type == PayloadTypes.DEVICE_ID:
-      return DV_DEVICE_ID_FIELDS
+      fields.extend(DV_DEVICE_ID_FIELDS)
     else:
       raise NameError(f"Unknown payload type: {self.payload_type}")
+    return fields
 
   def batch_size(self) -> int:
     return 50000

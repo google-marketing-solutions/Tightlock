@@ -45,6 +45,8 @@ _OTHER_FIELDS = [
   "currency_code",
   "conversion_custom_variable_id",
   "conversion_custom_variable_value",
+  "ad_user_data_consent",
+  "ad_personalization_consent",
 ]
 
 ConversionIndicesToConversions = List[Tuple[int, Any]]
@@ -215,6 +217,15 @@ class Destination:
         )
         conversion_custom_variable.value = conversion_custom_variable_value
         click_conversion.custom_variables.append(conversion_custom_variable)
+
+      ad_user_data = conversion.get("ad_user_data_consent")
+      ad_personalization = conversion.get("ad_personalization_consent")
+
+      if ad_user_data:
+        click_conversion.consent.ad_user_data = ad_user_data
+
+      if ad_personalization:
+        click_conversion.consent.ad_personalization = ad_personalization
 
       valid_conversions[customer_id].append((i, click_conversion))
 
