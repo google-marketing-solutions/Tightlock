@@ -21,9 +21,12 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 from google.auth.exceptions import RefreshError
 from google.cloud import bigquery
 from google.cloud.exceptions import NotFound
+from google.api_core.exceptions import BadRequest
 from pydantic import Field
 from utils import ProtocolSchema, SchemaUtils, ValidationResult
+import errors
 
+_UNIQUE_ID_DEFAULT_NAME = "id"
 
 class Source:
   """Implements SourceProto protocol for BigQuery."""
@@ -47,6 +50,8 @@ class Source:
     else:
       self.client = bigquery.Client()
     self.location = f"{config.get('dataset')}.{config.get('table')}"
+    # overrides empty string config values
+    self.unique_id = config.get("unique_id") or _UNIQUE_ID_DEFAULT_NAME
 
   def get_data(
       self,
@@ -59,20 +64,27 @@ class Source:
     query = (
         f"SELECT *"
         f" FROM `{self.location}`"
+        f" ORDER BY {self.unique_id}"
         f" LIMIT {limit} OFFSET {offset}"
     )
     query_job = self.client.query(query)
 
-    rows = []
-    for element in query_job.result():
-      # create dict to hold results and respect the return type
-      row = {}
-      for f in fields:
-        if f in element.keys():
-          row[f] = element.get(f)
-      rows.append(row)
+    try:
+      rows = []
+      query_result = query_job.result()
+      for element in query_result:
+        # create dict to hold results and respect the return type
+        row = {}
+        for f in fields:
+          if f in element.keys():
+            row[f] = element.get(f)
+        rows.append(row)
+      return rows
+    except BadRequest as e:
+      # BadRequest is raised when the unique_id provided is not available in the table.
+      # The message provides details about the missing field.
+      raise errors.DataInConnectorError(e.message)
 
-    return rows
 
   @staticmethod
   def schema() -> Optional[ProtocolSchema]:
@@ -84,7 +96,10 @@ class Source:
                 validation="^[a-zA-Z0-9_]{1,1024}$")),
             ("table", str, Field(
                 description="The name of your BigQuery table.",)),
-            
+            ("unique_id", Optional[str], Field(
+                default=_UNIQUE_ID_DEFAULT_NAME,
+                description=f"Unique id column name to be used by BigQuery. Defaults to '{_UNIQUE_ID_DEFAULT_NAME}' when nothing is provided."
+            )),
             ("credentials", Optional[SchemaUtils.raw_json_type()], Field(
                 default=None,
                 description="The full credentials service-account JSON string. Not needed if your backend is located in the same GCP project as the BigQuery table.")),
@@ -93,7 +108,14 @@ class Source:
 
   def validate(self) -> ValidationResult:
     try:
-      self.client.get_table(self.location)
+      table = self.client.get_table(self.location)
+      id_exists = any([col.name == self.unique_id for col in table.schema])
+
+      if not id_exists:
+        return ValidationResult(
+            False,
+            [f"Column {self.unique_id} could not be found in table {self.location}."])
+
       return ValidationResult(True, [])
     except RefreshError:
       return ValidationResult(

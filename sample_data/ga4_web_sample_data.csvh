@@ -1,5 +1,5 @@
-client_id,user_id,event_name,engagement_time_msec,session_id,value,currency
-CI123,UI456,offline_purchase,100,132,100,USD
-CI124,UI457,offline_purchase,110,133,200,BRL
-CI125,UI458,offline_purchase,120,134,300,USD
-CI126,UI459,offline_purchase,130,135,400,BRL
+id,client_id,user_id,event_name,engagement_time_msec,session_id,value,currency
+id,CI123,UI456,offline_purchase,100,132,100,USD
+id,CI124,UI457,offline_purchase,110,133,200,BRL
+id,CI125,UI458,offline_purchase,120,134,300,USD
+id,CI126,UI459,offline_purchase,130,135,400,BRL

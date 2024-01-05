@@ -84,7 +84,6 @@ class SchemaUtils:
       value: str
     return KeyValue
 
-
   @staticmethod
   def raw_json_type():
     class RawJSON(BaseModel):
@@ -270,7 +269,12 @@ class DrillMixin:
     return events
 
   def get_drill_data(
-      self, from_target: Sequence[str], fields: Sequence[str], offset: int, limit: int
+      self,
+      from_target: Sequence[str],
+      fields: Sequence[str],
+      offset: int,
+      limit: int,
+      unique_id: str
   ) -> List[Mapping[str, Any]]:
     drill_conn = DrillHook().get_conn()
     cursor = drill_conn.cursor()
@@ -279,6 +283,7 @@ class DrillMixin:
     query = (
         f"SELECT {fields_str}"
         f" FROM {from_target} as {table_alias}"
+        f" ORDER BY {unique_id}"
         f" LIMIT {limit} OFFSET {offset}"
     )
     try:
@@ -289,13 +294,24 @@ class DrillMixin:
       results = []
     return results
 
-  def validate_drill(self, path: str) -> ValidationResult:
+  def validate_drill(self, path: str, unique_id: str) -> ValidationResult:
     drill_conn = DrillHook().get_conn()
     cursor = drill_conn.cursor()
+
+    # validates Drill engine is working and path is reachable
     query = f"SELECT COUNT(1) FROM {path}"
     try:
+      query = f"SELECT {unique_id} FROM {path}"
       cursor.execute(query)
+
+      # validates unique_id existance
+      id_value = cursor.fetchone()[0]
+
+      if not id_value:
+        return ValidationResult(False, [f"Column {unique_id} could not be find in {path}."])
+    
     except Exception:  # pylint: disable=broad-except
       print(f"Drill validation error: {traceback.format_exc()}")
       return ValidationResult(False, [f"Invalid location: {path}"])
+    
     return ValidationResult(True, [])
