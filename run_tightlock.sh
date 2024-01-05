@@ -25,8 +25,11 @@
   esac
 done
 
-# Create env
+# create env
 bash ./create_env.sh $INTERACTIVE_FLAG $ENV_FLAG $PROVIDED_API_KEY
+
+# enable docker buildkit
+export DOCKER_BUILDKIT=1
 
 # define which docker-compose command to use based on the environment
 if [ $ENV_FLAG == "prod" ]; then
@@ -35,5 +38,5 @@ else
   COMPOSE_CMD='docker-compose'
 fi
 
-# Run containers
+# run containers
 $COMPOSE_CMD up --build -d
