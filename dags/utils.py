@@ -299,6 +299,7 @@ class DrillMixin:
     cursor = drill_conn.cursor()
 
     # validates Drill engine is working and path is reachable
+    query = f"SELECT COUNT(1) FROM {path}"
     try:
       query = f"SELECT {unique_id} FROM {path}"
       cursor.execute(query)
@@ -312,5 +313,12 @@ class DrillMixin:
     except Exception:  # pylint: disable=broad-except
       print(f"Drill validation error: {traceback.format_exc()}")
       return ValidationResult(False, [f"Invalid location: {path}"])
+    
+    # validates unique_id existance
+    cols = cursor.get_column_names()
+    id_exists = any(col == unique_id for col in cols)
+
+    if not id_exists:
+      return ValidationResult(False, [f"Column {unique_id} could not be find in {path}."])
     
     return ValidationResult(True, [])
