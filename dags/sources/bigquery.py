@@ -104,7 +104,6 @@ class Source:
     )
 
   def validate(self) -> ValidationResult:
-    # TODO(caiotomazelli): Add id checking to validation
     try:
       table = self.client.get_table(self.location)
       id_exists = any([col.name == self.unique_id for col in table.schema])
