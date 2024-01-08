@@ -27,14 +27,12 @@ See [Developer Workflow](https://github.com/google-marketing-solutions/Tightlock
 
 ### GCP Deploy
 
-#### Preparing for deployment
-
 This installer is using [Terraform](https://www.terraform.io) to define all resources required to set up Tightlock on Google Cloud Platform.
 Click the below button to clone this repository in Google Cloud and get started.
 
 [![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://shell.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https%3A%2F%2Fgithub.com%2Fgoogle%2FTightlock&cloudshell_git_branch=main&cloudshell_open_in_editor=installer%2Fvariables.tfvars)
 
-##### Update variables.tfvars file
+#### **Update variables.tfvars file**
 
 Update the `variables.tfvars` file and provide the following two values. If you clicked the `Open in Cloud Shell` button this file should be opened directly in your Cloud Shell Editor.
 
@@ -45,7 +43,7 @@ Update the `variables.tfvars` file and provide the following two values. If you 
 | create_bq_sample_data    | If set to true a BigQuery dataset and tables will be created with sample data uploaded via a Cloud Bucket |
 | create_tightlock_network | If set to true this will create a VPC Network and Firewall rules used by the backend instance. Set it to false when deploying multiple Tightlock instances to the same cloud project. |
 
-#### Deploy
+#### **Deploy**
 
 To deploy Tightlock via Terraform run the below two commands in Cloud Shell Terminal.
 
@@ -61,7 +59,7 @@ The `apply` command will apply the resources to GCP, all required changes are li
 terraform apply -var-file=variables.tfvars
 ```
 
-#### Destroy deployed resources
+#### **Destroy deployed resources**
 
 In case you want to undo the deployment you can run the below command from the same directory as you've deployed it from.
 
@@ -76,4 +74,3 @@ terraform destroy -var-file=variables.tfvars
 ### Azure Deploy
 
 > **COMING SOON**
-
