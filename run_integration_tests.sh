@@ -27,11 +27,8 @@ $PY3 -m pip install -r integration_tests/test_requirements.txt
 # create env
 ./create_env.sh non-interactive test
 
-# enable docker buildkit
-export DOCKER_BUILDKIT=1
-
 # remove potentially running containers and run integration tests
-docker-compose down
+docker-compose down -v
 $PY3 -m pytest -s --no-header -vv --docker-compose=docker-compose.yaml integration_tests/
 
 # get return value of integration tests run
