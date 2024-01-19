@@ -17,7 +17,7 @@
 write_files:
 - path: /etc/systemd/system/tightlock.service
   permissions: '0644'
-  owner: ec2-user
+  owner: root
   content: |
     [Unit]
     Description=Start Tightlock service
@@ -36,18 +36,19 @@ packages:
 - docker
 
 bootcmd:
-- systemctl start docker
-- systemctl daemon-reload
-- systemctl start tightlock.service
+- test -z "$(blkid /dev/sdt)" && mkfs.ext4 -m 0 -E lazy_itable_init=0,lazy_journal_init=0,discard /dev/sdt
+- mkdir -p /mnt/disks/tightlock
+
+mounts:
+- [ /dev/sdt, /mnt/disks/tightlock, auto, "discard,defaults" ]
 
 runcmd:
-- mkfs.ext4 -m 0 -E lazy_itable_init=0,lazy_journal_init=0,discard /dev/sdt
-- mkdir -p /mnt/disks/tightlock
-- mount -o discard,defaults /dev/sdt /mnt/disks/tightlock
 - [su, root, -c, "usermod -a -G docker ec2-user"]
 - newgrp docker
-- git clone https://github.com/google/Tightlock.git /mnt/disks/tightlock/Tightlock
+- git clone -b aws-installer https://github.com/google/Tightlock.git /mnt/disks/tightlock/Tightlock
 - [su, root, -c, "chown -R ec2-user:docker /mnt/disks/tightlock"]
+- systemctl enable docker
 - systemctl start docker
 - systemctl daemon-reload
+- systemctl enable tightlock.service
 - systemctl start tightlock.service
