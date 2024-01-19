@@ -96,6 +96,7 @@ services:
     stdin_open: true
     volumes:
       - ./sample_data:/data
+    restart: always
 
   tightlock-api:
     build: ./tightlock_api
@@ -113,6 +114,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    restart: always
 
   airflow-webserver:
     <<: *airflow-common
