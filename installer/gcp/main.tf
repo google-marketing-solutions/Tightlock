@@ -14,8 +14,6 @@
  limitations under the License.
  */
 
-
-
 resource "random_string" "backend_name" {
   length  = 4
   special = false
