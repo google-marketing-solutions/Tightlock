@@ -1,11 +1,9 @@
+
 # Terraform
 
 ## Preparing for deployment
 
-This installer is using [Terraform](https://www.terraform.io) to define all resources required to set up Tightlock on Google Cloud Platform.
-Click the below button to clone this repository in Google Cloud and get started.
-
-[![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://shell.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https%3A%2F%2Fgithub.com%2Fgoogle%2FTightlock&cloudshell_git_branch=main&cloudshell_open_in_editor=installer%2Fvariables.tfvars)
+This installer is using [Terraform](https://www.terraform.io) to define all resources required to set up Tightlock on Amazon Web Services.
 
 ### Update variables.tfvars file
 
@@ -14,13 +12,19 @@ Update the `variables.tfvars` file and provide the following two values. If you 
 | variable                 | description                                                                                               |
 | ---------------------    | --------------------------------------------------------------------------------------------------------- |
 | api_key                  | API Key for generating the front end connection key.                                                      |
-| project_id               | Google Cloud Project ID                                                                                   |
-| create_bq_sample_data    | If set to true a BigQuery dataset and tables will be created with sample data uploaded via a Cloud Bucket |
-| create_tightlock_network | If set to true this will create a VPC Network and Firewall rules used by the backend instance. Set it to false when deploying multiple Tightlock instances to the same cloud project. |
+| access_key               | AWS access key. More details [here](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html) |
+| secret_key               | AWS secret key. More details [here](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html) |
+
 
 ## Deploy
 
-To deploy Tightlock via Terraform run the below two commands in Cloud Shell Terminal.
+To deploy Tightlock via Terraform run the below three commands in your terminal of choose.
+
+Starting on the root Tightlock directory, head to the AWS installer folder
+
+```shell
+cd installer/aws
+```
 
 The `init` command will initialise the Terraform configuration.
 

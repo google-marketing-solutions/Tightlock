@@ -1,0 +1,54 @@
+#cloud-config
+
+# Copyright 2023 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+write_files:
+- path: /etc/systemd/system/tightlock.service
+  permissions: '0644'
+  owner: root
+  content: |
+    [Unit]
+    Description=Start Tightlock service
+
+    [Service]
+    User=ec2-user
+    WorkingDirectory=/mnt/disks/tightlock/Tightlock
+    ExecStart=/bin/bash /mnt/disks/tightlock/Tightlock/run_tightlock.sh -e prod -i non-interactive -k ${API_KEY}
+    Restart=on-failure
+
+package_update: true
+package_upgrade: true
+
+packages:
+- git
+- docker
+
+bootcmd:
+- test -z "$(blkid /dev/sdt)" && mkfs.ext4 -m 0 -E lazy_itable_init=0,lazy_journal_init=0,discard /dev/sdt
+- mkdir -p /mnt/disks/tightlock
+
+mounts:
+- [ /dev/sdt, /mnt/disks/tightlock, auto, "discard,defaults" ]
+
+runcmd:
+- [su, root, -c, "usermod -a -G docker ec2-user"]
+- newgrp docker
+- git clone -b aws-installer https://github.com/google/Tightlock.git /mnt/disks/tightlock/Tightlock
+- [su, root, -c, "chown -R ec2-user:docker /mnt/disks/tightlock"]
+- systemctl enable docker
+- systemctl start docker
+- systemctl daemon-reload
+- systemctl enable tightlock.service
+- systemctl start tightlock.service

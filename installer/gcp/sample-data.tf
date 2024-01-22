@@ -49,7 +49,7 @@ resource "google_bigquery_table" "ga4_app_sample_data_table" {
   project             = var.project_id
   dataset_id          = google_bigquery_dataset.sample_data[0].dataset_id
   table_id            = "ga4_app_sample_data"
-  deletion_protection = false
+  # deletion_protection = false
   external_data_configuration {
     autodetect    = true
     source_format = "CSV"
@@ -64,7 +64,7 @@ resource "google_bigquery_table" "ga4_web_sample_data_table" {
   project             = var.project_id
   dataset_id          = google_bigquery_dataset.sample_data[0].dataset_id
   table_id            = "ga4_web_sample_data"
-  deletion_protection = false
+  # deletion_protection = false
   external_data_configuration {
     autodetect    = true
     source_format = "CSV"
