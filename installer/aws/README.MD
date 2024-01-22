@@ -5,9 +5,6 @@
 
 This installer is using [Terraform](https://www.terraform.io) to define all resources required to set up Tightlock on Amazon Web Services.
 
-
-# TODO: Instructions to clone repo and modify variables
-
 ### Update variables.tfvars file
 
 Update the `variables.tfvars` file and provide the following two values. If you clicked the `Open in Cloud Shell` button this file should be opened directly in your Cloud Shell Editor.
@@ -21,7 +18,13 @@ Update the `variables.tfvars` file and provide the following two values. If you 
 
 ## Deploy
 
-To deploy Tightlock via Terraform run the below two commands in Cloud Shell Terminal.
+To deploy Tightlock via Terraform run the below three commands in your terminal of choose.
+
+Starting on the root Tightlock directory, head to the AWS installer folder
+
+```shell
+cd installer/aws
+```
 
 The `init` command will initialise the Terraform configuration.
 
