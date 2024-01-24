@@ -5,7 +5,7 @@
 This installer is using [Terraform](https://www.terraform.io) to define all resources required to set up Tightlock on Google Cloud Platform.
 Click the below button to clone this repository in Google Cloud and get started.
 
-[![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://shell.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https%3A%2F%2Fgithub.com%2Fgoogle%2FTightlock&cloudshell_git_branch=main&cloudshell_open_in_editor=installer%2Fvariables.tfvars)
+[![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://shell.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https%3A%2F%2Fgithub.com%2Fgoogle%2FTightlock&cloudshell_git_branch=main&cloudshell_open_in_editor=installer%2Fgcp%2Fvariables.tfvars)
 
 ### Update variables.tfvars file
 
