@@ -23,14 +23,14 @@ resource "google_storage_bucket_object" "ga4_app_sample_data_upload" {
   count  = var.create_bq_sample_data ? 1 : 0
   name   = "ga4_app_sample_data.csvh"
   bucket = google_storage_bucket.sample_data_upload_bucket[0].name
-  source = "../sample_data/ga4_app_sample_data.csvh"
+  source = "../../sample_data/ga4_app_sample_data.csvh"
 }
 
 resource "google_storage_bucket_object" "ga4_web_sample_data_upload" {
   count  = var.create_bq_sample_data ? 1 : 0
   name   = "ga4_web_sample_data.csvh"
   bucket = google_storage_bucket.sample_data_upload_bucket[0].name
-  source = "../sample_data/ga4_web_sample_data.csvh"
+  source = "../../sample_data/ga4_web_sample_data.csvh"
 }
 
 resource "google_bigquery_dataset" "sample_data" {
