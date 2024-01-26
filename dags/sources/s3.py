@@ -103,10 +103,10 @@ class Source(DrillMixin):
             ("location", str, Field(
                 description="The name of the S3 bucket folder that contains your data.")),
             ("secret_key", Optional[str], Field(
-                description="Your AWS secret key.",
+                description="Optional AWS secret key when running Tightlock outside of AWS environment.",
                 default=None)),
             ("access_key", Optional[str], Field(
-                description="Your AWS access key",
+                description="Optional AWS access key when running Tightlock outside of AWS environment.",
                 default=None)),
             ("unique_id", Optional[str], Field(
                 description=f"Unique id column name to be used by s3 source engine. Defaults to '{_UNIQUE_ID_DEFAULT_NAME}' when nothing is provided.",
