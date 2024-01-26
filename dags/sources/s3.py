@@ -39,7 +39,7 @@ class Source(DrillMixin):
         del obj[key]
       else:
         return False
-    elif obj[key] == value:
+    elif obj.get(key) == value:
       return False
     else:
       obj[key] = value
@@ -54,6 +54,8 @@ class Source(DrillMixin):
         "secret_key": self.config.get("secret_key"),
         "access_key": self.config.get("access_key")
     }
+    if "config" not in s3_config["config"]:
+      s3_config["config"]["config"] = {}
     change_requested = False
     for obj, key, value in [
         (s3_config["config"], "connection", conn["connection"]),
@@ -102,4 +104,7 @@ class Source(DrillMixin):
     )
 
   def validate(self) -> ValidationResult:
+    # Make sure S3 plugin is configured with config from
+    # this source before validating source
+    self._set_s3_storage()
     return self.validate_drill(self.path, self.unique_id)
