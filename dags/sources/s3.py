@@ -71,7 +71,7 @@ class Source(DrillMixin):
         (s3_config["config"], "connection", updates["connection"]),
         (s3_config["config"]["config"], "fs.s3a.secret.key", updates["secret_key"]),
         (s3_config["config"]["config"], "fs.s3a.access.key", updates["access_key"]),
-        (s3_config["config"]["config"], "fs.s3a.aws.credentials.provider", updates["default_provider"])
+        (s3_config["config"]["config"], "fs.s3a.aws.credentials.provider", updates["default_provider"]),
         (s3_config["config"]["config"], "fs.s3a.impl.disable.cache", updates["disable_cache"])
     ]:
       if self._update_config_obj(obj, key, value):
