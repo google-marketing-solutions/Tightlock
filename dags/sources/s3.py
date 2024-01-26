@@ -49,18 +49,28 @@ class Source(DrillMixin):
   def _set_s3_storage(self):
     s3_plugin_name = "s3"
     s3_config = self._get_storage(s3_plugin_name)
-    conn = {
+    secret_key = self.config.get("secret_key")
+    access_key = self.config.get("access_key")
+    updates = {
         "connection": f"s3a://{self.config['bucket_name']}",
-        "secret_key": self.config.get("secret_key"),
-        "access_key": self.config.get("access_key")
+        "secret_key": secret_key,
+        "access_key": access_key,
+        "default_provider": ""
     }
+    if not secret_key or not access_key:
+      updates["default_provider"] = (
+          "com.amazonaws.auth.InstanceProfileCredentialsProvider"
+      )
+
     if "config" not in s3_config["config"]:
       s3_config["config"]["config"] = {}
     change_requested = False
     for obj, key, value in [
-        (s3_config["config"], "connection", conn["connection"]),
-        (s3_config["config"]["config"], "fs.s3a.secret.key", conn["secret_key"]),
-        (s3_config["config"]["config"], "fs.s3a.access.key", conn["access_key"])
+        (s3_config["config"], "enabled", True),
+        (s3_config["config"], "connection", updates["connection"]),
+        (s3_config["config"]["config"], "fs.s3a.secret.key", updates["secret_key"]),
+        (s3_config["config"]["config"], "fs.s3a.access.key", updates["access_key"]),
+        (s3_config["config"]["config"], "fs.s3a.aws.credentials.provider", updates["default_provider"])
     ]:
       if self._update_config_obj(obj, key, value):
         change_requested = True
