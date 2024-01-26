@@ -18,10 +18,12 @@ limitations under the License."""
 from collections import defaultdict
 import importlib
 import os
+import errors
 import pathlib
 import sys
 import re
 import hashlib
+import requests
 import traceback
 from dataclasses import dataclass, field
 from typing import Any, List, Dict, Mapping, Sequence, Tuple
@@ -31,8 +33,9 @@ from pydantic import BaseModel
 from google.ads.googleads.client import GoogleAdsClient
 
 _TABLE_ALIAS = "t"
-_DEFAULT_GOOGLE_ADS_API_VERSION = "v15"
+_DRILL_ADDRESS = "http://drill:8047"
 
+_DEFAULT_GOOGLE_ADS_API_VERSION = "v15"
 _REQUIRED_GOOGLE_ADS_CREDENTIALS = frozenset([
   "client_id",
   "client_secret",
@@ -255,7 +258,29 @@ class GoogleAdsUtils:
 
 
 class DrillMixin:
-  """A Drill mixin that provides a get_drill_data wrapper for other classes that use drill."""
+  """A Drill mixin that provides utils like a get_drill_data wrapper for other classes that use Drill."""
+
+  def _get_storage(self, name: str) -> Mapping[str, Any]:
+    endpoint = f"{_DRILL_ADDRESS}/storage/{name}.json"
+    r = requests.get(endpoint)
+
+    if r.status_code == 200:
+      return r.json()
+
+    raise errors.DataInConnectorError(
+        f"Failed to connect to Drill: {r.json()['errorMessage']}"
+    )
+
+  def _set_storage(self, name: str, config: Mapping[str, Any]):
+    endpoint = f"{_DRILL_ADDRESS}/storage/{name}.json"
+    r = requests.post(endpoint, json=config)
+
+    if r.status_code != 200:
+      raise errors.DataOutConnectorError(
+          f"Failed to connect to Drill: {r.text}"
+      )
+    else:
+      print(f"Updating {name} Drill storage plugin.")
 
   def _parse_data(self, fields, rows: List[Tuple[str, ...]]) -> List[Mapping[str, Any]]:
     """Parses data and transforms it into a list of dictionaries."""
@@ -265,7 +290,11 @@ class DrillMixin:
       # relies on Drill preserving the order of fields provided in the query
       for i, field in enumerate(fields):
         event_dict[field] = event[i]
-      events.append(event_dict)
+
+      # ignore empty rows
+      if any(event_dict.values()):
+        events.append(event_dict)
+
     return events
 
   def get_drill_data(
