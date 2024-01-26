@@ -55,7 +55,8 @@ class Source(DrillMixin):
         "connection": f"s3a://{self.config['bucket_name']}",
         "secret_key": secret_key,
         "access_key": access_key,
-        "default_provider": ""
+        "default_provider": "",
+        "disable_cache": "true"
     }
     if not secret_key or not access_key:
       updates["default_provider"] = (
@@ -71,6 +72,7 @@ class Source(DrillMixin):
         (s3_config["config"]["config"], "fs.s3a.secret.key", updates["secret_key"]),
         (s3_config["config"]["config"], "fs.s3a.access.key", updates["access_key"]),
         (s3_config["config"]["config"], "fs.s3a.aws.credentials.provider", updates["default_provider"])
+        (s3_config["config"]["config"], "fs.s3a.impl.disable.cache", updates["disable_cache"])
     ]:
       if self._update_config_obj(obj, key, value):
         change_requested = True
