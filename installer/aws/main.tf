@@ -20,6 +20,35 @@ resource "random_string" "backend_name" {
   upper   = false
 }
 
+resource "aws_iam_role" "tightlock_role" {
+  name = "tightlock_role"
+
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy_attachment" "tightlock_attachment" {
+  role       = aws_iam_role.tightlock_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+}
+
+resource "aws_iam_instance_profile" "tightlock_profile" {
+  name = "tightlock_profile"
+  role = aws_iam_role.tightlock_role.name
+}
+
 resource "aws_security_group" "tightlock-security-group" {
   name   = "tightlock-sg"
 
@@ -57,6 +86,7 @@ resource "aws_instance" "tightlock-backend" {
   key_name = "tightlock"
   user_data = templatefile("cloud-config.yaml", { API_KEY = "${var.api_key}"})
   vpc_security_group_ids = [aws_security_group.tightlock-security-group.id]
+  iam_instance_profile = aws_iam_instance_profile.tightlock_profile.name
   tags = {
     Name = format("tightlock-backend-%s", random_string.backend_name.result)
   }
