@@ -86,7 +86,7 @@ class Source(DrillMixin):
         (s3_config["config"]["config"], "fs.s3a.aws.credentials.provider", updates["default_provider"]),
         (s3_config["config"]["config"], "fs.s3a.impl.disable.cache", updates["disable_cache"])
     ]:
-      if self._update_config_obj(obj, key, value):
+      if self._validate_or_update_config_obj(obj, key, value):
         change_requested = True
 
     if change_requested:
