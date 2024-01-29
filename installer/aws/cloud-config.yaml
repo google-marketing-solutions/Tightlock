@@ -45,7 +45,7 @@ mounts:
 runcmd:
 - [su, root, -c, "usermod -a -G docker ec2-user"]
 - newgrp docker
-- git clone -b aws-installer https://github.com/google/Tightlock.git /mnt/disks/tightlock/Tightlock
+- git clone https://github.com/google/Tightlock.git /mnt/disks/tightlock/Tightlock
 - [su, root, -c, "chown -R ec2-user:docker /mnt/disks/tightlock"]
 - systemctl enable docker
 - systemctl start docker
