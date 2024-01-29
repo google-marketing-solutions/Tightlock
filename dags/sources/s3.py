@@ -30,10 +30,20 @@ class Source(DrillMixin):
     self.path = f"s3.`{self.config['location']}`"
     self.unique_id = config.get("unique_id") or _UNIQUE_ID_DEFAULT_NAME
 
-  def _update_config_obj(self,
-                         obj: Mapping[str, Any],
-                         key: str,
-                         value: str) -> bool:
+  def _validate_or_update_config_obj(
+      self,
+      obj: Mapping[str, Any],
+      key: str,
+      value: str) -> bool:
+    """Checks if value of key is the same as target, updates otherwise.    
+
+    Args:
+      obj: the target object to be checked/updated
+      key: the target key of the object
+      value: the value that needs to be validated/updated
+
+    Returns: A boolean indicating whether or not an update was required.
+    """
     if not value:
       if key in obj:
         del obj[key]
@@ -47,6 +57,8 @@ class Source(DrillMixin):
     return True
 
   def _set_s3_storage(self):
+    """Updates Drill s3 storage plugin (if config has changed).
+    """
     s3_plugin_name = "s3"
     s3_config = self._get_storage(s3_plugin_name)
     secret_key = self.config.get("secret_key")
@@ -103,10 +115,10 @@ class Source(DrillMixin):
             ("location", str, Field(
                 description="The name of the S3 bucket folder that contains your data.")),
             ("secret_key", Optional[str], Field(
-                description="Optional AWS secret key when running Tightlock outside of AWS environment.",
+                description="Optional AWS secret key (only needed when running Tightlock on a separate cloud environment).",
                 default=None)),
             ("access_key", Optional[str], Field(
-                description="Optional AWS access key when running Tightlock outside of AWS environment.",
+                description="Optional AWS access key (only needed when running Tightlock on a separate cloud environment).",
                 default=None)),
             ("unique_id", Optional[str], Field(
                 description=f"Unique id column name to be used by s3 source engine. Defaults to '{_UNIQUE_ID_DEFAULT_NAME}' when nothing is provided.",
