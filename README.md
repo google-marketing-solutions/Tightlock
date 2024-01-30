@@ -19,6 +19,8 @@ Some examples of connections that are available through Tightlock are:
 
 Tightlock serves as a cloud-agnostic pipeline tool to pull data from a variety of customer sources (e.g., BigQuery, Cloud Storage, S3 etc) for transfer into Google APIs.
 
+You can learn more about Tightlock by watching this [introduction video](https://www.youtube.com/watch?v=8Y5HZIZXyzo).
+
 ## Installation
 
 Tightlock runs on Docker, so it can be deployed virtually anywhere. You can find instructions below on running on local machines and deploying in GCP or AWS with Terraform. Similar Terraform installer for Azure is coming soon.
@@ -45,6 +47,9 @@ For deploying in AWS, follow instructions [here](https://github.com/google-marke
 
 ## General usage
 
+Below, you will find simplified instructions for using Tightlock. For a more detailed guide, refer to [this presentation](https://services.google.com/fh/files/misc/hack_a_tech_june_tightlock__.pdf).
+
+### Workspace creation
 The recommended way to configure connections in Tightlock is to link your backend instance in the 1PD Scheduler tool: https://1pd-scheduler.dev
 
 In the tool:
@@ -52,3 +57,9 @@ In the tool:
 1. Sign-in using a Gmail / Google Workspaces account
 2. If you don't have a workspace yet, create a new one, choosing a name and providing the **connection code** that was generated during the deployment process. 
 3. Once you have a workspace selected, all connections created in this workspace context will be using the backend instance tied to the connection code that was provided.
+
+### Creating connections
+
+Connections are the core concept of Tightlock. A connection is defined by a source of data, a destination (tipically, a Google API) and a schedule (or None).
+
+You can create new connections directly in the 1PD Scheduler tool. Visit our Wiki for a detailed specification of [Sources](https://github.com/google-marketing-solutions/Tightlock/wiki/2.-Source-Specification) and [Destinations](https://github.com/google-marketing-solutions/Tightlock/wiki/1.-Destination-Specification)
