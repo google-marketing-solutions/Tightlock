@@ -62,4 +62,140 @@ In the tool:
 
 Connections are the core concept of Tightlock. A connection is defined by a source of data, a destination (tipically, a Google API) and a schedule (or None).
 
-You can create new connections directly in the 1PD Scheduler tool. Visit our Wiki for a detailed specification of [Sources](https://github.com/google-marketing-solutions/Tightlock/wiki/2.-Source-Specification) and [Destinations](https://github.com/google-marketing-solutions/Tightlock/wiki/1.-Destination-Specification)
+You can create new connections by:
+
+- Directly using the [1PD Scheduler](https://1pd-scheduler.dev) tool. Visit our Wiki for a detailed specification of [Sources](https://github.com/google-marketing-solutions/Tightlock/wiki/2.-Source-Specification) and [Destinations](https://github.com/google-marketing-solutions/Tightlock/wiki/1.-Destination-Specification)
+
+- Using the [Tightlock API](#tightlock-api), described below.
+
+
+## Tightlock API
+
+Tightlock communicates with https://1pd-scheduler.dev by using a REST API. This API can also be directly accessed by customers that are not interested in configuring the backend using the UI.
+
+You can find a quick summary of the main actions that are available in the API.
+
+> Note: Bear in mind that the default deployment of Tightlock has a security measure of limiting the IPs that can call the API. If you want to use the API direclty, make sure to change this configuration or call the API using an internal IP address.
+
+<br>
+
+### Create a new config
+
+<details>
+ <summary><code>POST </code>/api/v1/configs<code></code> </summary>
+
+#### **Payload**
+
+example.json file:
+
+```json
+{
+  "label": "Example BQ to GA4 App",
+  "value": {
+    "external_connections": [], 
+
+    "sources": {
+      "example_bigquery_table": {
+        "type": "BIGQUERY",
+        "dataset": "bq_dataset_example_name",
+        "table": "bq_table_example_name"
+      }
+    },
+
+    "destinations": {
+      "example_ga4_app": {
+        "type": "GA4MP",
+        "payload_type": "firebase",
+        "api_secret": "fake_api_secret",
+        "firebase_app_id": "fake_firebase_app_id"
+      }   
+    },
+
+    "activations": [
+      {
+        "name": "example_bq_to_ga4mp_app_event",
+        "source": {
+          "$ref": "#/sources/example_bigquery_table"
+        },
+        "destination": {
+          "$ref": "#/destinations/example_ga4_app"
+        },
+        "schedule": "@weekly"
+      }
+    ], 
+
+    "secrets": {},
+  }
+}
+```
+
+Bear in mind that "label" must be unique.
+
+#### **Responses**
+
+> | http code     | content-type                      | response                                                            |
+> |---------------|-----------------------------------|---------------------------------------------------------------------|
+> | `200`         | `application/json`        | `Configuration created successfully`                                |
+> | `409`         | `application/json`                | `{"code":"409","message":"Config label already exists"}`                            |
+
+#### **Example cURL**
+
+> ```javascript
+>  curl -H "Content-Type: application/json" -X POST -H 'X-Api-Key: {EXAMPLE_API_KEY}'  {ADDRESS}:8081/api/v1/configs -d @example.json
+> ```
+
+</details>
+
+<br>
+
+### Get the current config
+
+<details>
+ <summary><code>GET</code>/api/v1/configs:getLatest<code></code> </summary>
+
+#### **Payload**
+
+None
+
+#### **Responses**
+
+> | http code     | content-type                      | response                                                            |
+> |---------------|-----------------------------------|---------------------------------------------------------------------|
+> | `200`         | `application/json`        | Config in JSON format                                |                    |
+
+#### **Example cURL**
+
+> ```javascript
+>  curl -H "Content-Type: application/json" -H 'X-Api-Key: {EXAMPLE_API_KEY}' {ADDRESS}:8081/api/v1/configs:getLatest                      
+> ```
+
+</details>
+
+<br>
+
+### Trigger an existing connection
+
+
+<details>
+ <summary><code>GET</code>/api/v1/connection:{connection_name}<code></code> </summary>
+
+#### **Payload**
+
+> | name      |  type     | data type               | description                                                           |
+> |-----------|-----------|-------------------------|-----------------------------------------------------------------------|
+> | connection_name |  required | str   | Target connection
+> | dry_run |  not required | int   | Whether or not to do a dry-run for the target connection (0 is false and 1 is true)
+
+#### **Responses**
+
+> | http code     | content-type                      | response                                                            |
+> |---------------|-----------------------------------|---------------------------------------------------------------------|
+> | `200`         | `application/json`        | Trigger successful                                |                    |
+
+#### **Example cURL**
+
+> ```javascript
+>  curl -X POST -H 'X-API-Key: {EXAMPLE_API_KEY}' -H 'Content-Type: application/json' -d '{"dry_run": 0}' -o - -i {ADDRESS}:8081/api/v1/activations/activation_name:trigger
+> ```
+
+</details>
