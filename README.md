@@ -34,7 +34,7 @@ See [Developer Workflow](https://github.com/google-marketing-solutions/Tightlock
 
 You can click the button below to start deployment of Tightlock in GCP. You can find detailed instructions for GCP deployment [here](https://github.com/google-marketing-solutions/Tightlock/tree/main/installer/gcp).
 
-[![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://shell.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https%3A%2F%2Fgithub.com%2Fgoogle%2FTightlock&cloudshell_git_branch=main&cloudshell_open_in_editor=installer%2Fvariables.tfvars)
+[![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://shell.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https%3A%2F%2Fgithub.com%2Fgoogle%2FTightlock&cloudshell_git_branch=main&cloudshell_open_in_editor=installer%2Fgcp%2Fvariables.tfvars)
 
 
 ### AWS Deploy
