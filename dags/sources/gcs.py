@@ -30,33 +30,6 @@ class Source(DrillMixin):
     self.config = config
     self.path = f"{_GCS_PLUGIN_NAME}.`{self.config['location']}`"
     self.unique_id = config.get("unique_id") or _UNIQUE_ID_DEFAULT_NAME
-    self._set_gcs_storage()
-
-  def _validate_or_update_config_obj(
-      self,
-      obj: Mapping[str, Any],
-      key: str,
-      value: str) -> bool:
-    """Checks if value of key is the same as target, updates otherwise.    
-
-    Args:
-      obj: the target object to be checked/updated
-      key: the target key of the object
-      value: the value that needs to be validated/updated
-
-    Returns: A boolean indicating whether or not an update was required.
-    """
-    if not value:
-      if key in obj:
-        del obj[key]
-      else:
-        return False
-    elif obj.get(key) == value:
-      return False
-    else:
-      obj[key] = value
-
-    return True
 
   def _get_gcs_storage(self):
     gcs_config = self._get_storage(_GCS_PLUGIN_NAME)
@@ -68,9 +41,6 @@ class Source(DrillMixin):
       self._set_storage(_GCS_PLUGIN_NAME, gcs_config)
 
     return gcs_config
-
-# 4 Refactor validate_or_update_config_obj to DrillUtils
-# 5 documentation
 
   def _set_gcs_storage(self):
     """Updates Drill GCS storage plugin (if config has changed).
@@ -104,7 +74,6 @@ class Source(DrillMixin):
     # Make sure GCS plugin is configured with config from
     # this source before retrieving data
     self._set_gcs_storage()
-
     return self.get_drill_data(self.path, fields, offset, limit, self.unique_id)
 
   @staticmethod

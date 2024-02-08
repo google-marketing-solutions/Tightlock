@@ -30,32 +30,6 @@ class Source(DrillMixin):
     self.path = f"s3.`{self.config['location']}`"
     self.unique_id = config.get("unique_id") or _UNIQUE_ID_DEFAULT_NAME
 
-  def _validate_or_update_config_obj(
-      self,
-      obj: Mapping[str, Any],
-      key: str,
-      value: str) -> bool:
-    """Checks if value of key is the same as target, updates otherwise.    
-
-    Args:
-      obj: the target object to be checked/updated
-      key: the target key of the object
-      value: the value that needs to be validated/updated
-
-    Returns: A boolean indicating whether or not an update was required.
-    """
-    if not value:
-      if key in obj:
-        del obj[key]
-      else:
-        return False
-    elif obj.get(key) == value:
-      return False
-    else:
-      obj[key] = value
-
-    return True
-
   def _set_s3_storage(self):
     """Updates Drill s3 storage plugin (if config has changed).
     """

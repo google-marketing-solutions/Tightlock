@@ -260,6 +260,32 @@ class GoogleAdsUtils:
 class DrillMixin:
   """A Drill mixin that provides utils like a get_drill_data wrapper for other classes that use Drill."""
 
+  def _validate_or_update_config_obj(
+      self,
+      obj: Mapping[str, Any],
+      key: str,
+      value: str) -> bool:
+    """Checks if value of key is the same as target, updates otherwise.    
+
+    Args:
+      obj: the target object to be checked/updated
+      key: the target key of the object
+      value: the value that needs to be validated/updated
+
+    Returns: A boolean indicating whether or not an update was required.
+    """
+    if not value:
+      if key in obj:
+        del obj[key]
+      else:
+        return False
+    elif obj.get(key) == value:
+      return False
+    else:
+      obj[key] = value
+
+    return True
+
   def _get_storage(self, name: str) -> Mapping[str, Any]:
     endpoint = f"{_DRILL_ADDRESS}/storage/{name}.json"
     r = requests.get(endpoint)
@@ -328,7 +354,6 @@ class DrillMixin:
     cursor = drill_conn.cursor()
 
     # validates Drill engine is working and path is reachable
-    query = f"SELECT COUNT(1) FROM {path}"
     try:
       query = f"SELECT {unique_id} FROM {path}"
       cursor.execute(query)
@@ -340,7 +365,6 @@ class DrillMixin:
         return ValidationResult(False, [f"Column {unique_id} could not be find in {path}."])
     
     except Exception:  # pylint: disable=broad-except
-      print(f"Drill validation error: {traceback.format_exc()}")
-      return ValidationResult(False, [f"Invalid location: {path}"])
+      return ValidationResult(False, [f"Error validation location `{path}`: {traceback.format_exc()}"])
     
     return ValidationResult(True, [])
