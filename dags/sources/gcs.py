@@ -28,7 +28,7 @@ class Source(DrillMixin):
 
   def __init__(self, config: Dict[str, Any]):
     self.config = config
-    # self.path = f"s3.`{self.config['location']}`"
+    self.path = f"{_GCS_PLUGIN_NAME}.`{self.config['location']}`"
     self.unique_id = config.get("unique_id") or _UNIQUE_ID_DEFAULT_NAME
     self._set_gcs_storage()
 
@@ -69,10 +69,6 @@ class Source(DrillMixin):
 
     return gcs_config
 
-# Continue testings:
-
-# 2 Make it work locally with USER_CREDENTIALS or service acount
-# 3 test it without creds in GCP
 # 4 Refactor validate_or_update_config_obj to DrillUtils
 # 5 documentation
 
@@ -80,23 +76,9 @@ class Source(DrillMixin):
     """Updates Drill GCS storage plugin (if config has changed).
     """
     gcs_config = self._get_gcs_storage()
-    # secret_key = self.config.get("secret_key")
-    # access_key = self.config.get("access_key")
     updates = {
-        # "connection": f"gs://{self.config['bucket_name']}",
-        "connection": "gs://megalist-test",
+        "connection": f"gs://{self.config['bucket_name']}",
         "gs_impl": "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS",
-        "auth_type": "COMPUTE_ENGINE",
-        # "auth_type": "USER_CREDENTIALS",
-        # "auth_type": "SERVICE_ACCOUNT_JSON_KEYFILE",
-        # "auth_type": "UNAUTHENTICATED",
-        # "project_id": "",
-        # "client_id": "",
-        # "client_secret": "",
-        # "refresh_token": "",
-        # "secret_key": secret_key,
-        # "access_key": access_key,
-        # "enable_service_account": "false",
     }
     if "config" not in gcs_config["config"]:
       gcs_config["config"]["config"] = {}
@@ -105,13 +87,6 @@ class Source(DrillMixin):
         (gcs_config["config"], "enabled", True),
         (gcs_config["config"], "connection", updates["connection"]),
         (gcs_config["config"]["config"], "fs.AbstractFileSystem.gs.impl", updates["gs_impl"]),
-        # (gcs_config["config"]["config"], "fs.gs.auth.type", updates["auth_type"]),
-        # (gcs_config["config"]["config"], "google.cloud.auth.type", updates["auth_type"]),
-        # (gcs_config["config"]["config"], "fs.gs.project.id", updates["project_id"]),
-        # (gcs_config["config"]["config"], "fs.gs.auth.client.id", updates["client_id"]),
-        # (gcs_config["config"]["config"], "fs.gs.auth.client.secret", updates["client_secret"]),
-        # (gcs_config["config"]["config"], "fs.gs.auth.refresh.token", updates["refresh_token"]),
-        # (gcs_config["config"]["config"], "google.cloud.auth.service.account.enable", updates["enable_service_account"]),
     ]:
       if self._validate_or_update_config_obj(obj, key, value):
         change_requested = True
