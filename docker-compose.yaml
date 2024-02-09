@@ -85,7 +85,9 @@ services:
 
 
   drill:
-    image: apache/drill:latest
+    build:
+      context: .
+      dockerfile: drill.Dockerfile
     ports:
       - 8047:8047 # web and REST
     healthcheck:
