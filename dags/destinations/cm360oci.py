@@ -153,7 +153,7 @@ class Destination:
       response = request.execute()
       # Success is to be considered between 200 and 299:
       # https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
-      if not response.get("hasFailures"):
+      if not "hasFailures" in response:
         raise errors.DataOutConnectorSendUnsuccessfulError(
             msg="Sending payload to CM360 did not complete successfully.",
             error_num=errors.ErrorNameIDMap.RETRIABLE_CM360_HOOK_ERROR_HTTP_ERROR,
