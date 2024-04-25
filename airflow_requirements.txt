@@ -3,7 +3,7 @@ pytest==7.4.0
 pytest-cov==4.1.0
 pytest-mypy==0.10.3
 Requests==2.31.0
-pydantic==1.10.9
+pydantic==1.10.13
 
 # Data sources and destinations requirements
 apache-airflow-providers-apache-drill==2.4.3
