@@ -32,7 +32,7 @@ bash ./create_env.sh $INTERACTIVE_FLAG $ENV_FLAG $PROVIDED_API_KEY
 if [ $ENV_FLAG == "prod" ]; then
   COMPOSE_CMD="docker run -v /var/run/docker.sock:/var/run/docker.sock --rm -v $PWD:$PWD -w $PWD docker/compose:1.29.2"
 else
-  COMPOSE_CMD='docker-compose'
+  COMPOSE_CMD='docker compose'
 fi
 
 # Run containers

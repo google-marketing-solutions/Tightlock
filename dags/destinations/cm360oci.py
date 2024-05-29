@@ -47,7 +47,7 @@ CM_CONVERSION_FIELDS = [
   "impressionId",
   "userIdentifiers",
   "kind",
-]
+] + ["u" + str(i) for i in range(1, 101)] # Add fields for the supported number of custom Floodlight variables (100).
 
 CM_REQUIRED_CONVERSIONS_FIELDS = [
   "floodlightConfigurationId",
@@ -153,19 +153,15 @@ class Destination:
       response = request.execute()
       # Success is to be considered between 200 and 299:
       # https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
-      if not "hasFailures" in response:
+      if response["hasFailures"]:
+        print("HIT HAS FAILURES")
+        error_num = errors.ErrorNameIDMap.NON_RETRIABLE_ERROR_EVENT_NOT_SENT
+        status_errors = [status["errors"] for status in response["status"]]
+        print(status_errors)
         raise errors.DataOutConnectorSendUnsuccessfulError(
-            msg="Sending payload to CM360 did not complete successfully.",
-            error_num=errors.ErrorNameIDMap.RETRIABLE_CM360_HOOK_ERROR_HTTP_ERROR,
+            msg=f"Sending payload to CM360 did not complete successfully: {status_errors}",
+            error_num=error_num,
         )
-      else:
-        if response["hasFailures"]:
-          error_num = errors.ErrorNameIDMap.NON_RETRIABLE_ERROR_EVENT_NOT_SENT
-          status_errors = [status["errors"] for status in response["status"]]
-          raise errors.DataOutConnectorSendUnsuccessfulError(
-              msg=f"Sending payload to CM360 did not complete successfully: {status_errors}",
-              error_num=error_num,
-          )
 
     except googleapiclient.errors.HttpError as http_error:
       if http_error.resp.status >= 400 and http_error.resp.status < 500:

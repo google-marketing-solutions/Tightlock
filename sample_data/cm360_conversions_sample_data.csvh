@@ -1,2 +1,2 @@
-id,floodlightConfigurationId,floodlightActivityId,encryptedUserId,mobileDeviceId,timestamp_micros,value,quantity,ordinal,limitAdTracking,childDirectedTreatment,gclid,nonPersonalizedAd,treatmentForUnderage,matchId,dclid,impressionId,conversion_kind
-1,13641571,16352759,"","",1702574564000000,100,1,1,false,false,testGclid-123,false,"","","","",""
+id,floodlightConfigurationId,floodlightActivityId,encryptedUserId,mobileDeviceId,timestamp_micros,value,quantity,ordinal,limitAdTracking,childDirectedTreatment,gclid,nonPersonalizedAd,treatmentForUnderage,matchId,dclid,impressionId,conversion_kind,u1,55,u100
+1,13641571,16352759,"","",1716933895000000,100,1,1,false,false,testGclid-123,false,"","","","","","Custom Floodlight Variable 1", "Custom Floodlight Variable 55", "Custom Floodlight variable 100"
