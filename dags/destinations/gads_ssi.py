@@ -117,7 +117,7 @@ class Destination:
                     partial_failures = self._send_request(customer_id, conversions)
                 except GoogleAdsException as error:
                     # Set every index as failed
-                    err_msg = error.error.code().name
+                    err_msg = [e.message for e in error.failure.errors][0]
                     invalid_indices_and_errors.extend(
                         [(index, err_msg) for index in conversion_indices]
                     )
