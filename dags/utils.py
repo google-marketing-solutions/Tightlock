@@ -35,7 +35,7 @@ from google.ads.googleads.client import GoogleAdsClient
 _TABLE_ALIAS = "t"
 _DRILL_ADDRESS = "http://drill:8047"
 
-_DEFAULT_GOOGLE_ADS_API_VERSION = "v15"
+_DEFAULT_GOOGLE_ADS_API_VERSION = "v17"
 _REQUIRED_GOOGLE_ADS_CREDENTIALS = frozenset([
   "client_id",
   "client_secret",
