@@ -163,8 +163,11 @@ class Destination:
       # https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
       if response["hasFailures"]:
         error_num = errors.ErrorNameIDMap.NON_RETRIABLE_ERROR_EVENT_NOT_SENT
-        status_errors = [status["errors"] for status in response["status"]]
-        print(status_errors)
+        status_errors = []
+        for status in response["status"]:
+          if "errors" in status:
+            status_errors.append(status["errors"])
+            print(status["errors"])
         raise errors.DataOutConnectorSendUnsuccessfulError(
             msg=f"Sending payload to CM360 did not complete successfully: {status_errors}",
             error_num=error_num,
