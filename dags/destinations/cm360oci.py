@@ -28,12 +28,14 @@ import errors
 from pydantic import Field
 from utils import ProtocolSchema, RunResult, ValidationResult
 
+_TIMESTAMP_MICROS_FIELD = "timestampMicros"
+
 CM_CONVERSION_FIELDS = [
+  _TIMESTAMP_MICROS_FIELD,
   "floodlightConfigurationId",
   "floodlightActivityId",
   "encryptedUserId",
   "mobileDeviceId",
-  "timestamp_micros",
   "value",
   "quantity",
   "ordinal",
@@ -47,12 +49,12 @@ CM_CONVERSION_FIELDS = [
   "impressionId",
   "userIdentifiers",
   "kind",
-] + ["u" + str(i) for i in range(1, 101)] # Add fields for the supported number of custom Floodlight variables (100).
+] + ["u" + str(i) for i in range(1, 101)]  # Add fields for the supported number of custom Floodlight variables (100).
 
 CM_REQUIRED_CONVERSIONS_FIELDS = [
+  _TIMESTAMP_MICROS_FIELD,
   "floodlightConfigurationId",
   "floodlightActivityId",
-  "timestamp_micros",
   "value",
   "quantity",
   "ordinal",
@@ -79,19 +81,25 @@ class Destination:
 
   def __init__(self, config: Dict[str, Any]):
     self.config = config  # Keeping a reference for convenience.
-    self.profileId = config.get("profile_id")
+    self.profile_id = config.get("profile_id")
     self.credentials = {}
 
     for credential in CM_CREDENTIALS:
       self.credentials[credential] = config.get(credential, "")
-    
+
     self.encryption_info = {}
-    self.encryption_info["encryptionEntityType"] = config.get("encryptionEntityType", "")
-    self.encryption_info["encryptionEntityId"] = config.get("encryptionEntityId", "")
-    self.encryption_info["encryptionSource"] = config.get("encryptionSource",  "")
+    self.encryption_info["encryptionEntityType"] = (
+        config.get("encryptionEntityType", "")
+    )
+    self.encryption_info["encryptionEntityId"] = (
+        config.get("encryptionEntityId", "")
+    )
+    self.encryption_info["encryptionSource"] = (
+        config.get("encryptionSource", "")
+    )
     self.validate()
     self._validate_credentials()
-    
+
     # Authenticate using the supplied user account credentials
     self.http = self.authenticate_using_user_account()
 
@@ -124,7 +132,7 @@ class Destination:
         )
 
   def _parse_timestamp_micros(self, conversion: Dict[str, Any]):
-    t = conversion.get("timestamp_micros")
+    t = conversion.get(_TIMESTAMP_MICROS_FIELD)
     if t:
       timestamp_micros = int(t) if t.isdigit() else None
       return timestamp_micros
@@ -146,7 +154,7 @@ class Destination:
 
     try:
       request = service.conversions().batchinsert(
-          profileId=self.profileId,
+          profileId=self.profile_id,
           body=payload
       )
 
@@ -154,7 +162,6 @@ class Destination:
       # Success is to be considered between 200 and 299:
       # https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
       if response["hasFailures"]:
-        print("HIT HAS FAILURES")
         error_num = errors.ErrorNameIDMap.NON_RETRIABLE_ERROR_EVENT_NOT_SENT
         status_errors = [status["errors"] for status in response["status"]]
         print(status_errors)
@@ -179,11 +186,12 @@ class Destination:
     valid_conversion_tuples = []
     invalid_conversion_tuples = []
     http_error = None
+    gclid_based_conversions = False
 
     for i, entry in enumerate(input_data):
       conversion = {}
       for conversion_field in (CM_REQUIRED_CONVERSIONS_FIELDS + CM_CONVERSION_FIELDS + CM_MUTUALLY_EXCLUSIVE_CONVERSIONS_FIELDS):
-        if conversion_field == "timestamp_micros":
+        if conversion_field == _TIMESTAMP_MICROS_FIELD:
           timestamp_micros = self._parse_timestamp_micros(entry)
           if timestamp_micros:
             conversion[conversion_field] = timestamp_micros
@@ -194,6 +202,10 @@ class Destination:
           if value:
             conversion[conversion_field] = value
 
+            # if gclid value is valid, mark the whole batch as gclid_based
+            if conversion_field == "gclid":
+              gclid_based_conversions = True
+       
       is_valid, error_message = self._validate_conversion(conversion)
       if is_valid:
         valid_conversion_tuples.append((i, conversion))
@@ -202,8 +214,15 @@ class Destination:
 
     if valid_conversion_tuples:
       payload = {}
-      payload["encryptionInfo"] = self.encryption_info
-      payload["conversions"] = [conversion_tuple[1] for conversion_tuple in valid_conversion_tuples]
+
+      # Does not include encryptionInfo object if batch is gclid-based
+      if not gclid_based_conversions:
+        payload["encryptionInfo"] = self.encryption_info
+
+      payload["conversions"] = [
+          conversion_tuple[1]
+          for conversion_tuple in valid_conversion_tuples
+      ]
 
       if not dry_run:
         try:
@@ -222,6 +241,7 @@ class Destination:
       valid_conversion_tuples = []
 
     print(f"Sent entries: {len(valid_conversion_tuples)}")
+    print(f"{invalid_conversion_tuples=}")
     print(f"Invalid entries: {len(invalid_conversion_tuples)}")
 
     run_result = RunResult(
