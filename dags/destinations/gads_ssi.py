@@ -346,12 +346,13 @@ class Destination:
           mapped to the error message.
         """
 
-        request = self._client.get_type("AddOfflineUserDataJobOperationsRequest")
-        request.resource_name = self._create_offline_data_job(customer_id)
-        request.operations = conversions
-        request.enable_partial_failure = True
-        request.enable_warnings = True
         try:
+            request = self._client.get_type("AddOfflineUserDataJobOperationsRequest")
+            request.resource_name = self._create_offline_data_job(customer_id)
+            request.operations = conversions
+            request.enable_partial_failure = True
+            request.enable_warnings = True
+
             response = (
                 self._offline_data_job_service.add_offline_user_data_job_operations(
                     request=request,
