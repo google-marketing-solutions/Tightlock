@@ -19,12 +19,11 @@ limitations under the License."""
 
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
+import errors
+import google.oauth2.credentials
+import google_auth_httplib2
 import googleapiclient
 from googleapiclient import discovery
-import google_auth_httplib2
-import google.oauth2.credentials
-
-import errors
 from pydantic import Field
 from utils import ProtocolSchema, RunResult, ValidationResult
 
@@ -171,6 +170,7 @@ class Destination:
         raise errors.DataOutConnectorSendUnsuccessfulError(
             msg=f"Sending payload to CM360 did not complete successfully: {status_errors}",
             error_num=error_num,
+            error=status_errors
         )
 
     except googleapiclient.errors.HttpError as http_error:
@@ -181,6 +181,7 @@ class Destination:
       raise errors.DataOutConnectorSendUnsuccessfulError(
           msg=f"Sending payload to CM360 did not complete successfully: {http_error}",
           error_num=error_num,
+          error=status_errors
       )
 
   def send_data(self, input_data: List[Mapping[str, Any]], dry_run: bool) -> Optional[RunResult]:
@@ -233,15 +234,21 @@ class Destination:
         except (
             errors.DataOutConnectorSendUnsuccessfulError,
         ) as error:
-          http_error = error.msg
+          http_error = error.prev_error
       else:
         print(
             "Dry-Run: CM conversions event will not be sent."
         )
 
     if http_error:
-      invalid_conversion_tuples += [(conversion_tuple[0], http_error) for conversion_tuple in valid_conversion_tuples]
-      valid_conversion_tuples = []
+      try:
+        # index not available on http_error, defaults to -1
+        invalid_conversion_tuples += [(-1, error[0]) for error in http_error]
+        valid_conversion_tuples = [(-1, {}) for _ in range(len(valid_conversion_tuples) - len(http_error))]
+      except KeyError:
+        # if http_error is not a list, defaults to empty valid_conversion list
+        invalid_conversion_tuples += [(conversion_tuple[0], str(http_error)) for conversion_tuple in valid_conversion_tuples]
+        valid_conversion_tuples = []
 
     print(f"Sent entries: {len(valid_conversion_tuples)}")
     print(f"{invalid_conversion_tuples=}")
