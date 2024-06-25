@@ -278,7 +278,7 @@ class Destination:
                 "conversion_date_time", ""
             )
 
-            custom_key = conversion.get("custom_key", "")
+            custom_key = self._config.get("custom_key", "")
             custom_value = conversion.get("custom_value", "")
 
             # Adds custom variable ID and value if set.
@@ -300,15 +300,14 @@ class Destination:
 
         return valid_conversions, invalid_indices_and_errors
 
-    def _create_offline_data_job(self, customer_id: str) -> str:
+    def _create_offline_data_job(
+        self,
+        customer_id: str,
+    ) -> str:
         """Creates an offline, user data job.
 
         Args:
           customer_id: The customer ID for these store conversions.
-          external_key: [Optional] external ID for the offline user data job.
-          custom_key: [Optional] to segment store sales conversions. Only
-            required after creating a custom key and custom values in the
-            account.
 
         Returns: the resource_name as a string for the job created
         """
@@ -324,7 +323,7 @@ class Destination:
         store_sales_metadata.loyalty_fraction = _LOYALTY_FRACTION
         store_sales_metadata.transaction_upload_fraction = _TRANSACTION_UPLOAD_FRACTION
 
-        custom_key = self._config.get("custom_key")
+        custom_key = self._config.get("custom_key", "")
         if custom_key:
             store_sales_metadata.custom_key = custom_key
 
@@ -399,6 +398,22 @@ class Destination:
                     "refresh_token",
                     str,
                     Field(description="A Google Ads API refresh token."),
+                ),
+                (
+                    "external_id",
+                    Optional[str],
+                    Field(
+                        default="",
+                        description="Optional, but recommended, external ID for the offline user data job."
+                    ),
+                ),
+                (
+                    "custom_key",
+                    Optional[str],
+                    Field(
+                        default="",
+                        description="A custom key str to segment store sales conversions. Only required after creating a custom key and custom values in the account."
+                    ),
                 ),
             ],
         )
