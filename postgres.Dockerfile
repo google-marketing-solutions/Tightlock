@@ -13,4 +13,4 @@
 # limitations under the License.
 
 FROM postgres:15
-COPY postgres_init.sh /docker-entrypoint-initdb.d/
+COPY --chmod=755 postgres_init.sh /docker-entrypoint-initdb.d/
