@@ -16,5 +16,36 @@
 
 import os
 import sys
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__)) # This is your Project Root
+import time
+import uuid
+
+import cloud_detect
+import yaml
+
+ROOT_DIR = os.path.dirname(
+    os.path.abspath(__file__))  # This is your Project Root
 sys.path.append(ROOT_DIR)
+
+TADAU_DIR_PATH = f"{ROOT_DIR}/tadau"
+USAGE_DATA_COLLECTION_ALLOWED = os.environ.get(
+    "USAGE_COLLECTION_ALLOWED", False)
+
+if USAGE_DATA_COLLECTION_ALLOWED and not os.path.exists(TADAU_DIR_PATH):
+  # instantiates Tadau config
+  mode = 0o666
+  os.makedir(TADAU_DIR_PATH, mode)
+
+  ts = time.time()
+
+  with open(f"{TADAU_DIR_PATH}/config.yaml") as f:
+    y = yaml.safe_load(f)
+    y["fixed_dimensions"]["deploy_id"] = f"tightlock_{str(uuid.uuid4())}"
+    y["fixed_dimensions"]["deploy_infra"] = cloud_detect.provider()
+    y["fixed_dimensions"]["deploy_created_time"] = ts
+    y["api_secret"] = "4fBQHqNPRT6fRzrSJwucyg"
+    y["measurement_id"] = "G-B6RZNC295J"
+    y["opt_in"] = USAGE_DATA_COLLECTION_ALLOWED
+
+    yaml.dump(y)
+
+

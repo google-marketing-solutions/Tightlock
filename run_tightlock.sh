@@ -12,13 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-  # read flags
-  ENV_FLAG=dev
-  INTERACTIVE_FLAG=interactive
-  while getopts ":e:i:k:" opt; do
+# read flags
+ENV_FLAG=dev
+INTERACTIVE_FLAG=interactive
+USAGE_COLLECTION_ALLOWED=false
+
+while getopts ":e:i:k:u:" opt; do
   case $opt in
     e) ENV_FLAG=$OPTARG;;
     i) INTERACTIVE_FLAG=$OPTARG;;
+    u) USAGE_COLLECTION_ALLOWED=$OPTARG;;
     k) PROVIDED_API_KEY=$OPTARG;;
     \?) echo "Invalid option -$OPTARG" >&2
     exit 1;;
@@ -26,7 +29,7 @@
 done
 
 # Create env
-bash ./create_env.sh $INTERACTIVE_FLAG $ENV_FLAG $PROVIDED_API_KEY
+bash ./create_env.sh $INTERACTIVE_FLAG $ENV_FLAG $USAGE_COLLECTION_ALLOWED $PROVIDED_API_KEY
 
 # define which docker-compose command to use based on the environment
 if [ $ENV_FLAG == "prod" ]; then

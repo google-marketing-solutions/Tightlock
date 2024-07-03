@@ -21,6 +21,7 @@ import importlib.util
 import pathlib
 import re
 import traceback
+import os
 from dataclasses import asdict
 from functools import partial
 from typing import Any, Mapping, Optional, Sequence
@@ -34,6 +35,8 @@ from protocols.source_proto import SourceProto
 from utils import RunResult
 import errors
 
+import tadau
+
 
 class DAGBuilder:
   """Builder class for dynamic DAGs."""
@@ -44,6 +47,12 @@ class DAGBuilder:
     Variable.set(key=self.register_errors_var,
                  value=[],
                  description="Report of dynamic DAG registering errors.")
+    # setup Tadau library for data collection if consent for collection was provided
+    usage_collection_allowed = os.environ.get(
+      "USAGE_COLLECTION_ALLOWED", False)
+    if usage_collection_allowed:
+      self.tadau = tadau.Tadau('resources/tadau_config.yaml') # add config file
+
 
   def _config_from_ref(self, ref: Mapping[str, str]) -> SourceProto | DestinationProto:
     refs_regex = r"^#\/(sources|destinations)\/(.*)"

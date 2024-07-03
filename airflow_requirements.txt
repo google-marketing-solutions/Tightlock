@@ -11,3 +11,7 @@ google-cloud-bigquery==3.11.3
 google-ads==24.1.0
 google-auth-oauthlib==1.1.0
 google-auth-httplib2==0.1.1
+
+# Optional usage analytics
+tadau==1.0.6
+cloud-detect==0.0.13
