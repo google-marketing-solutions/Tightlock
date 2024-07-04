@@ -32,10 +32,8 @@ from airflow.models import Variable
 from airflow.operators.python_operator import PythonOperator
 from protocols.destination_proto import DestinationProto
 from protocols.source_proto import SourceProto
-from utils import RunResult
+from utils import RunResult, TadauBuilder
 import errors
-
-import tadau
 
 
 class DAGBuilder:
@@ -50,9 +48,10 @@ class DAGBuilder:
     # setup Tadau library for data collection if consent for collection was provided
     usage_collection_allowed = os.environ.get(
       "USAGE_COLLECTION_ALLOWED", False)
-    if usage_collection_allowed:
-      self.tadau = tadau.Tadau('resources/tadau_config.yaml') # add config file
+    self.tadau = TadauBuilder(usage_collection_allowed).tadau
 
+    print(f">>>>>>>>\n\n\n{self.tadau.target_url}\n\n\n")
+    print(f">>>>>>>>\n\n\n{self.tadau.fixed_dimensions}\n\n\n")
 
   def _config_from_ref(self, ref: Mapping[str, str]) -> SourceProto | DestinationProto:
     refs_regex = r"^#\/(sources|destinations)\/(.*)"

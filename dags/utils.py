@@ -27,6 +27,13 @@ import requests
 import traceback
 from dataclasses import dataclass, field
 from typing import Any, List, Dict, Mapping, Sequence, Tuple
+import time
+import uuid
+
+import cloud_detect
+import yaml
+
+import tadau
 
 from airflow.providers.apache.drill.hooks.drill import DrillHook
 from pydantic import BaseModel
@@ -368,3 +375,38 @@ class DrillMixin:
       return ValidationResult(False, [f"Error validation location `{path}`: {traceback.format_exc()}"])
     
     return ValidationResult(True, [])
+
+
+class TadauBuilder:
+  """Builds and materializes Tadau base config in a YAML file."""
+
+  def __init__(self, collection_consent: bool):
+    tadau_path = "airflow/dags/tadau"
+    folder_path = pathlib.Path().resolve().parent / tadau_path
+    file_path = f"{folder_path}/config.yaml"
+
+    if collection_consent and not os.path.exists(file_path):
+      print("\n\n\n\n>>>>>>>HERE\n\n\n")
+      mode = 0o666
+      os.makedirs(folder_path, mode)
+
+      ts = time.time()
+
+      with open() as f:
+        y = yaml.safe_load(file_path)
+        y["fixed_dimensions"]["deploy_id"] = f"tightlock_{str(uuid.uuid4())}"
+        y["fixed_dimensions"]["deploy_infra"] = cloud_detect.provider()
+        y["fixed_dimensions"]["deploy_created_time"] = ts
+        y["api_secret"] = "4fBQHqNPRT6fRzrSJwucyg"
+        y["measurement_id"] = "G-B6RZNC295J"
+        y["opt_in"] = collection_consent
+
+        yaml.dump(y)
+
+      self._tadau = tadau.Tadau(config_file_location=file_path)
+
+  @property
+  def tadau(self) -> tadau.Tadau | None:
+    return self._tadau or None
+
+
