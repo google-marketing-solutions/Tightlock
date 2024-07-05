@@ -16,7 +16,10 @@
 
 """Test utility methods."""
 
+import os
+import pytest
 from dags.utils import DrillMixin 
+from dags.utils import TadauMixin
 
 def test_parse_data():
   drill_mixin = DrillMixin()
@@ -24,3 +27,33 @@ def test_parse_data():
   test_rows = [("abc", 1), ("cde", 2)]
   result = drill_mixin._parse_data(test_fields, test_rows)
   assert {"str_field": "cde", "int_field": 2} in result
+
+@pytest.mark.parametrize(
+  "test_consent",
+  [
+      ("False"),
+      ("false"),
+      ("Whatever")
+  ]
+)
+def test_tadau_no_consent(test_consent):
+    # remove existing config, if any. Alternativaley, mock path and pretend there is no files there
+    os.remove("PATH")
+    # modify environment with test env. See if there is an alternative to temproarily modify env for the purpose of the test
+    os.environ["USAGE_COLLECTION_ALLOWED"] = test_consent
+    print(test_consent)
+    t = TadauMixin()
+    assert t.tadau is None
+
+    # TODO maybe cleanup since this may modify the env 
+
+@pytest.mark.parametrize(
+  "test_consent",
+  [
+      ("True"),
+      ("true"),
+      (True),
+  ]
+)
+def test_tadau_with_consent(test_consent):
+    pass

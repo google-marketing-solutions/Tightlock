@@ -45,14 +45,6 @@ class DAGBuilder:
     Variable.set(key=self.register_errors_var,
                  value=[],
                  description="Report of dynamic DAG registering errors.")
-    # setup Tadau library for data collection if consent for collection was provided
-    usage_collection_allowed = os.environ.get(
-      "USAGE_COLLECTION_ALLOWED", False)
-    self.tadau = TadauBuilder(usage_collection_allowed).tadau
-
-    print(f">>>>>>>>\n\n\n{self.tadau.target_url}\n\n\n")
-    print(f">>>>>>>>\n\n\n{self.tadau.fixed_dimensions}\n\n\n")
-
   def _config_from_ref(self, ref: Mapping[str, str]) -> SourceProto | DestinationProto:
     refs_regex = r"^#\/(sources|destinations)\/(.*)"
     ref_str = ref["$ref"]

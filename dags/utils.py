@@ -34,6 +34,7 @@ import cloud_detect
 import yaml
 
 import tadau
+import logging
 
 from airflow.providers.apache.drill.hooks.drill import DrillHook
 from pydantic import BaseModel
@@ -377,23 +378,31 @@ class DrillMixin:
     return ValidationResult(True, [])
 
 
-class TadauBuilder:
-  """Builds and materializes Tadau base config in a YAML file."""
+class TadauMixin:
+  """A data usage collection Mixin that uses the Tadau lib and can be used by destinations."""
 
-  def __init__(self, collection_consent: bool):
+  def __init__(self):
+
+    # setup Tadau library for data collection if consent was provided
+    collection_consent = os.environ.get(
+            "USAGE_COLLECTION_ALLOWED", False)
+
+    self._tadau = None
     tadau_path = "airflow/dags/tadau"
     folder_path = pathlib.Path().resolve().parent / tadau_path
     file_path = f"{folder_path}/config.yaml"
 
-    if collection_consent and not os.path.exists(file_path):
-      print("\n\n\n\n>>>>>>>HERE\n\n\n")
-      mode = 0o666
+    print(f"COLLECTION CONSENT: {collection_consent}")
+    if collection_consent and not os.path.exists(folder_path):
+      # config file init if instantiate for the first time
+      mode = 0o777
       os.makedirs(folder_path, mode)
 
       ts = time.time()
 
-      with open() as f:
-        y = yaml.safe_load(file_path)
+      with open(file_path, 'w') as f:
+        y = {}
+        y["fixed_dimensions"] = {}
         y["fixed_dimensions"]["deploy_id"] = f"tightlock_{str(uuid.uuid4())}"
         y["fixed_dimensions"]["deploy_infra"] = cloud_detect.provider()
         y["fixed_dimensions"]["deploy_created_time"] = ts
@@ -401,12 +410,18 @@ class TadauBuilder:
         y["measurement_id"] = "G-B6RZNC295J"
         y["opt_in"] = collection_consent
 
-        yaml.dump(y)
-
+        yaml.dump(data=y, stream=f)
+        
+    try:
       self._tadau = tadau.Tadau(config_file_location=file_path)
+      print(f"peut etre: {self._tadau.opt_in}")
+    except AssertionError as e:
+        print(f"{self._tadau} at this point")
+        logging.exception(e)
+        self._tadau = None
 
   @property
   def tadau(self) -> tadau.Tadau | None:
-    return self._tadau or None
+    return self._tadau
 
 
