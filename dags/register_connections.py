@@ -21,7 +21,6 @@ import importlib.util
 import pathlib
 import re
 import traceback
-import os
 from dataclasses import asdict
 from functools import partial
 from typing import Any, Mapping, Optional, Sequence
@@ -32,7 +31,7 @@ from airflow.models import Variable
 from airflow.operators.python_operator import PythonOperator
 from protocols.destination_proto import DestinationProto
 from protocols.source_proto import SourceProto
-from utils import RunResult, TadauBuilder
+from utils import RunResult
 import errors
 
 
@@ -45,6 +44,7 @@ class DAGBuilder:
     Variable.set(key=self.register_errors_var,
                  value=[],
                  description="Report of dynamic DAG registering errors.")
+
   def _config_from_ref(self, ref: Mapping[str, str]) -> SourceProto | DestinationProto:
     refs_regex = r"^#\/(sources|destinations)\/(.*)"
     ref_str = ref["$ref"]

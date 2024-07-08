@@ -34,7 +34,6 @@ import cloud_detect
 import yaml
 
 import tadau
-import logging
 
 from airflow.providers.apache.drill.hooks.drill import DrillHook
 from pydantic import BaseModel
@@ -371,10 +370,10 @@ class DrillMixin:
 
       if not id_value:
         return ValidationResult(False, [f"Column {unique_id} could not be find in {path}."])
-    
+   
     except Exception:  # pylint: disable=broad-except
       return ValidationResult(False, [f"Error validation location `{path}`: {traceback.format_exc()}"])
-    
+   
     return ValidationResult(True, [])
 
 
@@ -385,40 +384,45 @@ class TadauMixin:
 
     # setup Tadau library for data collection if consent was provided
     collection_consent = os.environ.get(
-            "USAGE_COLLECTION_ALLOWED", False)
+        "USAGE_COLLECTION_ALLOWED", False)
+    api_secret = os.environ.get(
+        "TADAU_API_SECRET"
+    )
+    measurement_id = os.environ.get(
+        "TADAU_MEASUREMENT_ID"
+    )
 
     self._tadau = None
     tadau_path = "airflow/dags/tadau"
     folder_path = pathlib.Path().resolve().parent / tadau_path
     file_path = f"{folder_path}/config.yaml"
 
-    print(f"COLLECTION CONSENT: {collection_consent}")
     if collection_consent and not os.path.exists(folder_path):
       # config file init if instantiate for the first time
       mode = 0o777
-      os.makedirs(folder_path, mode)
+      try:
+        os.makedirs(folder_path, mode)
+      except FileExistsError:
+        # skips folder creation
+        pass
 
-      ts = time.time()
-
-      with open(file_path, 'w') as f:
+      with open(file_path, "w") as f:
         y = {}
         y["fixed_dimensions"] = {}
         y["fixed_dimensions"]["deploy_id"] = f"tightlock_{str(uuid.uuid4())}"
         y["fixed_dimensions"]["deploy_infra"] = cloud_detect.provider()
-        y["fixed_dimensions"]["deploy_created_time"] = ts
-        y["api_secret"] = "4fBQHqNPRT6fRzrSJwucyg"
-        y["measurement_id"] = "G-B6RZNC295J"
+        y["fixed_dimensions"]["deploy_created_time"] = time.time()
+        y["api_secret"] = api_secret
+        y["measurement_id"] = measurement_id
         y["opt_in"] = collection_consent
 
         yaml.dump(data=y, stream=f)
-        
+      
     try:
       self._tadau = tadau.Tadau(config_file_location=file_path)
-      print(f"peut etre: {self._tadau.opt_in}")
-    except AssertionError as e:
-        print(f"{self._tadau} at this point")
-        logging.exception(e)
-        self._tadau = None
+    except AssertionError:
+      # if no consent was given, Tadau will raise an AssertionError  
+      self._tadau = None
 
   @property
   def tadau(self) -> tadau.Tadau | None:

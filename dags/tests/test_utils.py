@@ -16,9 +16,11 @@
 
 """Test utility methods."""
 
-import os
+import json
 import pytest
-from dags.utils import DrillMixin 
+from unittest import mock
+
+from dags.utils import DrillMixin
 from dags.utils import TadauMixin
 
 def test_parse_data():
@@ -28,32 +30,41 @@ def test_parse_data():
   result = drill_mixin._parse_data(test_fields, test_rows)
   assert {"str_field": "cde", "int_field": 2} in result
 
+
+def mock_config(test_consent):
+  return mock.mock_open(read_data=json.dumps({
+      "opt_in": test_consent,
+      "api_secret": "fake_secret",
+      "measurement_id": "fake_id"
+  }))
+
+
 @pytest.mark.parametrize(
-  "test_consent",
-  [
-      ("False"),
-      ("false"),
-      ("Whatever")
-  ]
+    "test_consent",
+    [
+        ("False"),
+        ("false"),
+        ("Whatever")
+    ]
 )
 def test_tadau_no_consent(test_consent):
-    # remove existing config, if any. Alternativaley, mock path and pretend there is no files there
-    os.remove("PATH")
-    # modify environment with test env. See if there is an alternative to temproarily modify env for the purpose of the test
-    os.environ["USAGE_COLLECTION_ALLOWED"] = test_consent
-    print(test_consent)
+  """Asserts false or invalid consent config yields no Tadau object."""
+  m = mock_config(test_consent)
+  with mock.patch("builtins.open", m):
     t = TadauMixin()
     assert t.tadau is None
 
-    # TODO maybe cleanup since this may modify the env 
 
 @pytest.mark.parametrize(
-  "test_consent",
-  [
-      ("True"),
-      ("true"),
-      (True),
-  ]
+    "test_consent",
+    [
+        ("True"),
+        ("true"),
+    ]
 )
 def test_tadau_with_consent(test_consent):
-    pass
+  """Asserts valid consent config yields valid Tadau object."""
+  m = mock_config(test_consent)
+  with mock.patch("builtins.open", m):
+    t = TadauMixin()
+    assert t.tadau.opt_in
