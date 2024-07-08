@@ -25,7 +25,7 @@ import google_auth_httplib2
 import googleapiclient
 from googleapiclient import discovery
 from pydantic import Field
-from utils import ProtocolSchema, RunResult, ValidationResult
+from utils import ProtocolSchema, RunResult, ValidationResult, TadauMixin
 
 _TIMESTAMP_MICROS_FIELD = "timestampMicros"
 
@@ -75,10 +75,11 @@ CM_CREDENTIALS = [
   "client_secret",
 ]
 
-class Destination:
+class Destination(TadauMixin):
   """Implements DestinationProto protocol for Campaign Manager Offline Conversion Import."""
 
   def __init__(self, config: Dict[str, Any]):
+    super().__init__()
     self.config = config  # Keeping a reference for convenience.
     self.profile_id = config.get("profile_id")
     self.credentials = {}
@@ -259,6 +260,18 @@ class Destination:
         failed_hits=len(invalid_conversion_tuples),
         error_messages=[str(error[1]) for error in invalid_conversion_tuples],
         dry_run=dry_run,
+    )
+
+    # Collect usage data
+    activity_id = input_data[0].get(
+        "floodlightActivityId", "NA") if input_data else "NA"
+    self.send_usage_event(
+        ads_platform=self.ads_platform_enum.CM,
+        event_action=self.event_action_enum.Conversion,
+        run_result=run_result,
+        ads_platform_id=self.profile_id,
+        ads_resource="FloodlightActivityId",
+        ads_resource_id=activity_id
     )
 
     return run_result

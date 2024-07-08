@@ -37,6 +37,8 @@ x-airflow-common:
     AIRFLOW_CONN_DRILL_DEFAULT: 'drill+sadrill://drill:8047'
     AIRFLOW_CONN_TIGHTLOCK_CONFIG: 'postgresql+psycopg2://airflow:airflow@postgres/tightlock'
     USAGE_COLLECTION_ALLOWED: ${USAGE_COLLECTION_ALLOWED:-false}
+    TADAU_API_SECRET: ${TADAU_API_SECRET:-4fBQHqNPRT6fRzrSJwucyg}
+    TADAU_MEASUREMENT_ID: ${TADAU_MEASUREMENT_ID:-G-B6RZNC295J}
     _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
   volumes:
     - ./dags:/opt/airflow/dags

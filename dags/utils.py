@@ -16,6 +16,7 @@ limitations under the License."""
 """Utility functions for DAGs."""
 
 from collections import defaultdict
+import enum
 import importlib
 import os
 import errors
@@ -26,7 +27,7 @@ import hashlib
 import requests
 import traceback
 from dataclasses import dataclass, field
-from typing import Any, List, Dict, Mapping, Sequence, Tuple
+from typing import Any, List, Dict, Mapping, Optional, Sequence, Tuple
 import time
 import uuid
 
@@ -380,6 +381,14 @@ class DrillMixin:
 class TadauMixin:
   """A data usage collection Mixin that uses the Tadau lib and can be used by destinations."""
 
+  _ADS_PLATFORM = enum.StrEnum(
+      "AdsPlatform",
+      ["GAds", "GAnalytics", "CM", "DV"])
+  _EVENT_ACTION = enum.StrEnum(
+      "EventAction",
+      ["Conversion", "AudienceCreated", "AudienceUpdated", "AudienceDeleted"]
+  )
+
   def __init__(self):
 
     # setup Tadau library for data collection if consent was provided
@@ -417,15 +426,37 @@ class TadauMixin:
         y["opt_in"] = collection_consent
 
         yaml.dump(data=y, stream=f)
-      
+     
     try:
       self._tadau = tadau.Tadau(config_file_location=file_path)
     except AssertionError:
-      # if no consent was given, Tadau will raise an AssertionError  
+      # if no consent was given, Tadau will raise an AssertionError
       self._tadau = None
 
   @property
-  def tadau(self) -> tadau.Tadau | None:
-    return self._tadau
+  def ads_platform_enum(self) -> _ADS_PLATFORM:
+    return TadauMixin._ADS_PLATFORM
+
+  @property
+  def event_action_enum(self) -> _EVENT_ACTION:
+    return TadauMixin._EVENT_ACTION
+
+  def send_usage_event(
+      self,
+      ads_platform: _ADS_PLATFORM,
+      event_action: _EVENT_ACTION,
+      run_result: RunResult,
+      ads_platform_id: Optional[str],
+      ads_resource: Optional[str],
+      ads_resource_id: Optional[str]
+  ):
+    self._tadau.send_ads_event(
+        event_action=event_action,
+        event_context=str(run_result),
+        ads_platform=ads_platform,
+        ads_platform_id=ads_platform_id or "NA",
+        ads_resource=ads_resource or "NA",
+        ads_resource_id=ads_resource_id or "NA",
+    )
 
 
