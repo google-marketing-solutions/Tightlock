@@ -79,7 +79,7 @@ class Destination(TadauMixin):
   """Implements DestinationProto protocol for Campaign Manager Offline Conversion Import."""
 
   def __init__(self, config: Dict[str, Any]):
-    super().__init__()
+    super().__init__()  # Instantiates TadauMixin
     self.config = config  # Keeping a reference for convenience.
     self.profile_id = config.get("profile_id")
     self.credentials = {}

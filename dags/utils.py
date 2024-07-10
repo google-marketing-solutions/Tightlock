@@ -446,9 +446,9 @@ class TadauMixin:
       ads_platform: _ADS_PLATFORM,
       event_action: _EVENT_ACTION,
       run_result: RunResult,
-      ads_platform_id: Optional[str],
-      ads_resource: Optional[str],
-      ads_resource_id: Optional[str]
+      ads_platform_id: Optional[str] = None,
+      ads_resource: Optional[str] = None,
+      ads_resource_id: Optional[str] = None
   ):
     self._tadau.send_ads_event(
         event_action=event_action,
