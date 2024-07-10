@@ -28,7 +28,7 @@ import google.oauth2.credentials
 
 import errors
 from pydantic import Field
-from utils import GoogleAdsUtils, ProtocolSchema, RunResult, ValidationResult
+from utils import GoogleAdsUtils, ProtocolSchema, RunResult, ValidationResult, TadauMixin
 
 DV_CONTACT_INFO_FIELDS = [
     "email",
@@ -72,10 +72,11 @@ class PayloadTypes(str, enum.Enum):
   DEVICE_ID = "mobile_device_id"
 
 
-class Destination:
+class Destination(TadauMixin):
   """Implements DestinationProto protocol for DV360 Customer Match Audiences Upload."""
 
   def __init__(self, config: Dict[str, Any]):
+    super().__init__()  # Instantiates TadauMixin
     self.config = config  # Keeping a reference for convenience.
     self.advertiser_id = config.get("advertiser_id")
     self.payload_type = config.get("payload_type")
@@ -84,6 +85,8 @@ class Destination:
     self.membership_duration_days = config.get(
         "membership_duration_days",
         MEMBERSHIP_DURATION_DEFAULT)
+
+    self.is_create = None  # Tracks if current run is used to create a new audience
 
     self.credentials = {}
     for credential in DV_CREDENTIALS:
@@ -98,7 +101,7 @@ class Destination:
         discoveryServiceUrl=SERVICE_URL,
         http=self.http
     ).firstAndThirdPartyAudiences()
-    
+
     # Request-level consent flags
     self.ad_user_data_consent = None
     self.ad_personalization_consent = None
@@ -343,13 +346,13 @@ class Destination:
       results: Includes request body, status_code, error_msg, response body and
       debug flag.
     """
-    is_create = audience_id is None
+    self.is_create = audience_id is None
     body = self._build_request_body(
         entries=valid_entries,
-        is_create=is_create
+        is_create=self.is_create
     )
     try:
-      if is_create:
+      if self.is_create:
         # creates new audience
         request = self.client.create(
             advertiserId=self.advertiser_id,
@@ -364,7 +367,7 @@ class Destination:
 
       response = request.execute()
       if response:
-        action_verb = "created" if is_create else "updated"
+        action_verb = "created" if self.is_create else "updated"
         print(f"{self.audience_name} customer match list {action_verb} successfully with {len(valid_entries)} entries.")
     except googleapiclient.errors.HttpError as http_error:
       if http_error.resp.status >= 400 and http_error.resp.status < 500:
@@ -422,6 +425,15 @@ class Destination:
         failed_hits=len(invalid_entry_tuples),
         error_messages=[str(error[1]) for error in invalid_entry_tuples],
         dry_run=dry_run,
+    )
+
+    # Collect usage data
+    event_action = self.event_action_enum.AudienceCreated if self.is_create else self.event_action_enum.AudienceUpdated
+    self.send_usage_event(
+        ads_platform=self.ads_platform_enum.DV,
+        event_action=event_action,
+        run_result=run_result,
+        ads_platform_id=self.advertiser_id,
     )
 
     return run_result
