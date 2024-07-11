@@ -14,5 +14,5 @@ google-auth-oauthlib==1.1.0
 google-auth-httplib2==0.1.1
 
 # Optional usage analytics
-tadau==1.0.6
+tadau==1.0.7
 cloud-detect==0.0.13
