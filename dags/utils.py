@@ -384,7 +384,7 @@ class TadauMixin:
 
   _ADS_PLATFORM = enum.StrEnum(
       "AdsPlatform",
-      ["GAds", "GAnalytics", "CM", "DV"])
+      ["GAds", "GA_GTAG", "GA_FIREBASE", "CM", "DV"])
   _EVENT_ACTION = enum.StrEnum(
       "EventAction",
       ["Conversion", "AudienceCreated", "AudienceUpdated", "AudienceDeleted"]
@@ -427,7 +427,7 @@ class TadauMixin:
         y["opt_in"] = collection_consent
 
         yaml.dump(data=y, stream=f)
-     
+    
     try:
       self._tadau = tadau.Tadau(config_file_location=file_path)
     except AssertionError:
@@ -444,14 +444,16 @@ class TadauMixin:
 
   def format_run_result(self, run_result: RunResult) -> str:
     max_error_message_size = 30  # GA4 100 chars limit
+    error_message = textwrap.shorten(
+        text=str(run_result.error_messages),
+        width=max_error_message_size,
+        placeholder="..."
+    )
+    # redacts numerical values from error message
+    error_message = re.sub(r"\d", "X", error_message)
 
     return f"""
-      successful_hits: {run_result.successful_hits},
-      failed_hits: {run_result.failed_hits},
-      error_messages: {
-        textwrap.shorten(text=run_result.error_messages, width=max_error_message_size, placeholder='...')
-      },
-      dry_run: {run_result.dry_run}
+      successful_hits: {run_result.successful_hits}, failed_hits: {run_result.failed_hits}, error_messages: {error_message}, dry_run: {run_result.dry_run}
     """
 
   def send_usage_event(
