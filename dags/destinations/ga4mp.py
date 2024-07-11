@@ -27,7 +27,7 @@ import errors
 import immutabledict
 import requests
 from pydantic import Field
-from utils import ProtocolSchema, RunResult, SchemaUtils, ValidationResult
+from utils import ProtocolSchema, RunResult, SchemaUtils, ValidationResult, TadauMixin
 
 _GA_EVENT_POST_URL = "https://www.google-analytics.com/mp/collect"
 _GA_EVENT_VALIDATION_URL = "https://www.google-analytics.com/debug/mp/collect"
@@ -95,10 +95,11 @@ class PayloadTypes(enum.Enum):
   GTAG = "gtag"
 
 
-class Destination:
+class Destination(TadauMixin):
   """Implements DestinationProto protocol for GA4 Measurement Protocol."""
 
   def __init__(self, config: Dict[str, Any]):
+    super().__init__()  # Instantiates TadauMixin
     self.config = config  # Keeping a reference for convenience.
     self.payload_type = config.get("payload_type")
     self.api_secret = config.get("api_secret")
@@ -358,6 +359,15 @@ class Destination:
         dry_run=dry_run,
     )
 
+    # Collect usage data
+    is_app = self.payload_type == PayloadTypes.FIREBASE.value
+    self.send_usage_event(
+        ads_platform=self.ads_platform_enum.GA_FIREBASE if is_app else self.ads_platform_enum.GA_GTAG,
+        event_action=self.event_action_enum.Conversion,
+        run_result=run_result,
+        ads_platform_id=self.firebase_app_id if is_app else self.measurement_id
+    )
+
     return run_result
 
   @staticmethod
@@ -475,5 +485,4 @@ class Destination:
       built_url = f"{_GA_EVENT_POST_URL}?{query_url}"
     else:
       built_url = f"{_GA_EVENT_VALIDATION_URL}?{query_url}"
-    return built_url
     return built_url
