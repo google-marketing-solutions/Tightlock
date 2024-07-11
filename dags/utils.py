@@ -443,7 +443,7 @@ class TadauMixin:
     return TadauMixin._EVENT_ACTION
 
   def format_run_result(self, run_result: RunResult) -> str:
-    max_error_message_size = 420  # GA4 500 chars limit
+    max_error_message_size = 30  # GA4 100 chars limit
 
     return f"""
       successful_hits: {run_result.successful_hits},
