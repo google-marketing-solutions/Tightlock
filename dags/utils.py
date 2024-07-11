@@ -35,6 +35,7 @@ import cloud_detect
 import yaml
 
 import tadau
+import textwrap
 
 from airflow.providers.apache.drill.hooks.drill import DrillHook
 from pydantic import BaseModel
@@ -441,6 +442,18 @@ class TadauMixin:
   def event_action_enum(self) -> _EVENT_ACTION:
     return TadauMixin._EVENT_ACTION
 
+  def format_run_result(self, run_result: RunResult) -> str:
+    max_error_message_size = 420  # GA4 500 chars limit
+
+    return f"""
+      successful_hits: {run_result.successful_hits},
+      failed_hits: {run_result.failed_hits},
+      error_messages: {
+        textwrap.shorten(text=run_result.error_messages, width=max_error_message_size, placeholder='...')
+      },
+      dry_run: {run_result.dry_run}
+    """
+
   def send_usage_event(
       self,
       ads_platform: _ADS_PLATFORM,
@@ -452,7 +465,7 @@ class TadauMixin:
   ):
     self._tadau.send_ads_event(
         event_action=event_action,
-        event_context=str(run_result),
+        event_context=self.format_run_result(run_result),
         ads_platform=ads_platform,
         ads_platform_id=ads_platform_id or "NA",
         ads_resource=ads_resource or "NA",
