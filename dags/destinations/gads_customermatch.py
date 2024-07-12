@@ -17,6 +17,7 @@ limitations under the License."""
 import json
 
 from pydantic import Field
+from google.ads.googleads.errors import GoogleAdsException
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 from utils import GoogleAdsUtils, ProtocolSchema, RunResult, ValidationResult, TadauMixin
 
@@ -203,20 +204,26 @@ class Destination(TadauMixin):
           error_messages=failures
       )
 
-    upload_job_id = self._create_user_upload_job()
-    add_user_data_request = self._create_add_user_data_request(
-        upload_job_id, user_data_operations
-    )
+    try:
+      upload_job_id = self._create_user_upload_job()
+      add_user_data_request = self._create_add_user_data_request(
+          upload_job_id, user_data_operations
+      )
 
-    response = self._offline_user_data_job_service.add_offline_user_data_job_operations(
-        request=add_user_data_request
-    )
-    response_failures = self._process_response_for_failures(response)
-    failures.append(response_failures)
-
-    self._offline_user_data_job_service.run_offline_user_data_job(
-        resource_name=upload_job_id
-    )
+      response = self._offline_user_data_job_service.add_offline_user_data_job_operations(
+          request=add_user_data_request
+      )
+     
+      response_failures = self._process_response_for_failures(response)
+      failures.append(response_failures)
+      
+      self._offline_user_data_job_service.run_offline_user_data_job(
+      
+          resource_name=upload_job_id
+      
+      )
+    except GoogleAdsException as e:
+      failures = [e for _ in user_data_operations]
 
     run_result = RunResult(
         successful_hits=len(user_data_operations) - len(failures),
@@ -226,7 +233,7 @@ class Destination(TadauMixin):
 
     # Collect usage data
     self.send_usage_event(
-        ads_platform=self.ads_platform_enum.Gads_CustomerMatch,
+        ads_platform=self.ads_platform_enum.GAds_CustomerMatch,
         event_action=self.event_action_enum.AudienceUpdated,
         run_result=run_result,
         ads_resource="UserListId",
