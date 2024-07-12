@@ -384,7 +384,19 @@ class TadauMixin:
 
   _ADS_PLATFORM = enum.StrEnum(
       "AdsPlatform",
-      ["GAds", "GA_GTAG", "GA_FIREBASE", "CM", "DV"])
+      [
+        "GAds_CustomerMatch",
+        "Gads_EC4Leads",
+        "Gads_EC4Web",
+        "Gads_OCA",
+        "Gads_OCI",
+        "Gads_SSI",
+        "GA_GTAG",
+        "GA_FIREBASE",
+        "CM",
+        "DV"
+      ]
+  )
   _EVENT_ACTION = enum.StrEnum(
       "EventAction",
       ["Conversion", "AudienceCreated", "AudienceUpdated", "AudienceDeleted"]

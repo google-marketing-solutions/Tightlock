@@ -18,7 +18,7 @@ import json
 
 from pydantic import Field
 from typing import Any, Dict, List, Mapping, Optional, Sequence
-from utils import GoogleAdsUtils, ProtocolSchema, RunResult, ValidationResult
+from utils import GoogleAdsUtils, ProtocolSchema, RunResult, ValidationResult, TadauMixin
 
 # Default batch size of 1000 user identifiers
 _BATCH_SIZE = 1000
@@ -125,7 +125,7 @@ class _UserDataScrubber:
       raise ValueError(f"Missing mailing address fields:  {missing_keys}")
 
 
-class Destination:
+class Destination(TadauMixin):
   """Implements DestinationProto protocol for Google Ads Customer Match.
   
   This destination assumes that the data source has 1 row per user, and 
@@ -143,6 +143,7 @@ class Destination:
     Args:
       config: Configuration object to hold environment variables
     """
+    super().__init__()  # Instantiates TadauMixin
     self._config = config
     self._debug = config.get("debug", False)
     self._customer_id = config.get("login_customer_id")
@@ -188,7 +189,7 @@ class Destination:
         print(err_msg)
         failures.append(err_msg)
     print(
-      f"There were '{len(failures)}' user rows that couldn't be processed.")
+        f"There were '{len(failures)}' user rows that couldn't be processed.")
 
     # No point in continuing if doing a dry run, since the above steps
     #   detail how many rows were processed, and how many operations
@@ -196,32 +197,43 @@ class Destination:
     if dry_run:
       print("Running as a dry run, so skipping upload steps.")
       return RunResult(
-        dry_run=True,
-        successful_hits=len(user_data_operations) - len(failures),
-        failed_hits=len(failures),
-        error_messages=failures
+          dry_run=True,
+          successful_hits=len(user_data_operations) - len(failures),
+          failed_hits=len(failures),
+          error_messages=failures
       )
 
     upload_job_id = self._create_user_upload_job()
     add_user_data_request = self._create_add_user_data_request(
-      upload_job_id, user_data_operations
+        upload_job_id, user_data_operations
     )
 
     response = self._offline_user_data_job_service.add_offline_user_data_job_operations(
-      request=add_user_data_request
+        request=add_user_data_request
     )
     response_failures = self._process_response_for_failures(response)
     failures.append(response_failures)
 
     self._offline_user_data_job_service.run_offline_user_data_job(
-      resource_name=upload_job_id
+        resource_name=upload_job_id
     )
 
-    return RunResult(
-      successful_hits=len(user_data_operations) - len(failures),
-      failed_hits=len(failures),
-      error_messages=failures
+    run_result = RunResult(
+        successful_hits=len(user_data_operations) - len(failures),
+        failed_hits=len(failures),
+        error_messages=failures
     )
+
+    # Collect usage data
+    self.send_usage_event(
+        ads_platform=self.ads_platform_enum.Gads_CustomerMatch,
+        event_action=self.event_action_enum.AudienceUpdated,
+        run_result=run_result,
+        ads_resource="UserListId",
+        ads_resource_id=self._config["user_list_id"]
+    )
+
+    return run_result
 
   def _update_consent_metadata(self, index: int, user_data: Mapping[str, Any]):
     """Updates the consent metadata with a new user_data row.
@@ -237,17 +249,17 @@ class Destination:
     ad_personalization = user_data.get("ad_personalization_consent")
 
     for global_consent_var_name, row_consent_var in [
-        ('ad_user_data_consent', ad_user_data),
-        ('ad_personalization_consent', ad_personalization)
+        ("ad_user_data_consent", ad_user_data),
+        ("ad_personalization_consent", ad_personalization)
     ]:
       global_consent_var = getattr(self, global_consent_var_name)
       if global_consent_var and row_consent_var:
-          updated_consent = (
+        updated_consent = (
             global_consent_var
             if global_consent_var == row_consent_var
             else None
-          )
-          setattr(self, global_consent_var_name, updated_consent)
+        )
+        setattr(self, global_consent_var_name, updated_consent)
       # allow global None to be update on the first row of the batch
       elif index == 0 and row_consent_var:
         setattr(self, global_consent_var_name, row_consent_var)
