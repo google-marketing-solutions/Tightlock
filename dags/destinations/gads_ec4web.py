@@ -20,7 +20,7 @@ from collections import defaultdict
 from google.ads.googleads.errors import GoogleAdsException
 from pydantic import Field
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
-from utils import GoogleAdsUtils, ProtocolSchema, RunResult, ValidationResult
+from utils import GoogleAdsUtils, ProtocolSchema, RunResult, ValidationResult, TadauMixin
 
 _BATCH_SIZE = 2000
 
@@ -54,7 +54,7 @@ CustomerAdjustmentMap = Dict[str, AdjustmentIndicesToAdjustments]
 InvalidAdjustmentIndices = List[Tuple[int, errors.ErrorNameIDMap]]
 
 
-class Destination:
+class Destination(TadauMixin):
   """Implements DestinationProto protocol for Google Ads EC for Web."""
 
   def __init__(self, config: Dict[str, Any]):
@@ -63,6 +63,7 @@ class Destination:
     Args:
       config: Configuration object to hold environment variables
     """
+    super().__init__()  # Instantiates TadauMixin
     self._config = config  # Keeping a reference for convenience.
     self._client = GoogleAdsUtils().build_google_ads_client(self._config)
     self._conversion_upload_service = self._client.get_service(
@@ -123,12 +124,24 @@ class Destination:
       # TODO(b/272258038): TBD What to do with invalid events data.
       print(f"adjustment_index: {adjustment_index}; error: {error}")
 
-    return RunResult(
-      successful_hits=len(successfully_uploaded_adjustments),
-      failed_hits=len(invalid_indices_and_errors),
-      error_messages=[str(error[1]) for error in invalid_indices_and_errors],
-      dry_run=dry_run,
+    run_result = RunResult(
+        successful_hits=len(successfully_uploaded_adjustments),
+        failed_hits=len(invalid_indices_and_errors),
+        error_messages=[str(error[1]) for error in invalid_indices_and_errors],
+        dry_run=dry_run,
     )
+
+    # Collect usage data
+    sample_conversion_action_id = input_data[0]["conversion_action_id"] if input_data else None
+    self.send_usage_event(
+        ads_platform=self.ads_platform_enum.Gads_EC4Web,
+        event_action=self.event_action_enum.Conversion,
+        run_result=run_result,
+        ads_resource="ConversionActionId",
+        ads_resource_id=sample_conversion_action_id
+    )
+
+    return run_result 
 
   def _get_valid_and_invalid_adjustments(
       self, adjustments: List[Mapping[str, Any]]
