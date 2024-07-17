@@ -28,7 +28,7 @@ import google.oauth2.credentials
 
 import errors
 from pydantic import Field
-from utils import GoogleAdsUtils, ProtocolSchema, RunResult, ValidationResult, TadauMixin
+from utils import GoogleAdsUtils, ProtocolSchema, RunResult, ValidationResult, TadauMixin, AdsPlatform, EventAction
 
 DV_CONTACT_INFO_FIELDS = [
     "email",
@@ -428,9 +428,9 @@ class Destination(TadauMixin):
     )
 
     # Collect usage data
-    event_action = self.event_action_enum.AudienceCreated if self.is_create else self.event_action_enum.AudienceUpdated
+    event_action = EventAction.AUDIENCE_CREATED if self.is_create else EventAction.AUDIENCE_UPDATED
     self.send_usage_event(
-        ads_platform=self.ads_platform_enum.DV,
+        ads_platform=AdsPlatform.DV,
         event_action=event_action,
         run_result=run_result,
         ads_platform_id=self.advertiser_id,

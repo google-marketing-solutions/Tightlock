@@ -25,7 +25,7 @@ import google_auth_httplib2
 import googleapiclient
 from googleapiclient import discovery
 from pydantic import Field
-from utils import ProtocolSchema, RunResult, ValidationResult, TadauMixin
+from utils import ProtocolSchema, RunResult, ValidationResult, TadauMixin, AdsPlatform, EventAction
 
 _TIMESTAMP_MICROS_FIELD = "timestampMicros"
 
@@ -266,8 +266,8 @@ class Destination(TadauMixin):
     activity_id = input_data[0].get(
         "floodlightActivityId", "NA") if input_data else "NA"
     self.send_usage_event(
-        ads_platform=self.ads_platform_enum.CM,
-        event_action=self.event_action_enum.Conversion,
+        ads_platform=AdsPlatform.CM,
+        event_action=EventAction.Conversion,
         run_result=run_result,
         ads_platform_id=self.profile_id,
         ads_resource="FloodlightActivityId",

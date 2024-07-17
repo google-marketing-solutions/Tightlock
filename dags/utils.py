@@ -27,7 +27,7 @@ import hashlib
 import requests
 import traceback
 from dataclasses import dataclass, field
-from typing import Any, List, Dict, Mapping, Optional, Sequence, Tuple
+from typing import Any, Callable, List, Dict, Mapping, Optional, Sequence, Tuple
 import time
 import uuid
 
@@ -40,6 +40,7 @@ import textwrap
 from airflow.providers.apache.drill.hooks.drill import DrillHook
 from pydantic import BaseModel
 from google.ads.googleads.client import GoogleAdsClient
+from google.ads.googleads.errors import GoogleAdsException
 
 _TABLE_ALIAS = "t"
 _DRILL_ADDRESS = "http://drill:8047"
@@ -51,6 +52,26 @@ _REQUIRED_GOOGLE_ADS_CREDENTIALS = frozenset([
   "developer_token",
   "login_customer_id",
   "refresh_token"])
+
+
+class AdsPlatform(enum.StrEnum):
+  GADS_CUSTOMER_MATCH = enum.auto()
+  GADS_EC4LEADS = enum.auto()
+  GADS_EC4WEB = enum.auto()
+  GADS_OCA = enum.auto()
+  GADS_OCI = enum.auto()
+  GADS_SSI = enum.auto()
+  GA_GTAG = enum.auto()
+  GA_FIREBASE = enum.auto()
+  CM = enum.auto()
+  DV = enum.auto()
+
+
+class EventAction(enum.StrEnum):
+  CONVERSION = enum.auto()
+  AUDIENCE_CREATED = enum.auto()
+  AUDIENCE_UPDATED = enum.auto()
+  AUDIENCE_DELETED = enum.auto()
 
 
 @dataclass
@@ -265,6 +286,89 @@ class GoogleAdsUtils:
     """
     return hashlib.sha256(s.strip().lower().encode()).hexdigest()
 
+  def send_ads_conversions(
+      self,
+      get_valid_and_invalid_conversions: Callable[[List[Mapping[str, Any]]], Tuple[Any, Any]],
+      send_request: Callable[[str, List[Any]], PartialFailures],
+      input_data: List[Mapping[str, Any]],
+      dry_run: bool,
+      ads_platform: str,
+  ) -> Optional[RunResult]:
+
+    """Builds payload and sends data to Google Ads API.
+
+    Args:
+      get_valid_and_invalid_conversions: Function that prepares the conversion data for API upload.
+      send_request: Function that sends the offline conversions to the API.
+      input_data: A list of rows to send to the API endpoint.
+      dry_run: If True, will not send data to API endpoints.
+      ads_platform: Identifies platform for usage collection.
+
+    Returns: A RunResult summarizing success / failures, etc.
+    """
+    valid_conversions, invalid_indices_and_errors = get_valid_and_invalid_conversions(
+        input_data
+    )
+    successfully_uploaded_conversions = []
+
+    if not dry_run:
+      for customer_id, conversion_data in valid_conversions.items():
+        conversion_indices = [data[0] for data in conversion_data]
+        conversions = [data[1] for data in conversion_data]
+
+        try:
+          partial_failures = send_request(customer_id, conversions)
+        except GoogleAdsException as error:
+          # Set every index as failed
+          err_msg = error.error.code().name
+          invalid_indices_and_errors.extend([(index, err_msg) for index in conversion_indices])
+        else:
+          # Handles partial failures: Checks which conversions were successfully
+          # sent, and which failed.
+          partial_failure_indices = set(partial_failures.keys())
+
+          for index in range(len(conversions)):
+            # Maps index from this customer's conversions back to original input data index.
+            original_index = conversion_indices[index]
+            if index in partial_failure_indices:
+              invalid_indices_and_errors.append((original_index, partial_failures[index]))
+            else:
+              successfully_uploaded_conversions.append(original_index)
+    else:
+      print(
+          "Dry-Run: Events will not be sent to the API."
+      )
+
+    print(f"Sent conversions: {successfully_uploaded_conversions}")
+    print(f"Invalid events: {invalid_indices_and_errors}")
+
+    for invalid_conversion in invalid_indices_and_errors:
+      conversion_index = invalid_conversion[0]
+      error = invalid_conversion[1]
+      # TODO(b/272258038): TBD What to do with invalid events data.
+      print(f"conversion_index: {conversion_index}; error: {error}")
+
+    run_result = RunResult(
+        successful_hits=len(successfully_uploaded_conversions),
+        failed_hits=len(invalid_indices_and_errors),
+        error_messages=[str(error[1]) for error in invalid_indices_and_errors],
+        dry_run=dry_run,
+    )
+
+    tadau_helper = TadauMixin()
+    # ads_resource_id for usage collection
+    sample_conversion_action_id = input_data[0]["conversion_action_id"] if input_data else None
+    # Collect usage data
+    tadau_helper.send_usage_event(
+        ads_platform=ads_platform,
+        event_action=EventAction.CONVERSION,
+        run_result=run_result,
+        ads_resource="ConversionActionId",
+        ads_resource_id=sample_conversion_action_id
+    )
+
+    return run_result
+
 
 class DrillMixin:
   """A Drill mixin that provides utils like a get_drill_data wrapper for other classes that use Drill."""
@@ -371,36 +475,22 @@ class DrillMixin:
       id_value = cursor.fetchone()[0]
 
       if not id_value:
-        return ValidationResult(False, [f"Column {unique_id} could not be find in {path}."])
-   
+        return ValidationResult(
+            False,
+            [f"Column {unique_id} could not be find in {path}."]
+        )
+
     except Exception:  # pylint: disable=broad-except
-      return ValidationResult(False, [f"Error validation location `{path}`: {traceback.format_exc()}"])
-   
+      return ValidationResult(
+          False,
+          [f"Error validation location `{path}`: {traceback.format_exc()}"]
+      )
+
     return ValidationResult(True, [])
 
 
 class TadauMixin:
   """A data usage collection Mixin that uses the Tadau lib and can be used by destinations."""
-
-  _ADS_PLATFORM = enum.StrEnum(
-      "AdsPlatform",
-      [
-        "GAds_CustomerMatch",
-        "Gads_EC4Leads",
-        "Gads_EC4Web",
-        "Gads_OCA",
-        "Gads_OCI",
-        "Gads_SSI",
-        "GA_GTAG",
-        "GA_FIREBASE",
-        "CM",
-        "DV"
-      ]
-  )
-  _EVENT_ACTION = enum.StrEnum(
-      "EventAction",
-      ["Conversion", "AudienceCreated", "AudienceUpdated", "AudienceDeleted"]
-  )
 
   def __init__(self):
 
@@ -439,20 +529,12 @@ class TadauMixin:
         y["opt_in"] = collection_consent
 
         yaml.dump(data=y, stream=f)
-    
+   
     try:
       self._tadau = tadau.Tadau(config_file_location=file_path)
     except AssertionError:
       # if no consent was given, Tadau will raise an AssertionError
       self._tadau = None
-
-  @property
-  def ads_platform_enum(self) -> _ADS_PLATFORM:
-    return TadauMixin._ADS_PLATFORM
-
-  @property
-  def event_action_enum(self) -> _EVENT_ACTION:
-    return TadauMixin._EVENT_ACTION
 
   def format_run_result(self, run_result: RunResult) -> str:
     max_error_message_size = 30  # GA4 100 chars limit
@@ -470,13 +552,17 @@ class TadauMixin:
 
   def send_usage_event(
       self,
-      ads_platform: _ADS_PLATFORM,
-      event_action: _EVENT_ACTION,
+      ads_platform: AdsPlatform,
+      event_action: EventAction,
       run_result: RunResult,
       ads_platform_id: Optional[str] = None,
       ads_resource: Optional[str] = None,
       ads_resource_id: Optional[str] = None
   ):
+    """Helper function for Tadau.send_ads_event providing some formating and default values."""
+    if not self._tadau:
+      return
+
     self._tadau.send_ads_event(
         event_action=event_action,
         event_context=self.format_run_result(run_result),

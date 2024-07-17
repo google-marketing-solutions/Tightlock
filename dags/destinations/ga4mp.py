@@ -27,7 +27,7 @@ import errors
 import immutabledict
 import requests
 from pydantic import Field
-from utils import ProtocolSchema, RunResult, SchemaUtils, ValidationResult, TadauMixin
+from utils import ProtocolSchema, RunResult, SchemaUtils, ValidationResult, TadauMixin, AdsPlatform, EventAction
 
 _GA_EVENT_POST_URL = "https://www.google-analytics.com/mp/collect"
 _GA_EVENT_VALIDATION_URL = "https://www.google-analytics.com/debug/mp/collect"
@@ -362,8 +362,8 @@ class Destination(TadauMixin):
     # Collect usage data
     is_app = self.payload_type == PayloadTypes.FIREBASE.value
     self.send_usage_event(
-        ads_platform=self.ads_platform_enum.GA_FIREBASE if is_app else self.ads_platform_enum.GA_GTAG,
-        event_action=self.event_action_enum.Conversion,
+        ads_platform=AdsPlatform.GA_FIREBASE if is_app else AdsPlatform.GA_GTAG,
+        event_action=EventAction.CONVERSION,
         run_result=run_result,
         ads_platform_id=self.firebase_app_id if is_app else self.measurement_id
     )

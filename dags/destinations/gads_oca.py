@@ -20,7 +20,7 @@ from collections import defaultdict
 from google.ads.googleads.errors import GoogleAdsException
 from pydantic import Field
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
-from utils import GoogleAdsUtils, ProtocolSchema, RunResult, ValidationResult
+from utils import GoogleAdsUtils, ProtocolSchema, RunResult, ValidationResult, AdsPlatform
 
 _BATCH_SIZE = 2000
 
@@ -72,53 +72,12 @@ class Destination:
 
     Returns: A RunResult summarizing success / failures, etc.
     """
-    valid_adjustments, invalid_indices_and_errors = self._get_valid_and_invalid_adjustments(
-      input_data
-    )
-    successfully_uploaded_adjustments = []
-
-    if not dry_run:
-      for customer_id, adjustment_data in valid_adjustments.items():
-        adjustment_indices = [data[0] for data in adjustment_data]
-        adjustments = [data[1] for data in adjustment_data]
-
-        try:
-          partial_failures = self._send_request(customer_id, adjustments)
-        except GoogleAdsException as error:
-          # Set every index as failed
-          err_msg = error.error.code().name
-          invalid_indices_and_errors.extend([(index, err_msg) for index in adjustment_indices])
-        else:
-          # Handles partial failures: Checks which adjustments were successfully
-          # sent, and which failed.
-          partial_failure_indices = set(partial_failures.keys())
-
-          for index in range(len(adjustments)):
-            # Maps index from this customer's adjustments back to original input data index.
-            original_index = adjustment_indices[index]
-            if index in partial_failure_indices:
-              invalid_indices_and_errors.append((original_index, partial_failures[index]))
-            else:
-              successfully_uploaded_adjustments.append(original_index)
-    else:
-      print(
-        "Dry-Run: Events will not be sent to the API."
-      )
-
-    print(f"Sent adjustments: {successfully_uploaded_adjustments}")
-    print(f"Invalid events: {invalid_indices_and_errors}")
-
-    for invalid_adjustment in invalid_indices_and_errors:
-      adjustment_index = invalid_adjustment[0]
-      error = invalid_adjustment[1]
-      # TODO(b/272258038): TBD What to do with invalid events data.
-      print(f"adjustment_index: {adjustment_index}; error: {error}")
-
-    return RunResult(
-      successful_hits=len(successfully_uploaded_adjustments),
-      failed_hits=len(invalid_indices_and_errors),
-      error_messages=[str(error[1]) for error in invalid_indices_and_errors],
-      dry_run=dry_run,
+    return GoogleAdsUtils().send_ads_conversions(
+        get_valid_and_invalid_conversions=self._get_valid_and_invalid_conversions,
+        send_request=self._send_request,
+        input_data=input_data,
+        dry_run=dry_run,
+        ads_platform=AdsPlatform.GADS_OCA,
     )
 
   def _get_valid_and_invalid_adjustments(
