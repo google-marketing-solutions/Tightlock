@@ -182,7 +182,7 @@ class Destination(TadauMixin):
       raise errors.DataOutConnectorSendUnsuccessfulError(
           msg=f"Sending payload to CM360 did not complete successfully: {http_error}",
           error_num=error_num,
-          error=status_errors
+          error=[[http_error] for _ in payload["conversions"]]
       )
 
   def send_data(self, input_data: List[Mapping[str, Any]], dry_run: bool) -> Optional[RunResult]:
@@ -267,7 +267,7 @@ class Destination(TadauMixin):
         "floodlightActivityId", "NA") if input_data else "NA"
     self.send_usage_event(
         ads_platform=AdsPlatform.CM,
-        event_action=EventAction.Conversion,
+        event_action=EventAction.CONVERSION,
         run_result=run_result,
         ads_platform_id=self.profile_id,
         ads_resource="FloodlightActivityId",
