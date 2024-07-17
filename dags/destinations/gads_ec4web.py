@@ -82,7 +82,7 @@ class Destination:
     Returns: A RunResult summarizing success / failures, etc.
     """
     return GoogleAdsUtils().send_ads_conversions(
-        get_valid_and_invalid_conversions=self._get_valid_and_invalid_conversions,
+        get_valid_and_invalid_conversions=self._get_valid_and_invalid_adjustments,
         send_request=self._send_request,
         input_data=input_data,
         dry_run=dry_run,
