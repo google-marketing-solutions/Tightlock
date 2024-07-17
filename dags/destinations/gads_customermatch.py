@@ -19,7 +19,7 @@ import json
 from pydantic import Field
 from google.ads.googleads.errors import GoogleAdsException
 from typing import Any, Dict, List, Mapping, Optional, Sequence
-from utils import GoogleAdsUtils, ProtocolSchema, RunResult, ValidationResult, TadauMixin
+from utils import GoogleAdsUtils, ProtocolSchema, RunResult, ValidationResult, TadauMixin, AdsPlatform, EventAction
 
 # Default batch size of 1000 user identifiers
 _BATCH_SIZE = 1000
@@ -233,8 +233,8 @@ class Destination(TadauMixin):
 
     # Collect usage data
     self.send_usage_event(
-        ads_platform=self.ads_platform_enum.GAds_CustomerMatch,
-        event_action=self.event_action_enum.AudienceUpdated,
+        ads_platform=AdsPlatform.GADS_CUSTOMER_MATCH,
+        event_action=EventAction.AUDIENCE_UPDATED,
         run_result=run_result,
         ads_resource="UserListId",
         ads_resource_id=self._config["user_list_id"]
