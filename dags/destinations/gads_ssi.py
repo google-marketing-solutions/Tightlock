@@ -101,7 +101,7 @@ class Destination:
         send_request=self._send_request,
         input_data=input_data,
         dry_run=dry_run,
-        ads_platform=AdsPlatform.GADS_OCA,
+        ads_platform=AdsPlatform.GADS_SSI,
     )
 
   def _get_user_identifiers(
