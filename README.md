@@ -199,3 +199,26 @@ None
 > ```
 
 </details>
+
+
+## Privacy Notice
+[!NOTE]
+By using this solution you agree for usage data to be collected automatically. If you don't want this information to be collected you can opt-out during installation or refrain from using the solution.
+
+The information we collect includes:
+
+**Log and Usage Data:** Log and usage data is service-related, diagnostic, usage, and performance information automatically collected when connections created in the Tightlock backend are run. This data may include non-personally identifiable information such as:
+
+- Type of destination being used (GA4MP, Google Ads EC4L etc);
+
+- Type of event (Conversion, Audience creation etc);
+
+- Number of succesful and unsuccessful hits for each run;
+
+- Redacted error logs;
+
+- Google Ads Platforms Resource ids (e.g. conversion action ids, floodlight ids, user list ids etc).
+
+We do not collect and personal information such as email, name, or phone number.
+
+We process your personal information to identify usage trends. We may process information about how you use our Services to better understand how they are being used so we can improve them.
