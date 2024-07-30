@@ -190,7 +190,7 @@ class Destination:
     valid_conversion_tuples = []
     invalid_conversion_tuples = []
     http_error = None
-    gclid_based_conversions = False
+    user_id_based_conversions = False
 
     for i, entry in enumerate(input_data):
       conversion = {}
@@ -206,9 +206,9 @@ class Destination:
           if value:
             conversion[conversion_field] = value
 
-            # if gclid value is valid, mark the whole batch as gclid_based
-            if conversion_field == "gclid":
-              gclid_based_conversions = True
+            # if encryptedUserId value is valid, mark the whole batch as user_id based
+            if conversion_field == "encryptedUserId":
+              user_id_based_conversions = True
        
       is_valid, error_message = self._validate_conversion(conversion)
       if is_valid:
@@ -219,8 +219,8 @@ class Destination:
     if valid_conversion_tuples:
       payload = {}
 
-      # Does not include encryptionInfo object if batch is gclid-based
-      if not gclid_based_conversions:
+      # Includes encryptionInfo object if batch is user_id based
+      if user_id_based_conversions:
         payload["encryptionInfo"] = self.encryption_info
 
       payload["conversions"] = [
