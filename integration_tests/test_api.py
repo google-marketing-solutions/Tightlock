@@ -58,7 +58,7 @@ def test_validate_source(helpers, test_location, expected_result):
 
 
 # retry to remediate rate limiter
-@retry(wait=wait_random_exponential(multiplier=1, min=3, max=10), stop=stop_after_attempt(5))
+@retry(wait=wait_random_exponential(multiplier=1, min=5, max=15), stop=stop_after_attempt(10))
 def test_validate_destination(helpers):
   request_session, api_url = helpers.get_tightlock_api_client()
   response = request_session.post(
