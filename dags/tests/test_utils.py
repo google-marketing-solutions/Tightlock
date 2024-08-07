@@ -52,7 +52,7 @@ def test_tadau_no_consent(test_consent):
   m = mock_config(test_consent)
   with mock.patch("builtins.open", m):
     t = TadauMixin()
-    assert t.tadau is None
+    assert t._tadau is None
 
 
 @pytest.mark.parametrize(
@@ -67,4 +67,4 @@ def test_tadau_with_consent(test_consent):
   m = mock_config(test_consent)
   with mock.patch("builtins.open", m):
     t = TadauMixin()
-    assert t.tadau.opt_in
+    assert t._tadau.opt_in
