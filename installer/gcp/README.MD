@@ -11,14 +11,15 @@ Click the below button to clone this repository in Google Cloud and get started.
 
 Update the `variables.tfvars` file and provide the following values. If you clicked the `Open in Cloud Shell` button this file should be opened directly in your Cloud Shell Editor.
 
-| variable                 | description                                                                                               |
-| ---------------------    | --------------------------------------------------------------------------------------------------------- |
-| api_key                  | API Key for generating the front end connection key.                                                      |
-| project_id               | Google Cloud Project ID                                                      |
-| create_bq_sample_data    | If set to true a BigQuery dataset and tables will be created with sample data uploaded via a Cloud Bucket |
-| create_tightlock_network | If set to true this will create a VPC Network and Firewall rules used by the backend instance. Set it to false when deploying multiple Tightlock instances to the same cloud project. |
-| compute_engine_zone      | Google Compute Engine Zone. Defaults to target project default if not provided.   |
-| compute_engine_region    | Google Compute Engine Region. Defaults to target project default if not provided. |
+| variable                    | description                                                                                               |
+| ---------------------       | --------------------------------------------------------------------------------------------------------- |
+| api_key                     | API Key for generating the front end connection key.                                                      |
+| project_id                  | Google Cloud Project ID                                                      |
+| create_bq_sample_data       | If set to true a BigQuery dataset and tables will be created with sample data uploaded via a Cloud Bucket |
+| create_tightlock_network    | If set to true this will create a VPC Network and Firewall rules used by the backend instance. Set it to false when deploying multiple Tightlock instances to the same cloud project. |
+| allow_usage_data_collection | Allows optional usage collection. Default value is `true`. Please read the [privacy notice](https://github.com/google-marketing-solutions/Tightlock/edit/tadau-implementation/README.md#privacy-notice) for a detailed explanation of what is being collected. |
+| compute_engine_zone         | Google Compute Engine Zone. Defaults to target project default if not provided.   |
+| compute_engine_region       | Google Compute Engine Region. Defaults to target project default if not provided. |
 
 ## Deploy
 
