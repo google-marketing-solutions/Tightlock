@@ -219,6 +219,6 @@ The information we collect includes:
 
 - Google Ads Platforms Resource ids (e.g. conversion action ids, floodlight ids, user list ids etc).
 
-We do not collect and personal information such as email, name, or phone number.
+We do not collect any personal information such as email, name, or phone number.
 
-We process your personal information to identify usage trends. We may process information about how you use our Services to better understand how they are being used so we can improve them.
+We process your logs and usage data to identify aggregated trends and issues and to better understand how our solutions are being employed so we can improve them.
