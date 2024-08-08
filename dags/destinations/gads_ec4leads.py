@@ -20,7 +20,7 @@ from collections import defaultdict
 from google.ads.googleads.errors import GoogleAdsException
 from pydantic import Field
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
-from utils import GoogleAdsUtils, ProtocolSchema, RunResult, ValidationResult
+from utils import GoogleAdsUtils, ProtocolSchema, RunResult, ValidationResult, AdsPlatform
 
 _BATCH_SIZE = 2000
 
@@ -82,53 +82,12 @@ class Destination:
 
     Returns: A RunResult summarizing success / failures, etc.
     """
-    valid_conversions, invalid_indices_and_errors = self._get_valid_and_invalid_conversions(
-      input_data
-    )
-    successfully_uploaded_conversions = []
-
-    if not dry_run:
-      for customer_id, conversion_data in valid_conversions.items():
-        conversion_indices = [data[0] for data in conversion_data]
-        conversions = [data[1] for data in conversion_data]
-
-        try:
-          partial_failures = self._send_request(customer_id, conversions)
-        except GoogleAdsException as error:
-          # Set every index as failed
-          err_msg = error.error.code().name
-          invalid_indices_and_errors.extend([(index, err_msg) for index in conversion_indices])
-        else:
-          # Handles partial failures: Checks which conversions were successfully
-          # sent, and which failed.
-          partial_failure_indices = set(partial_failures.keys())
-
-          for index in range(len(conversions)):
-            # Maps index from this customer's conversions back to original input data index.
-            original_index = conversion_indices[index]
-            if index in partial_failure_indices:
-              invalid_indices_and_errors.append((original_index, partial_failures[index]))
-            else:
-              successfully_uploaded_conversions.append(original_index)
-    else:
-      print(
-        "Dry-Run: Events will not be sent to the API."
-      )
-
-    print(f"Sent conversions: {successfully_uploaded_conversions}")
-    print(f"Invalid events: {invalid_indices_and_errors}")
-
-    for invalid_conversion in invalid_indices_and_errors:
-      conversion_index = invalid_conversion[0]
-      error = invalid_conversion[1]
-      # TODO(b/272258038): TBD What to do with invalid events data.
-      print(f"conversion_index: {conversion_index}; error: {error}")
-
-    return RunResult(
-      successful_hits=len(successfully_uploaded_conversions),
-      failed_hits=len(invalid_indices_and_errors),
-      error_messages=[str(error[1]) for error in invalid_indices_and_errors],
-      dry_run=dry_run,
+    return GoogleAdsUtils().send_ads_conversions(
+        get_valid_and_invalid_conversions=self._get_valid_and_invalid_conversions,
+        send_request=self._send_request,
+        input_data=input_data,
+        dry_run=dry_run,
+        ads_platform=AdsPlatform.GADS_EC4LEADS,
     )
 
   def _get_valid_and_invalid_conversions(

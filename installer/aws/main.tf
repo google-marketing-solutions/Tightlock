@@ -84,7 +84,7 @@ resource "aws_instance" "tightlock-backend" {
   associate_public_ip_address = true
   instance_type = "t2.large"  
   key_name = "tightlock"
-  user_data = templatefile("cloud-config.yaml", { API_KEY = "${var.api_key}"})
+  user_data = templatefile("cloud-config.yaml", { API_KEY = "${var.api_key}", USAGE_COLLECTION = "${var.allow_usage_data_collection}" })
   vpc_security_group_ids = [aws_security_group.tightlock-security-group.id]
   iam_instance_profile = aws_iam_instance_profile.tightlock_profile.name
   tags = {

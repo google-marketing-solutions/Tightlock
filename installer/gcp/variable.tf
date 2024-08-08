@@ -30,3 +30,8 @@ variable "compute_address_region" {
   description = "The Region in which the created address should reside."
   default     = "us-central1"
 }
+
+variable "allow_usage_data_collection" {
+  type        = string
+  description = "User-provided usage data collection consent."
+}
