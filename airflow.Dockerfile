@@ -13,7 +13,16 @@
 # limitations under the License.
 
 # syntax=docker/dockerfile:1
-FROM apache/airflow:2.6.2-python3.11
+FROM apache/airflow:2.9.3-python3.12
+
+USER root
+
+RUN apt-get update
+RUN apt-get install -y --no-install-recommends gosu
+RUN apt-get autoremove -y
+RUN apt-get clean
+
+USER airflow
 
 COPY airflow_requirements.txt requirements.txt
 RUN pip install -r requirements.txt
