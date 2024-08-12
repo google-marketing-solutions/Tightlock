@@ -189,8 +189,7 @@ class Destination(TadauMixin):
         err_msg = f"Could not process data at row '{index}':  {str(ve)}"
         print(err_msg)
         failures.append(err_msg)
-    print(
-        f"There were '{len(failures)}' user rows that couldn't be processed.")
+    print(f"There were '{len(failures)}' user rows that couldn't be processed.")
 
     # No point in continuing if doing a dry run, since the above steps
     #   detail how many rows were processed, and how many operations
@@ -198,10 +197,10 @@ class Destination(TadauMixin):
     if dry_run:
       print("Running as a dry run, so skipping upload steps.")
       return RunResult(
-          dry_run=True,
-          successful_hits=len(user_data_operations) - len(failures),
-          failed_hits=len(failures),
-          error_messages=failures
+        dry_run=True,
+        successful_hits=len(user_data_operations) - len(failures),
+        failed_hits=len(failures),
+        error_messages=failures
       )
 
     try:
@@ -218,9 +217,7 @@ class Destination(TadauMixin):
       failures.append(response_failures)
       
       self._offline_user_data_job_service.run_offline_user_data_job(
-      
           resource_name=upload_job_id
-      
       )
     except GoogleAdsException as e:
       failures = [e for _ in user_data_operations]
