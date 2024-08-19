@@ -16,7 +16,12 @@
 
 """Test utility methods."""
 
-from dags.utils import DrillMixin 
+import json
+import pytest
+from unittest import mock
+
+from dags.utils import DrillMixin
+from dags.utils import TadauMixin
 
 def test_parse_data():
   drill_mixin = DrillMixin()
@@ -24,3 +29,42 @@ def test_parse_data():
   test_rows = [("abc", 1), ("cde", 2)]
   result = drill_mixin._parse_data(test_fields, test_rows)
   assert {"str_field": "cde", "int_field": 2} in result
+
+
+def mock_config(test_consent):
+  return mock.mock_open(read_data=json.dumps({
+      "opt_in": test_consent,
+      "api_secret": "fake_secret",
+      "measurement_id": "fake_id"
+  }))
+
+
+@pytest.mark.parametrize(
+    "test_consent",
+    [
+        ("False"),
+        ("false"),
+        ("Whatever")
+    ]
+)
+def test_tadau_no_consent(test_consent):
+  """Asserts false or invalid consent config yields no Tadau object."""
+  m = mock_config(test_consent)
+  with mock.patch("builtins.open", m):
+    t = TadauMixin()
+    assert t._tadau is None
+
+
+@pytest.mark.parametrize(
+    "test_consent",
+    [
+        ("True"),
+        ("true"),
+    ]
+)
+def test_tadau_with_consent(test_consent):
+  """Asserts valid consent config yields valid Tadau object."""
+  m = mock_config(test_consent)
+  with mock.patch("builtins.open", m):
+    t = TadauMixin()
+    assert t._tadau.opt_in

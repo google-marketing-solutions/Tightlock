@@ -25,7 +25,7 @@ write_files:
     [Service]
     User=ec2-user
     WorkingDirectory=/mnt/disks/tightlock/Tightlock
-    ExecStart=/bin/bash /mnt/disks/tightlock/Tightlock/run_tightlock.sh -e prod -i non-interactive -k ${API_KEY}
+    ExecStart=/bin/bash /mnt/disks/tightlock/Tightlock/run_tightlock.sh -e prod -i non-interactive -k ${API_KEY} -u ${USAGE_COLLECTION}
     Restart=on-failure
 
 package_update: true

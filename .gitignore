@@ -155,3 +155,6 @@ lib64
 generated/
 include/
 .idea/
+
+# generated configs
+dags/tadau/*

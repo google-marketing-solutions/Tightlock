@@ -9,11 +9,12 @@ This installer is using [Terraform](https://www.terraform.io) to define all reso
 
 Update the `variables.tfvars` file and provide the following two values. If you clicked the `Open in Cloud Shell` button this file should be opened directly in your Cloud Shell Editor.
 
-| variable                 | description                                                                                               |
-| ---------------------    | --------------------------------------------------------------------------------------------------------- |
-| api_key                  | API Key for generating the front end connection key.                                                      |
-| access_key               | AWS access key. More details [here](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html) |
-| secret_key               | AWS secret key. More details [here](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html) |
+| variable                    | description                                                                                               |
+| ---------------------       | --------------------------------------------------------------------------------------------------------- |
+| api_key                     | API Key for generating the front end connection key.                                                      |
+| access_key                  | AWS access key. More details [here](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html) |
+| secret_key                  | AWS secret key. More details [here](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html) |
+| allow_usage_data_collection | Allows optional usage collection. Default value is `true`. Please read the [privacy notice](https://github.com/google-marketing-solutions/Tightlock/edit/tadau-implementation/README.md#privacy-notice) for a detailed explanation of what is being collected. |
 
 
 ## Deploy

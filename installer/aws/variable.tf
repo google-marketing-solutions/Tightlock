@@ -25,3 +25,9 @@ variable "aws_region" {
   description = "The Region in which the created address should reside."
   default     = "us-east-2"
 }
+
+variable "allow_usage_data_collection" {
+  type        = string
+  description = "User-provided usage data collection consent."
+}
+

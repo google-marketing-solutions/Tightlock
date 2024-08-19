@@ -20,7 +20,8 @@ if ! [ -f $ENV ]; then
 
   INTERACTIVE_FLAG=$1
   ENV_FLAG=$2
-  PROVIDED_API_KEY=$3
+  USAGE_COLLECTION_ALLOWED=$3
+  PROVIDED_API_KEY=$4
 
   # create env specific variables
   if [ $ENV_FLAG == "prod" ]; then
@@ -32,6 +33,9 @@ if ! [ -f $ENV ]; then
 
   # get latest git tag and save it to a variable
   echo -e "LATEST_TAG=$LATEST_TAG" >> $ENV
+
+  # create usage collection consent variable
+  echo -e "USAGE_COLLECTION_ALLOWED=$USAGE_COLLECTION_ALLOWED" >> $ENV
 
   # generate or read API key
   PSEUDORANDOM_API_KEY=$( dd bs=512 if=/dev/urandom count=1 2>/dev/null | tr -dc '[:alpha:]' | fold -w20 | head -n 1 )
