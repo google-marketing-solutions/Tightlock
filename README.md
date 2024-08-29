@@ -202,8 +202,9 @@ None
 
 
 ## Privacy Notice
-[!NOTE]
-By using this solution you agree for usage data to be collected automatically. If you don't want this information to be collected you can opt-out during installation or refrain from using the solution.
+
+>[!NOTE]
+>By using this solution you agree for usage data to be collected automatically. If you don't want this information to be collected you can opt-out during installation or refrain from using the solution.
 
 The information we collect includes:
 
