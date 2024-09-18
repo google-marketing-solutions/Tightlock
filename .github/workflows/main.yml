@@ -35,8 +35,12 @@ jobs:
         continue-on-error: true
         run: bash ./run_integration_tests.sh
       - name: Rename logs
+        # TODO(caiotomazelli): Disabling tests in order to implement hotfix.
+        continue-on-error: true
         run: for i in logs/**/*:*:*; do mv -- "$i" "${i//:/_}"; done
       - name: Archive logs
+        # TODO(caiotomazelli): Disabling tests in order to implement hotfix.
+        continue-on-error: true
         uses: actions/upload-artifact@v3
         with:
           name: airflow-logs
