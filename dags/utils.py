@@ -511,7 +511,7 @@ class TadauMixin:
 
     if collection_consent and not os.path.exists(folder_path):
       # config file init if instantiate for the first time
-      mode = 0o644
+      mode = 0o755
       try:
         os.makedirs(folder_path, mode)
       except FileExistsError:
