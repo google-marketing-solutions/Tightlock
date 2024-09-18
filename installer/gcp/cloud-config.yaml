@@ -40,6 +40,6 @@ bootcmd:
 
 runcmd:
 - chown -R tightlock:docker /mnt/disks/tightlock
-- [su, tightlock, -c, "git clone -b gcs-source https://github.com/google/Tightlock.git /mnt/disks/tightlock/Tightlock"]
+- [su, tightlock, -c, "git clone https://github.com/google/Tightlock.git /mnt/disks/tightlock/Tightlock"]
 - systemctl daemon-reload
 - systemctl start tightlock.service
