@@ -308,6 +308,11 @@ class Destination:
               request=request,
           )
       )
+
+      self._offline_data_job_service.run_offline_user_data_job(
+          resource_name=request.resource_name
+      )
+      
     except GoogleAdsException as error:
       print(f"Caught GoogleAdsException: {error}")
       raise
