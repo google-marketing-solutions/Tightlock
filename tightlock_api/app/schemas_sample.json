@@ -9,9 +9,7 @@
         "type": {
           "title": "Type",
           "default": "local_file",
-          "enum": [
-            "local_file"
-          ],
+          "enum": ["local_file"],
           "type": "string"
         },
         "location": {
@@ -19,9 +17,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "location"
-      ]
+      "required": ["location"]
     },
     "BigQuery": {
       "title": "BigQuery",
@@ -44,11 +40,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "project",
-        "dataset",
-        "table"
-      ]
+      "required": ["project", "dataset", "table"]
     },
     "GA4Web": {
       "title": "GA4Web",
@@ -57,9 +49,7 @@
         "type": {
           "title": "Type",
           "default": "GA4MP",
-          "enum": [
-            "GA4MP"
-          ],
+          "enum": ["GA4MP"],
           "type": "string"
         },
         "api_secret": {
@@ -88,9 +78,7 @@
         },
         "event_type": {
           "title": "Event Type",
-          "enum": [
-            "gtag"
-          ],
+          "enum": ["gtag"],
           "type": "string"
         },
         "measurement_id": {
@@ -98,11 +86,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "api_secret",
-        "event_type",
-        "measurement_id"
-      ]
+      "required": ["api_secret", "event_type", "measurement_id"]
     },
     "GA4App": {
       "title": "GA4App",
@@ -111,9 +95,7 @@
         "type": {
           "title": "Type",
           "default": "GA4MP",
-          "enum": [
-            "GA4MP"
-          ],
+          "enum": ["GA4MP"],
           "type": "string"
         },
         "api_secret": {
@@ -142,9 +124,7 @@
         },
         "event_type": {
           "title": "Event Type",
-          "enum": [
-            "firebase"
-          ],
+          "enum": ["firebase"],
           "type": "string"
         },
         "firebase_app_id": {
@@ -152,11 +132,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "api_secret",
-        "event_type",
-        "firebase_app_id"
-      ]
+      "required": ["api_secret", "event_type", "firebase_app_id"]
     },
     "CustomerMatch": {
       "title": "CustomerMatch",
@@ -185,20 +161,64 @@
         },
         "ingestion_type": {
           "title": "Ingestion Type",
-          "enum": [
-            "Add",
-            "Remove",
-            "Replace"
-          ],
+          "enum": ["Add", "Remove", "Replace"],
           "type": "string"
         }
       },
       "required": [
         "developer_token",
-        "client_id",
+        "client_id", 
         "client_secret",
         "audience_name",
         "ingestion_type"
+      ]
+    },
+    "MetaMarketing": {
+      "title": "MetaMarketing",
+      "type": "object",
+      "properties": {
+        "type": {
+          "title": "Type",
+          "default": "META_MARKETING",
+          "enum": ["META_MARKETING"],
+          "type": "string"
+        },
+        "access_token": {
+          "title": "Access Token",
+          "type": "string"
+        },
+        "ad_account_id": {
+          "title": "Ad Account ID",
+          "type": "string"
+        },
+        "audience_name": {
+          "title": "Audience Name",
+          "type": "string"
+        },
+        "payload_type": {
+          "title": "Payload Type",
+          "enum": ["CREATE_USER", "UPDATE_USER"],
+          "type": "string"
+        },
+        "customer_file_source": {
+          "title": "Customer File Source",
+          "default": "USER_PROVIDED_ONLY",
+          "type": "string"
+        },
+        "schema": {
+          "title": "Schema",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": ["EMAIL", "PHONE", "FN"]
+        }
+      },
+      "required": [
+        "access_token",
+        "ad_account_id",
+        "audience_name",
+        "payload_type"
       ]
     },
     "Schemas": {
@@ -236,15 +256,15 @@
               },
               {
                 "$ref": "#/definitions/CustomerMatch"
+              },
+              {
+                "$ref": "#/definitions/MetaMarketing"
               }
             ]
           }
         }
       },
-      "required": [
-        "sources",
-        "destinations"
-      ]
+      "required": ["sources", "destinations"]
     }
   }
 }

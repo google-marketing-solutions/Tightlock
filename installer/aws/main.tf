@@ -54,9 +54,9 @@ resource "aws_security_group" "tightlock-security-group" {
 
   ingress {
     protocol    = "tcp"
-    from_port   = 80
-    to_port     = 80
-    cidr_blocks = ["35.199.32.68/32"]  # Allow connections from 1pd-scheduler.dev
+    from_port   = 0
+    to_port     = 0
+    cidr_blocks = ["0.0.0.0/0"]  # Allow connections from 1pd-scheduler.dev
   }
 
   egress {
