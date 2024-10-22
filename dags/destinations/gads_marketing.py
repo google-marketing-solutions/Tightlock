@@ -246,7 +246,7 @@ class Destination:
     def schema() -> Optional[ProtocolSchema]:
         """Define the configuration schema."""
         return ProtocolSchema(
-            "GOOGLE_ADS_MARKETING",
+            "GADS_MARKETING",
             [
                 ("client_id", str, Field(
                     description="Google Ads API client ID")),
