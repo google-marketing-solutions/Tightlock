@@ -3,6 +3,11 @@ import json
 import os
 from enum import Enum
 
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
 # Use environment variables for configuration
 TIGHTLOCK_IP = os.getenv('TIGHTLOCK_IP', '{ADDRESS}')
 API_KEY = os.getenv('TIGHTLOCK_API_KEY', '{EXAMPLE_API_KEY}')
@@ -11,7 +16,7 @@ BASE_URL = f"http://{TIGHTLOCK_IP}/api/v1"
 
 headers = {
     "Content-Type": "application/json",
-    "X-API-Key": API_KEY
+    "X-API-Key": "API_KEY_PADS_22"
 }
 
 class PayloadType(Enum):
@@ -65,37 +70,37 @@ def test_connection():
 def setup():
     # Example configuration with Meta Marketing destination
     new_config = {
-        "label": "TEST 3 BQ to meta",
+        "label": "TEST 15 BQ to meta",
         "value": {
             "external_connections": [],
 
             "sources": {
-                "test3_bq": {
+                "test15_bq": {
                     "type": "BIGQUERY",
-                    "dataset": "tightlock_sample_data",
+                    "dataset": "Tightlock_test",
                     "table": "test_meta_table",
                     "unique_id" : "email"
                 }
             },
 
             "destinations": {
-                "test3_meta": {
+                "test15_meta": {
                     "type": "META_MARKETING",
-                    "access_token": "EAAL9plm0REcBOxZAoHFHMeFCz3bNZCZCravyapbkuFKymTvFenk46JXWZAOxsZAZAZBrhd56cKub7p924ZAEss7RXwc3gAYgWAa6cA7PL9jCSFZBzbvOosPHC4kjVZB4fnxQWyeozblxZC7h05ZCZAlgX0eVUYWrf9XJhGq5TQ756IrpomzqrEHHoC0F85MJL7VZBQkXSLFCBYyOYZBXP0EntKjJSL5YhOU3TkZD",
+                    "access_token": "EAAL9plm0REcBOZBnNWpY4sCaatHupPPVDIPQ8Uua0bCjQ7Nvj3KlwqwnLNB6tWxkA48kvhpFsRv2CfpwwzAmZCEbLuZAywE3kfuWZCQH9B76MAr9CnaKVt7PZAZCqP4tqe9LMIQfTfg5rROjL9G5VD4fymMZCt0Cd1bhmXj3V2zUdJFgc0NFfy3AStnCWGkIlVFjGnZCGftvMyZCOC8eolz0GGYz0tZBds1meiiLK6oRzuHS8ZD",
                     "ad_account_id": "1158906525188725",
                     "payload_type": PayloadType.CREATE_USER.value,
-                    "audience_name": "Marketing TL Audience from BQ 2"
+                    "audience_name": "Marketing TL Audience from BQ 15"
                 }   
             },
 
             "activations": [
                 {
-                    "name": "test_3_bq_to_meta",
+                    "name": "test_15_bq_to_meta",
                     "source": {
-                        "$ref": "#/sources/test3_bq"
+                        "$ref": "#/sources/test15_bq"
                     },
                     "destination": {
-                        "$ref": "#/destinations/test3_meta"
+                        "$ref": "#/destinations/test15_meta"
                     },
                     "schedule": "@hourly"
                 }
@@ -123,5 +128,5 @@ if __name__ == "__main__":
     #setup()
 
     # Trigger the connection (dry run)
-    print("\nTriggering connection (dry run):")
-    print(trigger_connection("test_3_bq_to_meta", dry_run=True))
+    #print("\nTriggering connection (dry run):")
+    #print(trigger_connection("test_15_bq_to_meta", dry_run=True)) 
