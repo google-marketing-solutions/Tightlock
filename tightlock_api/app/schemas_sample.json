@@ -134,43 +134,59 @@
       },
       "required": ["api_secret", "event_type", "firebase_app_id"]
     },
-    "CustomerMatch": {
-      "title": "CustomerMatch",
+    "GADSMarketing": {
+      "title": "GADSMarketing",
       "type": "object",
       "properties": {
-        "developer_token": {
-          "title": "Developer Token",
+        "type": {
+          "title": "Type",
+          "default": "GADS_MARKETING",
+          "enum": ["GADS_MARKETING"],
           "type": "string"
         },
         "client_id": {
-          "title": "Client Id",
+          "title": "Client ID",
           "type": "string"
         },
         "client_secret": {
           "title": "Client Secret",
           "type": "string"
         },
+        "developer_token": {
+          "title": "Developer Token",
+          "type": "string"
+        },
+        "login_customer_id": {
+          "title": "Login Customer ID",
+          "type": "string"
+        },
+        "refresh_token": {
+          "title": "Refresh Token",
+          "type": "string"
+        },
+        "user_list_id": {
+          "title": "User List ID",
+          "type": "string"
+        },
         "audience_name": {
           "title": "Audience Name",
           "type": "string"
         },
-        "hashed_in_place": {
-          "title": "Hashed In Place",
-          "default": false,
-          "type": "boolean"
-        },
-        "ingestion_type": {
-          "title": "Ingestion Type",
-          "enum": ["Add", "Remove", "Replace"],
+        "payload_type": {
+          "title": "Payload Type",
+          "enum": ["CREATE_AUDIENCE", "UPDATE_AUDIENCE", "DELETE_AUDIENCE"],
           "type": "string"
         }
       },
       "required": [
-        "developer_token",
-        "client_id", 
+        "client_id",
         "client_secret",
+        "developer_token",
+        "login_customer_id",
+        "refresh_token",
+        "user_list_id",
         "audience_name",
-        "ingestion_type"
+        "payload_type"
       ]
     },
     "MetaMarketing": {
@@ -255,7 +271,7 @@
                 ]
               },
               {
-                "$ref": "#/definitions/CustomerMatch"
+                "$ref": "#/definitions/GADSMarketing"
               },
               {
                 "$ref": "#/definitions/MetaMarketing"
