@@ -28,8 +28,12 @@ from pydantic import Field
 from utils import ProtocolSchema, RunResult, ValidationResult, TadauMixin, AdsPlatform, EventAction
 
 _TIMESTAMP_MICROS_FIELD = "timestampMicros"
+_USER_IDENTIFIERS_FIELD = "userIdentifiers"
+_HASHED_EMAIL_FIELD = "hashedEmail"
+_HASHED_PHONE_NUMBER_FIELD = "hashedPhoneNumber"
+_PII_FIELDS = [_HASHED_EMAIL_FIELD, _HASHED_PHONE_NUMBER_FIELD, "hashedFirstName", "hashedLastName", "hashedStreetAddress", "city", "state", "countryCode", "postalCode"]
 
-CM_CONVERSION_FIELDS = [
+CM_CONVERSION_FIELDS = _PII_FIELDS + [  # Add base PII fields 
   _TIMESTAMP_MICROS_FIELD,
   "floodlightConfigurationId",
   "floodlightActivityId",
@@ -46,7 +50,7 @@ CM_CONVERSION_FIELDS = [
   "matchId",
   "dclid",
   "impressionId",
-  "userIdentifiers",
+  _USER_IDENTIFIERS_FIELD,
   "kind",
 ] + ["u" + str(i) for i in range(1, 101)]  # Add fields for the supported number of custom Floodlight variables (100).
 
@@ -205,11 +209,20 @@ class Destination(TadauMixin):
         else:
           value = entry.get(conversion_field)
           if value:
-            conversion[conversion_field] = value
+            if conversion_field in _PII_FIELDS:
+              if _USER_IDENTIFIERS_FIELD not in conversion:
+                # initialize user identifiers object
+                conversion[_USER_IDENTIFIERS_FIELD] = {}
+              if conversion_field in [_HASHED_EMAIL_FIELD, _HASHED_PHONE_NUMBER_FIELD]:
+                conversion[_USER_IDENTIFIERS_FIELD][conversion_field] = value
+              else:
+                conversion[_USER_IDENTIFIERS_FIELD]["addressInfo"][conversion_field] = value
+            else:
+              conversion[conversion_field] = value
 
-            # if encryptedUserId value is valid, mark the whole batch as user_id based
-            if conversion_field == "encryptedUserId":
-              user_id_based_conversions = True
+              # if encryptedUserId value is valid, mark the whole batch as user_id based
+              if conversion_field == "encryptedUserId":
+                user_id_based_conversions = True
        
       is_valid, error_message = self._validate_conversion(conversion)
       if is_valid:
