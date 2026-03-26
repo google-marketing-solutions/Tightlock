@@ -3,7 +3,7 @@ pytest==7.4.0
 pytest-cov==4.1.0
 pytest-mypy==0.10.3
 pytest-mock==3.14.0
-Requests==2.32.3
+Requests==2.33.0
 pydantic==1.10.16
 
 # Data sources and destinations requirements
